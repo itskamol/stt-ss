@@ -8,6 +8,7 @@ import {
     Post,
     UnauthorizedException,
 } from '@nestjs/common';
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EventService } from './event.service';
 import { LoggerService } from '../../core/logger/logger.service';
 import { CreateRawEventDto } from '../../shared/dto';
@@ -15,22 +16,39 @@ import { Public } from '../../shared/decorators';
 import { DeviceAuthGuard } from '../../shared/guards/device-auth.guard';
 import { UseGuards } from '@nestjs/common';
 
+@ApiTags('Events')
 @Controller('api/v1/events')
 @UseGuards(DeviceAuthGuard)
 export class EventController {
     constructor(
         private readonly eventService: EventService,
-        private readonly logger: LoggerService
+        private readonly logger: LoggerService,
     ) {}
 
     @Post('raw')
     @Public() // This endpoint uses DeviceAuthGuard instead of JWT
     @HttpCode(HttpStatus.ACCEPTED)
+    @ApiOperation({ summary: 'Process a raw event from a device' })
+    @ApiHeader({ name: 'x-device-id', description: 'Unique ID of the device', required: true })
+    @ApiHeader({
+        name: 'x-device-signature',
+        description: 'HMAC signature of the payload',
+        required: true,
+    })
+    @ApiHeader({
+        name: 'x-idempotency-key',
+        description: 'Idempotency key for preventing duplicate requests',
+        required: false,
+    })
+    @ApiResponse({ status: 202, description: 'Event accepted for processing.' })
+    @ApiResponse({ status: 400, description: 'Bad request (e.g., missing headers).' })
+    @ApiResponse({ status: 401, description: 'Unauthorized (e.g., invalid signature).' })
+    @ApiResponse({ status: 200, description: 'Duplicate event, already processed.' })
     async processRawEvent(
         @Body() createRawEventDto: CreateRawEventDto,
         @Headers('x-device-id') deviceId: string,
         @Headers('x-device-signature') signature: string,
-        @Headers('x-idempotency-key') idempotencyKey?: string
+        @Headers('x-idempotency-key') idempotencyKey?: string,
     ): Promise<{ eventId: string; status: string; message: string }> {
         // Validate required headers
         if (!deviceId) {
@@ -50,7 +68,7 @@ export class EventController {
                 createRawEventDto,
                 deviceId,
                 signature,
-                finalIdempotencyKey
+                finalIdempotencyKey,
             );
 
             this.logger.log('Raw event processed successfully', {

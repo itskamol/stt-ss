@@ -1,13 +1,16 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class PaginationDto {
+    @ApiProperty({ required: false, default: 1 })
     @IsOptional()
     @Transform(({ value }) => parseInt(value))
     @IsInt()
     @Min(1)
     page?: number = 1;
 
+    @ApiProperty({ required: false, default: 10 })
     @IsOptional()
     @Transform(({ value }) => parseInt(value))
     @IsInt()
@@ -17,10 +20,15 @@ export class PaginationDto {
 }
 
 export class PaginationResponseDto<T> {
+    @ApiProperty({ isArray: true })
     data: T[];
+    @ApiProperty()
     total: number;
+    @ApiProperty()
     page: number;
+    @ApiProperty()
     limit: number;
+    @ApiProperty()
     totalPages: number;
 
     constructor(data: T[], total: number, page: number, limit: number) {

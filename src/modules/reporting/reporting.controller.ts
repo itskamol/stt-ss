@@ -1,4 +1,13 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
+import {
+    ApiBearerAuth,
+    ApiBody,
+    ApiOperation,
+    ApiParam,
+    ApiQuery,
+    ApiResponse,
+    ApiTags,
+} from '@nestjs/swagger';
 import { ReportingService } from './reporting.service';
 import {
     CreateReportDto,
@@ -11,6 +20,8 @@ import { Permissions, Scope, User } from '../../shared/decorators';
 import { DataScope, UserContext } from '../../shared/interfaces';
 import { AuditLog } from '../../shared/interceptors/audit-log.interceptor';
 
+@ApiTags('Reports')
+@ApiBearerAuth()
 @Controller('reports')
 export class ReportingController {
     constructor(private readonly reportingService: ReportingService) {}
@@ -23,10 +34,19 @@ export class ReportingController {
         captureRequest: true,
         captureResponse: true,
     })
+    @ApiOperation({ summary: 'Generate a new report' })
+    @ApiBody({ type: CreateReportDto })
+    @ApiResponse({
+        status: 201,
+        description: 'The report generation has been successfully queued.',
+        type: ReportResponseDto,
+    })
+    @ApiResponse({ status: 400, description: 'Invalid input.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
     async generateReport(
         @Body() createReportDto: CreateReportDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<ReportResponseDto> {
         const report = await this.reportingService.generateReport(createReportDto, scope, user.sub);
 
@@ -52,10 +72,19 @@ export class ReportingController {
 
     @Get()
     @Permissions('report:read:all')
+    @ApiOperation({ summary: 'Get all reports with filters and pagination' })
+    @ApiQuery({ name: 'filtersDto', type: ReportFiltersDto })
+    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
+    @ApiResponse({
+        status: 200,
+        description: 'A paginated list of reports.',
+        type: PaginationResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getReports(
         @Scope() scope: DataScope,
         @Query() filtersDto: ReportFiltersDto,
-        @Query() paginationDto: PaginationDto
+        @Query() paginationDto: PaginationDto,
     ): Promise<PaginationResponseDto<ReportResponseDto>> {
         const filters = {
             type: filtersDto.type,
@@ -100,6 +129,9 @@ export class ReportingController {
 
     @Get('types')
     @Permissions('report:read:all')
+    @ApiOperation({ summary: 'Get a list of available report types' })
+    @ApiResponse({ status: 200, description: 'A list of report types.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getReportTypes(): Promise<
         Array<{
             type: string;
@@ -118,9 +150,14 @@ export class ReportingController {
 
     @Get(':id')
     @Permissions('report:read:all')
+    @ApiOperation({ summary: 'Get a specific report by ID' })
+    @ApiParam({ name: 'id', description: 'ID of the report' })
+    @ApiResponse({ status: 200, description: 'The report details.', type: ReportResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 404, description: 'Report not found.' })
     async getReportById(
         @Param('id') id: string,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<ReportResponseDto> {
         const report = await this.reportingService.getReportById(id, scope);
 
@@ -157,9 +194,14 @@ export class ReportingController {
 
     @Get(':id/download')
     @Permissions('report:download')
+    @ApiOperation({ summary: 'Get a download URL for a report' })
+    @ApiParam({ name: 'id', description: 'ID of the report' })
+    @ApiResponse({ status: 200, description: 'A temporary download URL for the report.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 404, description: 'Report not found or not completed.' })
     async downloadReport(
         @Param('id') id: string,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<{
         downloadUrl: string;
         expiresAt: Date;
@@ -176,10 +218,19 @@ export class ReportingController {
         captureResponse: true,
     })
     @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Regenerate an existing report' })
+    @ApiParam({ name: 'id', description: 'ID of the report to regenerate' })
+    @ApiResponse({
+        status: 200,
+        description: 'The report regeneration has been successfully queued.',
+        type: ReportResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 404, description: 'Report not found.' })
     async regenerateReport(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<ReportResponseDto> {
         const report = await this.reportingService.regenerateReport(id, scope, user.sub);
 
@@ -211,6 +262,18 @@ export class ReportingController {
         captureRequest: true,
         captureResponse: true,
     })
+    @ApiOperation({ summary: 'Generate a daily attendance report' })
+    @ApiBody({
+        schema: {
+            properties: {
+                date: { type: 'string', format: 'date' },
+                branchId: { type: 'string' },
+                format: { type: 'string', enum: ['CSV', 'PDF', 'EXCEL'] },
+                includeDetails: { type: 'boolean' },
+            },
+        },
+    })
+    @ApiResponse({ status: 201, description: 'Report generation queued.', type: ReportResponseDto })
     async generateDailyAttendanceReport(
         @Body()
         params: {
@@ -220,7 +283,7 @@ export class ReportingController {
             includeDetails?: boolean;
         },
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<ReportResponseDto> {
         const createReportDto: CreateReportDto = {
             name: `Daily Attendance Report - ${params.date}`,
@@ -263,6 +326,19 @@ export class ReportingController {
         captureRequest: true,
         captureResponse: true,
     })
+    @ApiOperation({ summary: 'Generate a monthly attendance report' })
+    @ApiBody({
+        schema: {
+            properties: {
+                year: { type: 'number' },
+                month: { type: 'number' },
+                branchId: { type: 'string' },
+                format: { type: 'string', enum: ['CSV', 'PDF', 'EXCEL'] },
+                includeSummary: { type: 'boolean' },
+            },
+        },
+    })
+    @ApiResponse({ status: 201, description: 'Report generation queued.', type: ReportResponseDto })
     async generateMonthlyAttendanceReport(
         @Body()
         params: {
@@ -273,7 +349,7 @@ export class ReportingController {
             includeSummary?: boolean;
         },
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<ReportResponseDto> {
         const createReportDto: CreateReportDto = {
             name: `Monthly Attendance Report - ${params.year}-${params.month.toString().padStart(2, '0')}`,
@@ -317,6 +393,19 @@ export class ReportingController {
         captureRequest: true,
         captureResponse: true,
     })
+    @ApiOperation({ summary: 'Generate an employee list report' })
+    @ApiBody({
+        schema: {
+            properties: {
+                branchId: { type: 'string' },
+                departmentId: { type: 'string' },
+                isActive: { type: 'boolean' },
+                format: { type: 'string', enum: ['CSV', 'PDF', 'EXCEL'] },
+                includeContactInfo: { type: 'boolean' },
+            },
+        },
+    })
+    @ApiResponse({ status: 201, description: 'Report generation queued.', type: ReportResponseDto })
     async generateEmployeeListReport(
         @Body()
         params: {
@@ -327,7 +416,7 @@ export class ReportingController {
             includeContactInfo?: boolean;
         },
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<ReportResponseDto> {
         const createReportDto: CreateReportDto = {
             name: 'Employee List Report',
@@ -371,6 +460,19 @@ export class ReportingController {
         captureRequest: true,
         captureResponse: true,
     })
+    @ApiOperation({ summary: 'Generate a security audit report' })
+    @ApiBody({
+        schema: {
+            properties: {
+                startDate: { type: 'string', format: 'date' },
+                endDate: { type: 'string', format: 'date' },
+                severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+                format: { type: 'string', enum: ['CSV', 'PDF', 'EXCEL'] },
+                includeDetails: { type: 'boolean' },
+            },
+        },
+    })
+    @ApiResponse({ status: 201, description: 'Report generation queued.', type: ReportResponseDto })
     async generateSecurityAuditReport(
         @Body()
         params: {
@@ -381,7 +483,7 @@ export class ReportingController {
             includeDetails?: boolean;
         },
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<ReportResponseDto> {
         const createReportDto: CreateReportDto = {
             name: `Security Audit Report - ${params.startDate} to ${params.endDate}`,

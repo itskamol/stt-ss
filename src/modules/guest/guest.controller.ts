@@ -10,6 +10,15 @@ import {
     Post,
     Query,
 } from '@nestjs/common';
+import {
+    ApiBearerAuth,
+    ApiBody,
+    ApiOperation,
+    ApiParam,
+    ApiQuery,
+    ApiResponse,
+    ApiTags,
+} from '@nestjs/swagger';
 import { GuestService } from './guest.service';
 import {
     ApproveGuestVisitDto,
@@ -25,21 +34,32 @@ import {
 import { Permissions, Scope, User } from '../../shared/decorators';
 import { DataScope, UserContext } from '../../shared/interfaces';
 
+@ApiTags('Guests')
+@ApiBearerAuth()
 @Controller('guests')
 export class GuestController {
     constructor(private readonly guestService: GuestService) {}
 
     @Post('visits')
     @Permissions('guest:create')
+    @ApiOperation({ summary: 'Create a new guest visit request' })
+    @ApiBody({ type: CreateGuestVisitDto })
+    @ApiResponse({
+        status: 201,
+        description: 'The guest visit has been successfully created.',
+        type: GuestVisitResponseDto,
+    })
+    @ApiResponse({ status: 400, description: 'Invalid input.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
     async createGuestVisit(
         @Body() createGuestVisitDto: CreateGuestVisitDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.createGuestVisit(
             createGuestVisitDto,
             scope,
-            user.sub
+            user.sub,
         );
 
         return {
@@ -61,10 +81,19 @@ export class GuestController {
 
     @Get('visits')
     @Permissions('guest:read:all')
+    @ApiOperation({ summary: 'Get all guest visits with filters and pagination' })
+    @ApiQuery({ name: 'filtersDto', type: GuestVisitFiltersDto })
+    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
+    @ApiResponse({
+        status: 200,
+        description: 'A paginated list of guest visits.',
+        type: PaginationResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getGuestVisits(
         @Scope() scope: DataScope,
         @Query() filtersDto: GuestVisitFiltersDto,
-        @Query() paginationDto: PaginationDto
+        @Query() paginationDto: PaginationDto,
     ): Promise<PaginationResponseDto<GuestVisitResponseDto>> {
         const filters = {
             status: filtersDto.status,
@@ -102,9 +131,17 @@ export class GuestController {
 
     @Get('visits/search')
     @Permissions('guest:read:all')
+    @ApiOperation({ summary: 'Search for guest visits' })
+    @ApiQuery({ name: 'q', description: 'Search term (at least 2 characters)' })
+    @ApiResponse({
+        status: 200,
+        description: 'A list of guest visits matching the search term.',
+        type: [GuestVisitResponseDto],
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
     async searchGuestVisits(
         @Query('q') searchTerm: string,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<GuestVisitResponseDto[]> {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
@@ -131,9 +168,17 @@ export class GuestController {
 
     @Get('visits/stats')
     @Permissions('guest:read:all')
+    @ApiOperation({ summary: 'Get guest visit statistics' })
+    @ApiQuery({ name: 'filtersDto', type: GuestVisitFiltersDto })
+    @ApiResponse({
+        status: 200,
+        description: 'Guest visit statistics.',
+        type: GuestVisitStatsDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getGuestVisitStats(
         @Scope() scope: DataScope,
-        @Query() filtersDto: GuestVisitFiltersDto
+        @Query() filtersDto: GuestVisitFiltersDto,
     ): Promise<GuestVisitStatsDto> {
         const filters = {
             branchId: filtersDto.branchId,
@@ -146,9 +191,17 @@ export class GuestController {
 
     @Get('visits/status/:status')
     @Permissions('guest:read:all')
+    @ApiOperation({ summary: 'Get guest visits by status' })
+    @ApiParam({ name: 'status', description: 'Status of the guest visit' })
+    @ApiResponse({
+        status: 200,
+        description: 'A list of guest visits with the specified status.',
+        type: [GuestVisitResponseDto],
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getGuestVisitsByStatus(
         @Param('status') status: string,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<GuestVisitResponseDto[]> {
         const guestVisits = await this.guestService.getGuestVisitsByStatus(status, scope);
 
@@ -171,9 +224,18 @@ export class GuestController {
 
     @Get('visits/:id')
     @Permissions('guest:read:all')
+    @ApiOperation({ summary: 'Get a specific guest visit by ID' })
+    @ApiParam({ name: 'id', description: 'ID of the guest visit' })
+    @ApiResponse({
+        status: 200,
+        description: 'The guest visit details.',
+        type: GuestVisitResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 404, description: 'Guest visit not found.' })
     async getGuestVisitById(
         @Param('id') id: string,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.getGuestVisitById(id, scope);
 
@@ -200,17 +262,28 @@ export class GuestController {
 
     @Patch('visits/:id')
     @Permissions('guest:update:managed')
+    @ApiOperation({ summary: 'Update a guest visit' })
+    @ApiParam({ name: 'id', description: 'ID of the guest visit to update' })
+    @ApiBody({ type: UpdateGuestVisitDto })
+    @ApiResponse({
+        status: 200,
+        description: 'The guest visit has been successfully updated.',
+        type: GuestVisitResponseDto,
+    })
+    @ApiResponse({ status: 400, description: 'Invalid input.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 404, description: 'Guest visit not found.' })
     async updateGuestVisit(
         @Param('id') id: string,
         @Body() updateGuestVisitDto: UpdateGuestVisitDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.updateGuestVisit(
             id,
             updateGuestVisitDto,
             scope,
-            user.sub
+            user.sub,
         );
 
         return {
@@ -232,17 +305,27 @@ export class GuestController {
 
     @Post('visits/:id/approve')
     @Permissions('guest:approve')
+    @ApiOperation({ summary: 'Approve a guest visit' })
+    @ApiParam({ name: 'id', description: 'ID of the guest visit to approve' })
+    @ApiBody({ type: ApproveGuestVisitDto })
+    @ApiResponse({
+        status: 200,
+        description: 'The guest visit has been successfully approved.',
+        type: GuestVisitResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 404, description: 'Guest visit not found.' })
     async approveGuestVisit(
         @Param('id') id: string,
         @Body() approveDto: ApproveGuestVisitDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.approveGuestVisit(
             id,
             approveDto,
             scope,
-            user.sub
+            user.sub,
         );
 
         return {
@@ -265,17 +348,27 @@ export class GuestController {
 
     @Post('visits/:id/reject')
     @Permissions('guest:approve')
+    @ApiOperation({ summary: 'Reject a guest visit' })
+    @ApiParam({ name: 'id', description: 'ID of the guest visit to reject' })
+    @ApiBody({ type: RejectGuestVisitDto })
+    @ApiResponse({
+        status: 200,
+        description: 'The guest visit has been successfully rejected.',
+        type: GuestVisitResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 404, description: 'Guest visit not found.' })
     async rejectGuestVisit(
         @Param('id') id: string,
         @Body() rejectDto: RejectGuestVisitDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.rejectGuestVisit(
             id,
             rejectDto.reason,
             scope,
-            user.sub
+            user.sub,
         );
 
         return {
@@ -297,10 +390,19 @@ export class GuestController {
 
     @Post('visits/:id/activate')
     @Permissions('guest:manage')
+    @ApiOperation({ summary: 'Activate a guest visit (check-in)' })
+    @ApiParam({ name: 'id', description: 'ID of the guest visit to activate' })
+    @ApiResponse({
+        status: 200,
+        description: 'The guest visit has been successfully activated.',
+        type: GuestVisitResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 404, description: 'Guest visit not found.' })
     async activateGuestVisit(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.activateGuestVisit(id, scope, user.sub);
 
@@ -323,10 +425,19 @@ export class GuestController {
 
     @Post('visits/:id/complete')
     @Permissions('guest:manage')
+    @ApiOperation({ summary: 'Complete a guest visit (check-out)' })
+    @ApiParam({ name: 'id', description: 'ID of the guest visit to complete' })
+    @ApiResponse({
+        status: 200,
+        description: 'The guest visit has been successfully completed.',
+        type: GuestVisitResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 404, description: 'Guest visit not found.' })
     async completeGuestVisit(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope
+        @Scope() scope: DataScope,
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.completeGuestVisit(id, scope, user.sub);
 
@@ -350,6 +461,9 @@ export class GuestController {
     @Post('visits/expire-overdue')
     @Permissions('admin:system:manage')
     @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Expire overdue guest visits' })
+    @ApiResponse({ status: 200, description: 'The number of expired visits.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
     async expireOverdueVisits(@Scope() scope: DataScope): Promise<{ expiredCount: number }> {
         const expiredCount = await this.guestService.expireOverdueVisits(scope);
         return { expiredCount };
