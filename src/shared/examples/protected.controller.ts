@@ -2,6 +2,7 @@ import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { DataScopeGuard, JwtAuthGuard, RolesGuard } from '../guards';
 import { NoScoping, Permissions, Public, Roles, Scope, User } from '../decorators';
 import { DataScope, UserContext } from '../interfaces/data-scope.interface';
+import { Role } from '@prisma/client';
 
 /**
  * Example controller demonstrating the use of guards and decorators
@@ -40,7 +41,7 @@ export class ProtectedController {
     }
 
     @Get('admin-only')
-    @Roles('ORG_ADMIN', 'SUPER_ADMIN')
+    @Roles(Role.SUPER_ADMIN)
     getAdminData(@User('roles') userRoles: string[]) {
         return {
             message: 'This is admin-only data',
@@ -50,7 +51,7 @@ export class ProtectedController {
 
     @Get('super-admin-only')
     @NoScoping()
-    @Roles('SUPER_ADMIN')
+    @Roles(Role.SUPER_ADMIN)
     getSuperAdminData(@User() user: UserContext) {
         return {
             message: 'This is super admin data with no organization scoping',

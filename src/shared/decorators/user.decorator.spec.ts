@@ -1,6 +1,7 @@
 import { ExecutionContext } from '@nestjs/common';
 import { User } from './user.decorator';
 import { UserContext } from '../interfaces/data-scope.interface';
+import { Role } from '@prisma/client';
 
 describe('User Decorator', () => {
     const mockUser: UserContext = {
@@ -8,7 +9,7 @@ describe('User Decorator', () => {
         email: 'test@example.com',
         organizationId: 'org-456',
         branchIds: ['branch-1'],
-        roles: ['ORG_ADMIN'],
+        roles: [Role.ORG_ADMIN],
         permissions: ['employee:create'],
     };
 
@@ -64,7 +65,7 @@ describe('User Decorator', () => {
 
         const result = factory('roles', mockContext);
 
-        expect(result).toEqual(['ORG_ADMIN']);
+        expect(result).toEqual([Role.ORG_ADMIN]);
     });
 
     it('should return undefined when user is not present', () => {

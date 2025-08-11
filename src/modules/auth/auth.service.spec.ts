@@ -111,7 +111,7 @@ describe('AuthService', () => {
                     sub: 'user-123',
                     email: 'test@example.com',
                     organizationId: 'org-456',
-                    roles: ['ORG_ADMIN'],
+                    roles: [Role.ORG_ADMIN],
                 })
             );
             expect(result).toEqual({
@@ -122,7 +122,7 @@ describe('AuthService', () => {
                     email: 'test@example.com',
                     fullName: 'Test User',
                     organizationId: 'org-456',
-                    roles: ['ORG_ADMIN'],
+                    roles: [Role.ORG_ADMIN],
                 },
             });
             expect(mockLogger.logUserAction).toHaveBeenCalledWith(
@@ -207,7 +207,7 @@ describe('AuthService', () => {
             expect(mockJwtService.generateTokenPair).toHaveBeenCalledWith(
                 expect.objectContaining({
                     branchIds: ['branch-1', 'branch-2'],
-                    roles: ['BRANCH_MANAGER'],
+                    roles: [Role.BRANCH_MANAGER],
                 })
             );
         });

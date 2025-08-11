@@ -4,6 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { RequestWithUser, RolesGuard } from './roles.guard';
 import { LoggerService } from '../../core/logger/logger.service';
 import { UserContext } from '../interfaces/data-scope.interface';
+import { Role } from '@prisma/client';
 
 describe('RolesGuard', () => {
     let guard: RolesGuard;
@@ -45,7 +46,7 @@ describe('RolesGuard', () => {
             email: 'test@example.com',
             organizationId: 'org-456',
             branchIds: ['branch-1'],
-            roles: ['ORG_ADMIN'],
+            roles: [Role.ORG_ADMIN],
             permissions: ['employee:create', 'employee:read:all'],
         };
 
@@ -100,7 +101,7 @@ describe('RolesGuard', () => {
             mockReflector.getAllAndOverride
                 .mockReturnValueOnce(false) // isPublic
                 .mockReturnValueOnce(null) // permissions
-                .mockReturnValueOnce(['ORG_ADMIN', 'SUPER_ADMIN']); // roles
+                .mockReturnValueOnce([Role.ORG_ADMIN, Role.SUPER_ADMIN]); // roles
 
             const result = guard.canActivate(mockContext);
 
@@ -109,8 +110,8 @@ describe('RolesGuard', () => {
                 'Role/permission check passed',
                 expect.objectContaining({
                     userId: 'user-123',
-                    userRoles: ['ORG_ADMIN'],
-                    requiredRoles: ['ORG_ADMIN', 'SUPER_ADMIN'],
+                    userRoles: [Role.ORG_ADMIN],
+                    requiredRoles: [Role.ORG_ADMIN, Role.SUPER_ADMIN],
                     module: 'roles-guard',
                 })
             );
@@ -121,15 +122,15 @@ describe('RolesGuard', () => {
             mockReflector.getAllAndOverride
                 .mockReturnValueOnce(false) // isPublic
                 .mockReturnValueOnce(null) // permissions
-                .mockReturnValueOnce(['SUPER_ADMIN']); // roles
+                .mockReturnValueOnce([Role.SUPER_ADMIN]); // roles
 
             expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
             expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
                 'ROLE_ACCESS_DENIED',
                 expect.objectContaining({
                     userId: 'user-123',
-                    userRoles: ['ORG_ADMIN'],
-                    requiredRoles: ['SUPER_ADMIN'],
+                    userRoles: [Role.ORG_ADMIN],
+                    requiredRoles: [Role.SUPER_ADMIN],
                 }),
                 'user-123',
                 'org-456',
@@ -197,7 +198,7 @@ describe('RolesGuard', () => {
             mockReflector.getAllAndOverride
                 .mockReturnValueOnce(false) // isPublic
                 .mockReturnValueOnce(['employee:create']) // permissions
-                .mockReturnValueOnce(['ORG_ADMIN']); // roles
+                .mockReturnValueOnce([Role.ORG_ADMIN]); // roles
 
             const result = guard.canActivate(mockContext);
 
@@ -209,7 +210,7 @@ describe('RolesGuard', () => {
             mockReflector.getAllAndOverride
                 .mockReturnValueOnce(false) // isPublic
                 .mockReturnValueOnce(['employee:delete']) // permissions (user doesn't have this)
-                .mockReturnValueOnce(['ORG_ADMIN']); // roles (user has this)
+                .mockReturnValueOnce([Role.ORG_ADMIN]); // roles (user has this)
 
             expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
         });

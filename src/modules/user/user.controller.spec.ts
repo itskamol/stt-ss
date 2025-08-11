@@ -35,7 +35,7 @@ describe('UserController', () => {
         email: 'admin@example.com',
         organizationId: 'org-456',
         branchIds: [],
-        roles: ['ORG_ADMIN'],
+        roles: [Role.ORG_ADMIN],
         permissions: ['user:manage:org'],
     };
 

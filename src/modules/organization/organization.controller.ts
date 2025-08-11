@@ -30,6 +30,7 @@ import {
 } from '../../shared/dto';
 import { NoScoping, Permissions, Roles, Scope, User } from '../../shared/decorators';
 import { DataScope, UserContext } from '../../shared/interfaces';
+import { Role } from '@prisma/client';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -287,7 +288,7 @@ export class OrganizationController {
 
     @Delete(':id')
     @NoScoping()
-    @Roles('SUPER_ADMIN')
+    @Roles(Role.SUPER_ADMIN)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Delete an organization (Super Admin)' })
     @ApiParam({ name: 'id', description: 'ID of the organization to delete' })

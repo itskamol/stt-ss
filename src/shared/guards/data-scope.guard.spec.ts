@@ -4,6 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { DataScopeGuard, RequestWithScope } from './data-scope.guard';
 import { LoggerService } from '../../core/logger/logger.service';
 import { UserContext } from '../interfaces/data-scope.interface';
+import { Role } from '@prisma/client';
 
 describe('DataScopeGuard', () => {
     let guard: DataScopeGuard;
@@ -49,7 +50,7 @@ describe('DataScopeGuard', () => {
             email: 'test@example.com',
             organizationId: 'org-456',
             branchIds: ['branch-1', 'branch-2'],
-            roles: ['ORG_ADMIN'],
+            roles: [Role.ORG_ADMIN],
             permissions: ['employee:create'],
         };
 
@@ -90,7 +91,7 @@ describe('DataScopeGuard', () => {
         it('should allow SUPER_ADMIN access to no-scoping routes', () => {
             const superAdminUser: UserContext = {
                 ...mockUser,
-                roles: ['SUPER_ADMIN'],
+                roles: [Role.SUPER_ADMIN],
                 organizationId: undefined,
             };
             const mockContext = createMockContext(superAdminUser);
@@ -116,7 +117,7 @@ describe('DataScopeGuard', () => {
                 'DATA_SCOPE_VIOLATION_NO_SCOPING',
                 expect.objectContaining({
                     userId: 'user-123',
-                    roles: ['ORG_ADMIN'],
+                    roles: [Role.ORG_ADMIN],
                 }),
                 'user-123',
                 'org-456',

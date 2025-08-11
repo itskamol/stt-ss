@@ -3,6 +3,7 @@ import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { LoggerService } from '../../core/logger/logger.service';
+import { Role } from '@prisma/client';
 
 describe('JwtAuthGuard', () => {
     let guard: JwtAuthGuard;
@@ -101,7 +102,7 @@ describe('JwtAuthGuard', () => {
             sub: 'user-123',
             email: 'test@example.com',
             organizationId: 'org-456',
-            roles: ['ORG_ADMIN'],
+            roles: [Role.ORG_ADMIN],
         };
 
         it('should return user on successful authentication', () => {
@@ -113,7 +114,7 @@ describe('JwtAuthGuard', () => {
                 expect.objectContaining({
                     userId: 'user-123',
                     organizationId: 'org-456',
-                    roles: ['ORG_ADMIN'],
+                    roles: [Role.ORG_ADMIN],
                     module: 'jwt-auth-guard',
                 })
             );

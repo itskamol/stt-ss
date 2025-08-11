@@ -32,6 +32,7 @@ import {
 } from '../../shared/dto';
 import { NoScoping, Permissions, Roles, Scope, User } from '../../shared/decorators';
 import { DataScope, UserContext } from '../../shared/interfaces';
+import { Role } from '@prisma/client';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -187,7 +188,7 @@ export class UserController {
 
     @Post(':id/assign-organization')
     @NoScoping()
-    @Roles('SUPER_ADMIN')
+    @Roles(Role.SUPER_ADMIN)
     @ApiOperation({ summary: 'Assign a user to an organization (Super Admin)' })
     @ApiParam({ name: 'id', description: 'ID of the user' })
     @ApiBody({ type: AssignUserToOrganizationDto })
@@ -217,7 +218,7 @@ export class UserController {
 
     @Delete(':userId/organizations/:organizationId')
     @NoScoping()
-    @Roles('SUPER_ADMIN')
+    @Roles(Role.SUPER_ADMIN)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Remove a user from an organization (Super Admin)' })
     @ApiParam({ name: 'userId', description: 'ID of the user' })
