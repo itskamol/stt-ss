@@ -1,4 +1,4 @@
-# Sector Staff v2.1
+# Sector Staff
 
 Multi-organization attendance tracking and access control system built with NestJS.
 
