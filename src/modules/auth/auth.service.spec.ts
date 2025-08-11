@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
-import { AuthService, LoginDto } from './auth.service';
+import { AuthService } from './auth.service';
 import { UserRepository } from '../user/user.repository';
 import { JwtService as CustomJwtService } from './jwt.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { PasswordUtil } from '@/shared/utils/password.util';
 import { Role } from '@/shared/enums';
+import { LoginDto } from '@/shared/dto';
 
 // Mock PasswordUtil
 jest.mock('@/shared/utils/password.util');

@@ -9,6 +9,7 @@ import {
     DeviceInfo,
     IDeviceAdapter,
 } from '../device.adapter';
+import { DeviceStatus, DeviceType } from '@prisma/client';
 
 @Injectable()
 export class StubDeviceAdapter implements IDeviceAdapter {
@@ -118,22 +119,22 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         const diskUsage = Math.floor(Math.random() * 100);
         const temperature = Math.floor(Math.random() * 40) + 20; // 20-60°C
 
-        let status: 'healthy' | 'warning' | 'critical' = 'healthy';
+        let status: DeviceStatus = DeviceStatus.OFFLINE;
         const issues: string[] = [];
 
         if (memoryUsage > 90) {
-            status = 'critical';
+            status = DeviceStatus.ONLINE;
             issues.push('High memory usage');
         } else if (memoryUsage > 80) {
-            status = 'warning';
+            status = DeviceStatus.ONLINE;
             issues.push('Elevated memory usage');
         }
 
         if (temperature > 55) {
-            status = 'critical';
+            status = DeviceStatus.ERROR;
             issues.push('High temperature');
         } else if (temperature > 50) {
-            status = 'warning';
+            status = DeviceStatus.ERROR;
             issues.push('Elevated temperature');
         }
 
@@ -227,7 +228,7 @@ export class StubDeviceAdapter implements IDeviceAdapter {
 
         // Update device status
         const device = this.devices.get(deviceId)!;
-        device.status = 'online';
+        device.status = DeviceStatus.ONLINE;
         device.lastSeen = new Date();
     }
 
@@ -293,41 +294,41 @@ export class StubDeviceAdapter implements IDeviceAdapter {
             {
                 id: 'device-001',
                 name: 'Main Entrance Card Reader',
-                type: 'card_reader',
-                status: 'online',
+                type: DeviceType.CARD_READER,
+                status: DeviceStatus.ONLINE,
                 ipAddress: '192.168.1.100',
                 macAddress: '00:11:22:33:44:55',
                 firmwareVersion: 'v2.1.3',
                 lastSeen: new Date(),
                 capabilities: [
-                    { type: 'card_read', enabled: true },
-                    { type: 'door_control', enabled: true },
+                    { type: DeviceType.CARD_READER, enabled: true },
+                    { type: DeviceType.CAMERA, enabled: true },
                 ],
             },
             {
                 id: 'device-002',
                 name: 'Office Biometric Scanner',
-                type: 'biometric',
-                status: 'online',
+                type: DeviceType.FINGERPRINT,
+                status: DeviceStatus.ONLINE,
                 ipAddress: '192.168.1.101',
                 macAddress: '00:11:22:33:44:56',
                 firmwareVersion: 'v1.8.2',
                 lastSeen: new Date(),
                 capabilities: [
-                    { type: 'biometric_scan', enabled: true },
-                    { type: 'door_control', enabled: true },
+                    { type: DeviceType.FINGERPRINT, enabled: true },
+                    { type: DeviceType.OTHER, enabled: true },
                 ],
             },
             {
                 id: 'device-003',
                 name: 'Visitor QR Scanner',
-                type: 'qr_scanner',
-                status: 'offline',
+                type: DeviceType.OTHER,
+                status: DeviceStatus.OFFLINE,
                 ipAddress: '192.168.1.102',
                 macAddress: '00:11:22:33:44:57',
                 firmwareVersion: 'v1.5.1',
                 lastSeen: new Date(Date.now() - 3600000), // 1 hour ago
-                capabilities: [{ type: 'qr_scan', enabled: true }],
+                capabilities: [{ type: DeviceType.OTHER, enabled: true }],
             },
         ];
 

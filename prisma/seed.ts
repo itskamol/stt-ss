@@ -34,6 +34,24 @@ async function main() {
 
     console.log('✅ Created demo organization:', organization.name);
 
+    // Link super admin to organization
+    await prisma.organizationUser.upsert({
+        where: {
+            userId_organizationId: {
+                userId: superAdmin.id,
+                organizationId: organization.id,
+            },
+        },
+        update: {},
+        create: {
+            userId: superAdmin.id,
+            organizationId: organization.id,
+            role: Role.SUPER_ADMIN,
+        },
+    });
+
+    console.log('✅ Linked super admin to organization');
+
     // Create organization admin
     const orgAdminPassword = await bcrypt.hash('OrgAdmin123!', 12);
     const orgAdmin = await prisma.user.upsert({
@@ -99,6 +117,28 @@ async function main() {
     });
 
     console.log('✅ Created IT department:', department.name);
+
+    // Create a test device
+    const testDevice = await prisma.device.upsert({
+        where: {
+            deviceIdentifier: 'camera-001',
+        },
+        update: {},
+        create: {
+            deviceIdentifier: 'camera-001',
+            organizationId: organization.id,
+            branchId: branch.id,
+            name: 'Test Camera 001',
+            type: 'CAMERA',
+            status: 'ONLINE',
+            macAddress: '00:11:22:33:44:55',
+            ipAddress: '192.168.1.100',
+            model: 'DS-2CD2143G0-I',
+            description: 'Hikvision test camera for event processing',
+        },
+    });
+
+    console.log('✅ Created test device:', testDevice.name);
 
     console.log('🎉 Database seed completed successfully!');
 }

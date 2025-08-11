@@ -1,21 +1,45 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { LoggerService } from '@/core/logger/logger.service';
+import { HikvisionAuthService } from '../services/hikvision-auth.service';
+import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
+
+interface DeviceInfo {
+    id: string;
+    signature: string;
+    timestamp?: string;
+    authenticated: boolean;
+}
+
+interface RequestWithDevice extends RequestWithCorrelation {
+    device?: DeviceInfo;
+}
 
 @Injectable()
 export class DeviceAuthGuard implements CanActivate {
     constructor(
         private reflector: Reflector,
-        private readonly logger: LoggerService
+        private readonly logger: LoggerService,
+        private readonly hikvisionAuthService: HikvisionAuthService,
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const request = context.switchToHttp().getRequest();
+        const request = context.switchToHttp().getRequest<RequestWithDevice>();
+        
+        // Check if route is marked as public
+        const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+
+        if (isPublic) {
+            return true;
+        }
 
         // Get device authentication headers
-        const deviceId = request.headers['x-device-id'];
-        const signature = request.headers['x-device-signature'];
-        const timestamp = request.headers['x-timestamp'];
+        const deviceId = request.headers['x-device-id'] as string;
+        const signature = request.headers['x-device-signature'] as string;
+        const timestamp = request.headers['x-timestamp'] as string;
 
         if (!deviceId) {
             this.logger.warn('Device authentication failed: Missing device ID', {
@@ -34,7 +58,7 @@ export class DeviceAuthGuard implements CanActivate {
         }
 
         // Validate timestamp if provided (prevent replay attacks)
-        if (timestamp) {
+        if (timestamp && typeof timestamp === 'string') {
             const requestTime = new Date(timestamp);
             const now = new Date();
             const timeDiff = Math.abs(now.getTime() - requestTime.getTime());
@@ -54,7 +78,7 @@ export class DeviceAuthGuard implements CanActivate {
         if (!this.isValidSignature(deviceId, signature, request.body, timestamp)) {
             this.logger.warn('Device authentication failed: Invalid signature', {
                 deviceId,
-                signature: `${signature.substring(0, 10)}...`,
+                signature: typeof signature === 'string' ? `${signature.substring(0, 10)}...` : signature,
             });
             throw new UnauthorizedException('Invalid device signature');
         }

@@ -3,8 +3,8 @@ import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { DataScopeGuard, RequestWithScope } from './data-scope.guard';
 import { LoggerService } from '@/core/logger/logger.service';
-import { UserContext } from '../interfaces/data-scope.interface';
 import { Role } from '@prisma/client';
+import { UserContext } from '../interfaces';
 
 describe('DataScopeGuard', () => {
     let guard: DataScopeGuard;

@@ -1,8 +1,10 @@
+import { DeviceStatus, DeviceType } from "@prisma/client";
+
 export interface DeviceInfo {
     id: string;
     name: string;
-    type: 'card_reader' | 'biometric' | 'qr_scanner' | 'facial_recognition';
-    status: 'online' | 'offline' | 'maintenance' | 'error';
+    type: DeviceType;
+    status: DeviceStatus;
     ipAddress?: string;
     macAddress?: string;
     firmwareVersion?: string;
@@ -11,7 +13,7 @@ export interface DeviceInfo {
 }
 
 export interface DeviceCapability {
-    type: 'card_read' | 'biometric_scan' | 'qr_scan' | 'facial_recognition' | 'door_control';
+    type: DeviceType;
     enabled: boolean;
     configuration?: Record<string, any>;
 }
@@ -71,7 +73,7 @@ export interface DeviceEvent {
 
 export interface DeviceHealth {
     deviceId: string;
-    status: 'healthy' | 'warning' | 'critical';
+    status: DeviceStatus;
     uptime: number; // seconds
     memoryUsage?: number; // percentage
     diskUsage?: number; // percentage

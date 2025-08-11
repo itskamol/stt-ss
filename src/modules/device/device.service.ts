@@ -5,11 +5,22 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { Device } from '@prisma/client';
+import { Device, DeviceStatus, DeviceType } from '@prisma/client';
 import { DeviceRepository } from './device.repository';
+import { DeviceConfigurationService } from './device-configuration.service';
+import { EmployeeSyncService } from './employee-sync.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { DatabaseUtil } from '@/shared/utils';
-import { CreateDeviceDto, UpdateDeviceDto } from '@/shared/dto';
+import { 
+    CreateDeviceConfigurationDto, 
+    CreateDeviceDto,
+    CreateDeviceTemplateDto,
+    DeviceControlDto,
+    DeviceSyncEmployeesDto,
+    UpdateDeviceConfigurationDto,
+    UpdateDeviceDto,
+    UpdateDeviceTemplateDto
+} from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 import { DeviceCommand, IDeviceAdapter } from '@/shared/adapters/device.adapter';
 
@@ -17,6 +28,8 @@ import { DeviceCommand, IDeviceAdapter } from '@/shared/adapters/device.adapter'
 export class DeviceService {
     constructor(
         private readonly deviceRepository: DeviceRepository,
+        private readonly deviceConfigurationService: DeviceConfigurationService,
+        private readonly employeeSyncService: EmployeeSyncService,
         private readonly logger: LoggerService,
         @Inject('IDeviceAdapter') private readonly deviceAdapter: IDeviceAdapter
     ) {}
@@ -454,4 +467,278 @@ export class DeviceService {
             throw new BadRequestException('Failed to discover devices');
         }
     }
-}
+
+    /**
+     * Control device actions (open door, reboot, etc.)
+     */
+    async controlDevice(
+        id: string,
+        controlDto: DeviceControlDto,
+        scope: DataScope,
+        controlledByUserId: string,
+        correlationId?: string
+    ) {
+        const device = await this.deviceRepository.findById(id, scope);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+
+        if (!device.isActive) {
+            throw new BadRequestException('Cannot control inactive device');
+        }
+
+        try {
+            const result = await this.deviceAdapter.sendCommand(device.deviceIdentifier, {
+                command: controlDto.action as any,
+                parameters: controlDto.parameters,
+                timeout: controlDto.timeout,
+            });
+
+            this.logger.logUserAction(
+                controlledByUserId,
+                'DEVICE_CONTROL_ACTION',
+                {
+                    deviceId: id,
+                    deviceName: device.name,
+                    action: controlDto.action,
+                    parameters: controlDto.parameters,
+                    success: result.success,
+                    message: result.message,
+                },
+                scope.organizationId,
+                correlationId
+            );
+
+            return result;
+        } catch (error) {
+            this.logger.logUserAction(
+                controlledByUserId,
+                'DEVICE_CONTROL_FAILED',
+                {
+                    deviceId: id,
+                    deviceName: device.name,
+                    action: controlDto.action,
+                    error: error.message,
+                },
+                scope.organizationId,
+                correlationId
+            );
+
+            throw error;
+        }
+    }
+
+    /**
+     * Sync employees to device
+     */
+    async syncEmployeesToDevice(
+        id: string,
+        syncDto: DeviceSyncEmployeesDto,
+        scope: DataScope,
+        syncedByUserId: string,
+        correlationId?: string
+    ) {
+        return this.employeeSyncService.syncEmployeesToDevice(
+            id,
+            syncDto,
+            scope,
+            syncedByUserId,
+            correlationId
+        );
+    }
+
+    /**
+     * Get device configuration
+     */
+    async getDeviceConfiguration(id: string, scope: DataScope) {
+        const device = await this.deviceRepository.findById(id, scope);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+
+        return this.deviceConfigurationService.getConfiguration(id, scope);
+    }
+
+    /**
+     * Create device configuration
+     */
+    async createDeviceConfiguration(
+        id: string,
+        configData: CreateDeviceConfigurationDto,
+        scope: DataScope,
+        createdByUserId: string,
+        correlationId?: string
+    ) {
+        const device = await this.deviceRepository.findById(id, scope);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+
+        return this.deviceConfigurationService.createConfiguration(
+            configData,
+            id,
+            scope,
+            createdByUserId,
+            correlationId
+        );
+    }
+
+    /**
+     * Update device configuration
+     */
+    async updateDeviceConfiguration(
+        id: string,
+        configData: UpdateDeviceConfigurationDto,
+        scope: DataScope,
+        updatedByUserId: string,
+        correlationId?: string
+    ) {
+        const device = await this.deviceRepository.findById(id, scope);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+
+        return this.deviceConfigurationService.updateConfiguration(
+            id,
+            configData,
+            scope,
+            updatedByUserId,
+            correlationId
+        );
+    }
+
+    /**
+     * Delete device configuration
+     */
+    async deleteDeviceConfiguration(
+        id: string,
+        scope: DataScope,
+        deletedByUserId: string,
+        correlationId?: string
+    ) {
+        const device = await this.deviceRepository.findById(id, scope);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+
+        return this.deviceConfigurationService.deleteConfiguration(
+            id,
+            scope,
+            deletedByUserId,
+            correlationId
+        );
+    }
+
+    /**
+     * Get employee sync status for device
+     */
+    async getEmployeeSyncStatus(id: string, scope: DataScope) {
+        return this.employeeSyncService.getSyncStatus(id, scope);
+    }
+
+    /**
+     * Retry failed syncs for device
+     */
+    async retryFailedSyncs(
+        id: string,
+        scope: DataScope,
+        retriedByUserId: string,
+        correlationId?: string
+    ) {
+        return this.employeeSyncService.retryFailedSyncs(id, scope, retriedByUserId);
+    }
+
+    /**
+     * Get employee sync history
+     */
+    async getEmployeeSyncHistory(employeeId: string, scope: DataScope) {
+        return this.employeeSyncService.getEmployeeSyncHistory(employeeId, scope);
+    }
+
+    /**
+     * Create device template
+     */
+    async createDeviceTemplate(
+        templateData: CreateDeviceTemplateDto,
+        scope: DataScope,
+        createdByUserId: string,
+        correlationId?: string
+    ) {
+        return this.deviceConfigurationService.createTemplate(
+            templateData,
+            scope,
+            createdByUserId,
+            correlationId
+        );
+    }
+
+    /**
+     * Get device templates
+     */
+    async getDeviceTemplates(scope: DataScope) {
+        return this.deviceConfigurationService.getTemplates(scope);
+    }
+
+    /**
+     * Get device template by ID
+     */
+    async getDeviceTemplateById(id: string, scope: DataScope) {
+        return this.deviceConfigurationService.getTemplateById(id, scope);
+    }
+
+    /**
+     * Update device template
+     */
+    async updateDeviceTemplate(
+        id: string,
+        templateData: UpdateDeviceTemplateDto,
+        scope: DataScope,
+        updatedByUserId: string,
+        correlationId?: string
+    ) {
+        return this.deviceConfigurationService.updateTemplate(
+            id,
+            templateData,
+            scope,
+            updatedByUserId,
+            correlationId
+        );
+    }
+
+    /**
+     * Delete device template
+     */
+    async deleteDeviceTemplate(
+        id: string,
+        scope: DataScope,
+        deletedByUserId: string,
+        correlationId?: string
+    ) {
+        return this.deviceConfigurationService.deleteTemplate(
+            id,
+            scope,
+            deletedByUserId,
+            correlationId
+        );
+    }
+
+    /**
+     * Apply template to device
+     */
+    async applyTemplateToDevice(
+        templateId: string,
+        deviceId: string,
+        scope: DataScope,
+        appliedByUserId: string,
+        correlationId?: string
+    ) {
+        return this.deviceConfigurationService.applyTemplateToDevice(
+            templateId,
+            deviceId,
+            scope,
+            appliedByUserId,
+            correlationId
+        );
+    }
+
+    }

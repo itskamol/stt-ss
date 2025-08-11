@@ -92,6 +92,7 @@ export class DeviceRepository {
         if (data.macAddress !== undefined) updateData.macAddress = data.macAddress;
         if (data.model !== undefined) updateData.model = data.model;
         if (data.status !== undefined) updateData.status = data.status;
+        if (data.lastSeen !== undefined) updateData.lastSeen = data.lastSeen;
 
         return this.prisma.device.update({
             where: { id },
@@ -151,63 +152,11 @@ export class DeviceRepository {
         });
     }
 
-    async getAllMacAddresses(scope: DataScope): Promise<string[]> {
-        const whereClause = QueryBuilder.buildOrganizationScope(scope);
-
-        const devices = await this.prisma.device.findMany({
-            where: whereClause,
-            select: {
-                macAddress: true,
-            },
-        });
-
-        return devices.map(device => device.macAddress).filter(Boolean);
-    }
-
-    async findByStatus(status: string, scope: DataScope): Promise<Device[]> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
-
-        return this.prisma.device.findMany({
-            where: {
-                status: status as any,
-                branch: whereClause,
-            },
-            orderBy: { name: 'asc' },
-        });
-    }
-
-    async findByType(type: string, scope: DataScope): Promise<Device[]> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
-
-        return this.prisma.device.findMany({
-            where: {
-                type: type as any,
-                branch: whereClause,
-            },
-            orderBy: { name: 'asc' },
-        });
-    }
-
-    async updateLastSeen(id: string, lastSeenAt: Date): Promise<void> {
+    
+    async updateLastSeen(id: string, lastSeen: Date): Promise<void> {
         await this.prisma.device.update({
             where: { id },
-            data: { lastSeenAt },
-        });
-    }
-
-    async findOfflineDevices(thresholdMinutes: number, scope: DataScope): Promise<Device[]> {
-        const threshold = new Date(Date.now() - thresholdMinutes * 60 * 1000);
-        const whereClause = QueryBuilder.buildBranchScope(scope);
-
-        return this.prisma.device.findMany({
-            where: {
-                status: 'ONLINE',
-                lastSeenAt: {
-                    lt: threshold,
-                },
-                branch: whereClause,
-            },
-            orderBy: { lastSeenAt: 'asc' },
+            data: { lastSeen },
         });
     }
 

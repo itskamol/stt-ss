@@ -1,17 +1,20 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { EventRepository } from './event.repository';
 import { DeviceRepository } from '../device/device.repository';
+import { PrismaService } from '@/core/database/prisma.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { CacheService } from '@/core/cache/cache.service';
 import { QueueProducer } from '@/core/queue/queue.producer';
 import { CreateRawEventDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
+import { DeviceStatus } from '@prisma/client';
 
 @Injectable()
 export class EventService {
     constructor(
         private readonly eventRepository: EventRepository,
         private readonly deviceRepository: DeviceRepository,
+        private readonly prisma: PrismaService,
         private readonly logger: LoggerService,
         private readonly cacheService: CacheService,
         private readonly queueProducer: QueueProducer
@@ -40,14 +43,14 @@ export class EventService {
             throw new BadRequestException('Device not found');
         }
 
-        if (device.status !== 'ONLINE') {
+        if (device.status !== DeviceStatus.ONLINE) {
             throw new BadRequestException('Device is not online');
         }
 
         // Create device event log
         const eventLog = await this.eventRepository.createDeviceEventLog({
             deviceId: device.id,
-            eventType: createRawEventDto.eventType,
+            eventType: createRawEventDto.eventType as any,
             metadata: createRawEventDto,
             timestamp: createRawEventDto.timestamp
                 ? new Date(createRawEventDto.timestamp)
@@ -122,21 +125,32 @@ export class EventService {
     }
 
     private async getDeviceInfo(deviceId: string) {
-        // Create a scope that allows access to all organizations for device lookup
-        const globalScope: DataScope = {
-            organizationId: '', // Will be filled from device
-        };
-
-        // First try to find by ID
-        let device = await this.deviceRepository.findById(deviceId, globalScope);
-
+        // For device authentication, we need to bypass organization scope
+        // Try to find by deviceIdentifier first (our test device uses this)
+        let device = await this.prisma.device.findFirst({
+            where: {
+                deviceIdentifier: deviceId,
+            },
+        });
+        
+        // If not found, try by ID
         if (!device) {
-            // Try to find by MAC address if deviceId looks like a MAC
-            if (deviceId.includes(':') || deviceId.includes('-')) {
-                device = await this.deviceRepository.findByMacAddress(deviceId, globalScope);
-            }
+            device = await this.prisma.device.findFirst({
+                where: {
+                    id: deviceId,
+                },
+            });
         }
-
+        
+        // If still not found, try by MAC address
+        if (!device && (deviceId.includes(':') || deviceId.includes('-'))) {
+            device = await this.prisma.device.findFirst({
+                where: {
+                    macAddress: deviceId,
+                },
+            });
+        }
+        
         return device;
     }
 
@@ -150,7 +164,7 @@ export class EventService {
         return this.eventRepository.findEventLogs(
             {
                 deviceId,
-                eventType,
+                eventType: eventType as any,
                 startDate,
                 endDate,
             },

@@ -3,9 +3,11 @@ import { PrismaService } from '@/core/database/prisma.service';
 import { DataScope } from '@/shared/interfaces';
 import { QueryBuilder } from '@/shared/utils/query-builder.util';
 
+import { EventType } from '@prisma/client';
+
 export interface CreateDeviceEventLogDto {
     deviceId: string;
-    eventType: string;
+    eventType: EventType;
     metadata?: any;
     rawPayloadUrl?: string;
     timestamp: Date;
@@ -14,7 +16,7 @@ export interface CreateDeviceEventLogDto {
 
 export interface EventLogFilters {
     deviceId?: string;
-    eventType?: string;
+    eventType?: EventType;
     startDate?: Date;
     endDate?: Date;
 }

@@ -33,26 +33,34 @@ enum Role {
 }
 
 enum DeviceType {
-  card_reader
-  biometric
-  qr_scanner
-  facial_recognition
   CAMERA
   CARD_READER
   FINGERPRINT
   ANPR
+  ACCESS_CONTROL
   OTHER
 }
 
 enum DeviceStatus {
-  online
-  offline
-  error
-  maintenance
   ONLINE
   OFFLINE
-  DEGRADED
   ERROR
+  MAINTENANCE
+}
+
+enum DeviceProtocol {
+  HTTP
+  HTTPS
+  TCP
+  UDP
+  SDK
+}
+
+enum DeviceAuthType {
+  BASIC
+  DIGEST
+  API_KEY
+  CERTIFICATE
 }
 
 enum AttendanceEventType {
@@ -81,6 +89,19 @@ enum ReportFormat {
   JSON
 }
 
+enum EventType {
+  CARD_SCAN
+  FINGERPRINT_SCAN
+  FACE_RECOGNITION
+  DOOR_OPEN
+  DOOR_CLOSE
+  ALARM
+  TAMPER
+  NETWORK_ERROR
+  ACCESS_GRANTED
+  ACCESS_DENIED
+}
+
 enum ReportStatus {
   PENDING
   PROCESSING
@@ -103,6 +124,7 @@ model Organization {
   guestVisits GuestVisit[]
   auditLogs   AuditLog[]
   reports     Report[]
+  deviceTemplates DeviceTemplate[]
 }
 
 // 2. Users and their roles  
@@ -188,6 +210,7 @@ model Department {
   updatedAt DateTime @updatedAt
 
   employees Employee[]
+  devices    Device[]
 
   @@unique([branchId, name])
   @@index([branchId])
@@ -228,27 +251,40 @@ model Device {
   organizationId String
   branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   branchId       String
+  department     Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  departmentId   String?
 
   name             String
-  deviceIdentifier String?      @unique // Added missing field
+  deviceIdentifier String?      @unique
   type             DeviceType
   ipAddress        String?
+  username         String?
+  password         String?      // Encrypted
+  port             Int?         @default(80)
+  protocol         DeviceProtocol @default(HTTP)
   macAddress       String?      @unique
+  manufacturer     String?
   model            String?
-  description      String?      // Added missing field
-  status           DeviceStatus @default(ONLINE)
-  isActive         Boolean      @default(true) // Added missing field
-  lastSeenAt       DateTime?
-  lastSeen         DateTime?    // Added missing field (alias for lastSeenAt)
+  firmware         String?
+  description      String?
+  status           DeviceStatus @default(OFFLINE)
+  isActive         Boolean      @default(true)
+  lastSeen         DateTime?
+  timeout          Int          @default(5000)    // milliseconds
+  retryAttempts    Int          @default(3)
+  keepAlive        Boolean      @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  events      DeviceEventLog[]
-  attendances Attendance[]
+  events          DeviceEventLog[]
+  attendances     Attendance[]
+  deviceTemplates DeviceTemplate[]
+  configuration   DeviceConfiguration?
 
   @@unique([organizationId, name])
   @@index([branchId, status])
+  @@index([ipAddress])
 }
 
 // 7. Guest visits  
@@ -310,7 +346,7 @@ model DeviceEventLog {
   deviceId       String
   device         Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
-  eventType     String // e.g., "face.scan", "card.read"  
+  eventType     EventType
   timestamp     DateTime
   rawPayloadUrl String? // Reference to the raw data in S3/MinIO  
   metadata      Json? // Processed data  
@@ -385,4 +421,93 @@ model Report {
 
   @@index([organizationId, type, status])
   @@index([createdByUserId, createdAt])
+}
+
+// 11. Device Templates
+model DeviceTemplate {
+  id             String       @id @default(uuid())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+
+  name         String
+  manufacturer String
+  model        String
+
+  // Default settings as JSON
+  defaultSettings Json?
+
+  // API endpoints mapping
+  endpoints Json?
+
+  // Feature capabilities
+  capabilities Json?
+
+  // Communication protocol
+  protocol Json?
+
+  isActive   Boolean @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  devices Device[]
+
+  @@unique([organizationId, name])
+}
+
+// 12. Device Configuration
+model DeviceConfiguration {
+  id       String @id @default(uuid())
+  deviceId String @unique
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  // Network settings
+  networkDhcp       Boolean  @default(true)
+  networkStaticIp   String?
+  networkSubnet     String?
+  networkGateway    String?
+  networkDns        String[] // Array of DNS servers
+
+  // Time settings
+  timezone      String  @default("UTC")
+  ntpServer     String?
+  syncInterval  Int     @default(60) // minutes
+
+  // Access control
+  defaultAccessLevel  Int     @default(1)
+  allowUnknownCards   Boolean @default(false)
+  offlineMode         Boolean @default(true)
+  maxUsers            Int     @default(1000)
+
+  // Biometric settings
+  biometricThreshold        Int?    @default(5) // 1-9
+  duressFingerEnabled       Boolean @default(false)
+  antiPassbackEnabled       Boolean @default(false)
+
+  // Event settings
+  eventBufferSize  Int @default(1000)
+  uploadInterval   Int @default(30) // seconds
+  retryAttempts    Int @default(3)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 13. Employee Device Sync
+model EmployeeDeviceSync {
+  id             String   @id @default(uuid())
+  deviceId       String
+  employeeId     String
+  organizationId String
+
+  syncStatus     String   @default("PENDING") // PENDING, SYNCED, FAILED
+  syncType       String   @default("ADD") // ADD, UPDATE, REMOVE
+  errorMessage   String?
+  syncAttempted  DateTime?
+  syncedAt       DateTime?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([deviceId, employeeId])
+  @@index([organizationId, syncStatus])
 }

@@ -5,27 +5,7 @@ import { LoggerService } from '@/core/logger/logger.service';
 import { CacheService } from '@/core/cache/cache.service';
 import { PasswordUtil } from '@/shared/utils/password.util';
 import { Role } from '@/shared/enums';
-
-export interface LoginDto {
-    email: string;
-    password: string;
-}
-
-export interface LoginResponse {
-    accessToken: string;
-    refreshToken: string;
-    user: {
-        id: string;
-        email: string;
-        fullName?: string;
-        organizationId?: string;
-        roles: string[];
-    };
-}
-
-export interface RefreshTokenDto {
-    refreshToken: string;
-}
+import { LoginDto, LoginResponse, RefreshTokenDto } from '@/shared/dto';
 
 @Injectable()
 export class AuthService {

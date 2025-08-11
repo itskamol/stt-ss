@@ -3,6 +3,7 @@ import { DeviceController } from './device.controller';
 import { DeviceService } from './device.service';
 import { CreateDeviceDto, DeviceCommandDto, UpdateDeviceDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { DeviceStatus, DeviceType } from '@prisma/client';
 
 describe('DeviceController', () => {
     let controller: DeviceController;
@@ -34,7 +35,6 @@ describe('DeviceController', () => {
         description: 'Main entrance card reader',
         status: 'ONLINE' as any,
         isActive: true,
-        lastSeenAt: new Date(),
         lastSeen: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -82,7 +82,7 @@ describe('DeviceController', () => {
         it('should create a device successfully', async () => {
             const createDto: CreateDeviceDto = {
                 name: 'Main Door Reader',
-                type: 'card_reader',
+                type: DeviceType.CARD_READER,
                 deviceIdentifier: 'READER-001',
                 branchId: 'branch-123',
                 ipAddress: '192.168.1.100',
@@ -325,7 +325,7 @@ describe('DeviceController', () => {
         it('should return device health status', async () => {
             const healthStatus = {
                 deviceId: 'READER-001',
-                status: 'healthy' as const,
+                status: DeviceStatus.ONLINE,
                 uptime: 86400,
                 lastHealthCheck: new Date(),
             };
@@ -335,7 +335,7 @@ describe('DeviceController', () => {
             const result = await controller.getDeviceHealth('device-123', mockDataScope);
 
             expect(deviceService.getDeviceHealth).toHaveBeenCalledWith('device-123', mockDataScope);
-            expect(result.status).toBe('healthy');
+            expect(result.status).toBe(DeviceStatus.ONLINE);
             expect(result.uptime).toBe(86400);
         });
     });

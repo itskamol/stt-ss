@@ -1,16 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
-import {
-    AuthController,
-    LoginRequestDto,
-    LogoutRequestDto,
-    RefreshTokenRequestDto,
-} from './auth.controller';
-import { AuthService, LoginResponse } from './auth.service';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { UserContext } from '@/shared/interfaces';
 import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
-import { Role } from '@prisma/client';
+import { Role } from '@/shared/enums';
+import { LoginRequestDto, LoginResponse, LogoutRequestDto, RefreshTokenRequestDto } from '@/shared/dto';
 
 describe('AuthController', () => {
     let controller: AuthController;

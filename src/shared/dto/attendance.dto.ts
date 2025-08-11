@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { AttendanceEventType } from '@prisma/client';
+import { IsDateString, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
 
 export class CreateAttendanceDto {
     @ApiProperty()
@@ -14,6 +15,7 @@ export class CreateAttendanceDto {
 
     @ApiProperty()
     @IsString()
+    @IsEnum(AttendanceEventType)
     @IsNotEmpty()
     eventType: string;
 

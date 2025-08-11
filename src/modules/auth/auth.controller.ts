@@ -1,64 +1,11 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AuthService, LoginDto, LoginResponse, RefreshTokenDto } from './auth.service';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AuthService } from './auth.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { Public, User } from '@/shared/decorators';
 import { UserContext } from '@/shared/interfaces';
 import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
-import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
-
-export class LoginRequestDto implements LoginDto {
-    @ApiProperty()
-    @IsEmail()
-    email: string;
-
-    @ApiProperty()
-    @IsString()
-    @IsNotEmpty()
-    password: string;
-}
-
-export class RefreshTokenRequestDto implements RefreshTokenDto {
-    @ApiProperty()
-    @IsString()
-    @IsNotEmpty()
-    refreshToken: string;
-}
-
-export class LogoutRequestDto {
-    @ApiProperty()
-    @IsString()
-    @IsNotEmpty()
-    refreshToken: string;
-}
-
-class UserLoginResponseDto {
-    @ApiProperty()
-    id: string;
-
-    @ApiProperty()
-    email: string;
-
-    @ApiProperty({ required: false })
-    fullName?: string;
-
-    @ApiProperty({ required: false })
-    organizationId?: string;
-
-    @ApiProperty({ type: [String] })
-    roles: string[];
-}
-
-export class LoginResponseDto {
-    @ApiProperty()
-    accessToken: string;
-
-    @ApiProperty()
-    refreshToken: string;
-
-    @ApiProperty({ type: UserLoginResponseDto })
-    user: UserLoginResponseDto;
-}
+import { LoginRequestDto, LoginResponse, LoginResponseDto, LogoutRequestDto, RefreshTokenRequestDto } from '@/shared/dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -171,6 +118,7 @@ export class AuthController {
 
     @Post('logout')
     @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiBearerAuth()
     @ApiOperation({ summary: 'Log out a user' })
     @ApiBody({ type: LogoutRequestDto })
     @ApiResponse({ status: 204, description: 'Logout successful' })
@@ -208,6 +156,7 @@ export class AuthController {
     }
 
     @Post('validate')
+    @ApiBearerAuth()
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Validate the current access token' })
     @ApiResponse({

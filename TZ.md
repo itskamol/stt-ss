@@ -628,23 +628,29 @@ interface IStorageAdapter {
 
 * **INotificationAdapter:** For sending email and SMS notifications.
 
+```typescript
 interface INotificationAdapter {  
   sendEmail(to: string, subject: string, body: string): Promise<void>;  
   sendSms(to: string, message: string): Promise<void>;  
 }
+```
 
 * **IDeviceAdapter:** For sending commands to physical devices (e.g., opening a door).
 
+```typescript
 interface IDeviceAdapter {  
   openDoor(deviceId: string, duration: number): Promise<boolean>;  
   updateConfig(deviceId: string, config: Record<string, any>): Promise<boolean>;  
 }
+```
 
 * **IMatchingAdapter:** For sending requests to an external service for biometric matching.
 
+```typescript
 interface IMatchingAdapter {  
   requestMatch(template: Buffer): Promise<{ isMatch: boolean; confidence?: number }>;  
 }
+```
 
 Each stub implementation should either throw a NotImplementedException or log a message and return a fake response (e.g., // TODO: Implement real integration here).
 
