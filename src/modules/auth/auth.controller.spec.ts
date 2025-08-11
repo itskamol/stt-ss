@@ -10,6 +10,7 @@ import { AuthService, LoginResponse } from './auth.service';
 import { LoggerService } from '../../core/logger/logger.service';
 import { UserContext } from '../../shared/interfaces';
 import { RequestWithCorrelation } from '../../shared/middleware/correlation-id.middleware';
+import { Role } from '@prisma/client';
 
 describe('AuthController', () => {
     let controller: AuthController;
@@ -42,7 +43,7 @@ describe('AuthController', () => {
         email: 'test@example.com',
         organizationId: 'org-456',
         branchIds: [],
-        roles: ['ORG_ADMIN'],
+        roles: [Role.ORG_ADMIN],
         permissions: ['employee:create'],
     };
 
@@ -84,7 +85,7 @@ describe('AuthController', () => {
                 email: 'test@example.com',
                 fullName: 'Test User',
                 organizationId: 'org-456',
-                roles: ['ORG_ADMIN'],
+                roles: [Role.ORG_ADMIN],
             },
         };
 
@@ -100,7 +101,7 @@ describe('AuthController', () => {
                     email: 'test@example.com',
                     userId: 'user-123',
                     organizationId: 'org-456',
-                    roles: ['ORG_ADMIN'],
+                    roles: [Role.ORG_ADMIN],
                     correlationId: 'test-correlation-id',
                     module: 'auth-controller',
                 })
@@ -243,7 +244,7 @@ describe('AuthController', () => {
                 expect.objectContaining({
                     userId: 'user-123',
                     organizationId: 'org-456',
-                    roles: ['ORG_ADMIN'],
+                    roles: [Role.ORG_ADMIN],
                     correlationId: 'test-correlation-id',
                     module: 'auth-controller',
                 })
@@ -255,7 +256,7 @@ describe('AuthController', () => {
                     id: 'user-123',
                     email: 'test@example.com',
                     organizationId: 'org-456',
-                    roles: ['ORG_ADMIN'],
+                    roles: [Role.ORG_ADMIN],
                     permissions: ['employee:create'],
                 },
             });

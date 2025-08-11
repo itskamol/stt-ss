@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { LoggerService } from '../../core/logger/logger.service';
 import { DataScope, UserContext } from '../interfaces/data-scope.interface';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
+import { Role } from '@prisma/client';
 
 export interface RequestWithScope extends RequestWithCorrelation {
     user: UserContext;
@@ -43,7 +44,7 @@ export class DataScopeGuard implements CanActivate {
 
         if (noScoping) {
             // Only SUPER_ADMIN can access no-scoping routes
-            if (!user.roles.includes('SUPER_ADMIN')) {
+            if (!user.roles.includes(Role.SUPER_ADMIN)) {
                 this.logger.logSecurityEvent(
                     'DATA_SCOPE_VIOLATION_NO_SCOPING',
                     {

@@ -23,6 +23,7 @@ import {
 } from '../../shared/dto';
 import { NoScoping, Permissions, Roles, Scope, User } from '../../shared/decorators';
 import { DataScope, UserContext } from '../../shared/interfaces';
+import { Role } from '@prisma/client';
 
 @Controller('users')
 export class UserController {
@@ -136,7 +137,7 @@ export class UserController {
 
     @Post(':id/assign-organization')
     @NoScoping()
-    @Roles('SUPER_ADMIN')
+    @Roles(Role.SUPER_ADMIN)
     async assignUserToOrganization(
         @Param('id') userId: string,
         @Body() assignDto: AssignUserToOrganizationDto,
@@ -160,7 +161,7 @@ export class UserController {
 
     @Delete(':userId/organizations/:organizationId')
     @NoScoping()
-    @Roles('SUPER_ADMIN')
+    @Roles(Role.SUPER_ADMIN)
     @HttpCode(HttpStatus.NO_CONTENT)
     async removeUserFromOrganization(
         @Param('userId') userId: string,

@@ -21,6 +21,7 @@ import {
 } from '../../shared/dto';
 import { NoScoping, Permissions, Roles, Scope, User } from '../../shared/decorators';
 import { DataScope, UserContext } from '../../shared/interfaces';
+import { Role } from '@prisma/client';
 
 @Controller('organizations')
 export class OrganizationController {
@@ -201,7 +202,7 @@ export class OrganizationController {
 
     @Delete(':id')
     @NoScoping()
-    @Roles('SUPER_ADMIN')
+    @Roles(Role.SUPER_ADMIN)
     @HttpCode(HttpStatus.NO_CONTENT)
     async deleteOrganization(@Param('id') id: string, @User() user: UserContext): Promise<void> {
         await this.organizationService.deleteOrganization(id, user.sub);

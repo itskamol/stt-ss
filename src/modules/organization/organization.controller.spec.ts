@@ -4,6 +4,7 @@ import { OrganizationService } from './organization.service';
 import { LoggerService } from '../../core/logger/logger.service';
 import { CreateOrganizationDto, UpdateOrganizationDto } from '../../shared/dto';
 import { DataScope, UserContext } from '../../shared/interfaces';
+import { Role } from '@prisma/client';
 
 describe('OrganizationController', () => {
     let controller: OrganizationController;
@@ -32,7 +33,7 @@ describe('OrganizationController', () => {
         email: 'admin@example.com',
         organizationId: 'org-456',
         branchIds: [],
-        roles: ['SUPER_ADMIN'],
+        roles: [Role.SUPER_ADMIN],
         permissions: ['organization:create', 'organization:read:all'],
     };
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OrganizationUser, User } from '@prisma/client';
+import { OrganizationUser, Role, User } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
 import {
     AssignUserToOrganizationDto,
@@ -74,7 +74,7 @@ export class UserRepository {
         });
 
         // If branch IDs are provided and role is BRANCH_MANAGER, create managed branch relationships
-        if (branchIds && branchIds.length > 0 && data.role === 'BRANCH_MANAGER') {
+        if (branchIds && branchIds.length > 0 && data.role === Role.BRANCH_MANAGER) {
             await this.prisma.managedBranch.createMany({
                 data: branchIds.map(branchId => ({
                     managerId: orgUser.id,

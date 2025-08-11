@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JwtService as CustomJwtService, JwtPayload } from './jwt.service';
 import { ConfigService } from '../../core/config/config.service';
 import { LoggerService } from '../../core/logger/logger.service';
+import { Role } from '@prisma/client';
 
 describe('CustomJwtService', () => {
     let service: CustomJwtService;
@@ -65,7 +66,7 @@ describe('CustomJwtService', () => {
                 email: 'test@example.com',
                 organizationId: 'org-456',
                 branchIds: ['branch-1'],
-                roles: ['ORG_ADMIN'],
+                roles: [Role.ORG_ADMIN],
                 permissions: ['employee:create'],
             };
 
@@ -84,7 +85,7 @@ describe('CustomJwtService', () => {
                 expect.objectContaining({
                     userId: 'user-123',
                     organizationId: 'org-456',
-                    roles: ['ORG_ADMIN'],
+                    roles: [Role.ORG_ADMIN],
                     module: 'jwt',
                 })
             );
@@ -154,7 +155,7 @@ describe('CustomJwtService', () => {
                 sub: 'user-123',
                 email: 'test@example.com',
                 organizationId: 'org-456',
-                roles: ['ORG_ADMIN'],
+                roles: [Role.ORG_ADMIN],
                 permissions: ['employee:create'],
                 iat: 1234567890,
                 exp: 1234567890,
@@ -194,7 +195,7 @@ describe('CustomJwtService', () => {
             const userPayload: Omit<JwtPayload, 'iat' | 'exp'> = {
                 sub: 'user-123',
                 email: 'test@example.com',
-                roles: ['ORG_ADMIN'],
+                roles: [Role.ORG_ADMIN],
                 permissions: ['employee:create'],
             };
 
@@ -219,7 +220,7 @@ describe('CustomJwtService', () => {
                 email: 'test@example.com',
                 organizationId: 'org-456',
                 branchIds: ['branch-1'],
-                roles: ['ORG_ADMIN'],
+                roles: [Role.ORG_ADMIN],
                 permissions: ['employee:create'],
                 iat: 1234567890,
                 exp: 1234567890,
@@ -232,7 +233,7 @@ describe('CustomJwtService', () => {
                 email: 'test@example.com',
                 organizationId: 'org-456',
                 branchIds: ['branch-1'],
-                roles: ['ORG_ADMIN'],
+                roles: [Role.ORG_ADMIN],
                 permissions: ['employee:create'],
             });
         });
