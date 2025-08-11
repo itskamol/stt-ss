@@ -7,9 +7,9 @@ import { LoggerModule } from '../../core/logger/logger.module';
 import { AdapterModule } from '../../shared/adapters/adapter.module';
 
 @Module({
-  imports: [DatabaseModule, LoggerModule, AdapterModule],
-  controllers: [DeviceController],
-  providers: [DeviceService, DeviceRepository],
-  exports: [DeviceService, DeviceRepository],
+    imports: [DatabaseModule, LoggerModule, AdapterModule],
+    controllers: [DeviceController],
+    providers: [DeviceService, DeviceRepository],
+    exports: [DeviceService, DeviceRepository],
 })
 export class DeviceModule {}

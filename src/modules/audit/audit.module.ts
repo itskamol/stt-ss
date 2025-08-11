@@ -6,9 +6,9 @@ import { DatabaseModule } from '../../core/database/database.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 
 @Module({
-  imports: [DatabaseModule, LoggerModule],
-  controllers: [AuditLogController],
-  providers: [AuditLogService, AuditLogRepository],
-  exports: [AuditLogService, AuditLogRepository],
+    imports: [DatabaseModule, LoggerModule],
+    controllers: [AuditLogController],
+    providers: [AuditLogService, AuditLogRepository],
+    exports: [AuditLogService, AuditLogRepository],
 })
 export class AuditModule {}

@@ -6,9 +6,9 @@ import { DatabaseModule } from '../../core/database/database.module';
 import { LoggerModule } from '../../core/logger/logger.module';
 
 @Module({
-  imports: [DatabaseModule, LoggerModule],
-  controllers: [DepartmentController],
-  providers: [DepartmentService, DepartmentRepository],
-  exports: [DepartmentService, DepartmentRepository],
+    imports: [DatabaseModule, LoggerModule],
+    controllers: [DepartmentController],
+    providers: [DepartmentService, DepartmentRepository],
+    exports: [DepartmentService, DepartmentRepository],
 })
 export class DepartmentModule {}

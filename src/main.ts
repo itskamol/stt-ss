@@ -5,46 +5,46 @@ import { ConfigService } from './core/config/config.service';
 import { LoggerService } from './core/logger/logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    bufferLogs: true,
-  });
-  
-  // Get services
-  const configService = app.get(ConfigService);
-  const logger = app.get(LoggerService);
-  
-  // Use custom logger
-  app.useLogger(logger);
-  
-  const port = configService.port;
+    const app = await NestFactory.create(AppModule, {
+        bufferLogs: true,
+    });
 
-  // Global validation pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+    // Get services
+    const configService = app.get(ConfigService);
+    const logger = app.get(LoggerService);
 
-  // Global prefix for all routes
-  app.setGlobalPrefix('api/v1');
+    // Use custom logger
+    app.useLogger(logger);
 
-  // Enable CORS
-  app.enableCors();
+    const port = configService.port;
 
-  await app.listen(port);
-  
-  logger.log(`Application started successfully`, {
-    port,
-    environment: configService.nodeEnv,
-    module: 'bootstrap',
-  });
-  
-  console.log(`Application is running on: http://localhost:${port}/api/v1`);
+    // Global validation pipe
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+        })
+    );
+
+    // Global prefix for all routes
+    app.setGlobalPrefix('api/v1');
+
+    // Enable CORS
+    app.enableCors();
+
+    await app.listen(port);
+
+    logger.log(`Application started successfully`, {
+        port,
+        environment: configService.nodeEnv,
+        module: 'bootstrap',
+    });
+
+    console.log(`Application is running on: http://localhost:${port}/api/v1`);
 }
 
-bootstrap().catch((error) => {
-  console.error('Failed to start application:', error);
-  process.exit(1);
+bootstrap().catch(error => {
+    console.error('Failed to start application:', error);
+    process.exit(1);
 });

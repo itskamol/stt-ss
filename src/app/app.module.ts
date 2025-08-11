@@ -1,5 +1,5 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '../core/config/config.module';
@@ -26,62 +26,62 @@ import { CorrelationIdMiddleware } from '../shared/middleware/correlation-id.mid
 import { LoggingInterceptor } from '../shared/interceptors/logging.interceptor';
 // import { AuditLogInterceptor } from '../shared/interceptors/audit-log.interceptor';
 import { GlobalExceptionFilter } from '../shared/filters/global-exception.filter';
-import { JwtAuthGuard, DataScopeGuard, RolesGuard } from '../shared/guards';
+import { DataScopeGuard, JwtAuthGuard, RolesGuard } from '../shared/guards';
 
 @Module({
-  imports: [
-    ConfigModule,
-    DatabaseModule,
-    LoggerModule,
-    CacheModule,
-    HealthModule,
-    AuthModule,
-    UserModule,
-    OrganizationModule,
-    BranchModule,
-    DepartmentModule,
-    EmployeeModule,
-    QueueModule,
-    AdapterModule,
-    DeviceModule,
-    EventModule,
-    AttendanceModule,
-    GuestModule,
-    // AuditModule,
-    // ReportingModule,
-    // ReportProcessorModule,
-  ],
-  controllers: [AppController],
-  providers: [
-    AppService,
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
-    },
-    // {
-    //   provide: APP_INTERCEPTOR,
-    //   useClass: AuditLogInterceptor,
-    // },
-    {
-      provide: APP_FILTER,
-      useClass: GlobalExceptionFilter,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: DataScopeGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
-    },
-  ],
+    imports: [
+        ConfigModule,
+        DatabaseModule,
+        LoggerModule,
+        CacheModule,
+        HealthModule,
+        AuthModule,
+        UserModule,
+        OrganizationModule,
+        BranchModule,
+        DepartmentModule,
+        EmployeeModule,
+        QueueModule,
+        AdapterModule,
+        DeviceModule,
+        EventModule,
+        AttendanceModule,
+        GuestModule,
+        // AuditModule,
+        // ReportingModule,
+        // ReportProcessorModule,
+    ],
+    controllers: [AppController],
+    providers: [
+        AppService,
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: LoggingInterceptor,
+        },
+        // {
+        //   provide: APP_INTERCEPTOR,
+        //   useClass: AuditLogInterceptor,
+        // },
+        {
+            provide: APP_FILTER,
+            useClass: GlobalExceptionFilter,
+        },
+        {
+            provide: APP_GUARD,
+            useClass: JwtAuthGuard,
+        },
+        {
+            provide: APP_GUARD,
+            useClass: DataScopeGuard,
+        },
+        {
+            provide: APP_GUARD,
+            useClass: RolesGuard,
+        },
+    ],
 })
 export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
-  }
+    configure(consumer: MiddlewareConsumer) {
+        consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+    }
 }

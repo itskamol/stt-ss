@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+    BadRequestException,
+    ConflictException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { Employee } from '@prisma/client';
 import { EmployeeRepository } from './employee.repository';
 import { LoggerService } from '../../core/logger/logger.service';
@@ -10,8 +15,8 @@ import { DataScope } from '../../shared/interfaces';
 export class EmployeeService {
     constructor(
         private readonly employeeRepository: EmployeeRepository,
-        private readonly logger: LoggerService,
-    ) { }
+        private readonly logger: LoggerService
+    ) {}
 
     /**
      * Create a new employee
@@ -20,7 +25,7 @@ export class EmployeeService {
         createEmployeeDto: CreateEmployeeDto,
         scope: DataScope,
         createdByUserId: string,
-        correlationId?: string,
+        correlationId?: string
     ): Promise<Employee> {
         try {
             // Validate that the branch is accessible within the scope
@@ -31,7 +36,7 @@ export class EmployeeService {
             // Check if employee code is unique within the organization
             const existingEmployee = await this.employeeRepository.findByEmployeeCode(
                 createEmployeeDto.employeeCode,
-                scope,
+                scope
             );
 
             if (existingEmployee) {
@@ -51,14 +56,16 @@ export class EmployeeService {
                     departmentId: employee.departmentId,
                 },
                 scope.organizationId,
-                correlationId,
+                correlationId
             );
 
             return employee;
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
-                throw new ConflictException(`Employee with this ${fields.join(', ')} already exists`);
+                throw new ConflictException(
+                    `Employee with this ${fields.join(', ')} already exists`
+                );
             }
             throw error;
         }
@@ -112,7 +119,7 @@ export class EmployeeService {
         updateEmployeeDto: UpdateEmployeeDto,
         scope: DataScope,
         updatedByUserId: string,
-        correlationId?: string,
+        correlationId?: string
     ): Promise<Employee> {
         try {
             const existingEmployee = await this.employeeRepository.findById(id, scope);
@@ -121,23 +128,36 @@ export class EmployeeService {
             }
 
             // Validate branch access if changing branch
-            if (updateEmployeeDto.branchId && scope.branchIds && !scope.branchIds.includes(updateEmployeeDto.branchId)) {
+            if (
+                updateEmployeeDto.branchId &&
+                scope.branchIds &&
+                !scope.branchIds.includes(updateEmployeeDto.branchId)
+            ) {
                 throw new BadRequestException('Target branch not accessible within your scope');
             }
 
             // Check employee code uniqueness if being updated
-            if (updateEmployeeDto.employeeCode && updateEmployeeDto.employeeCode !== existingEmployee.employeeCode) {
+            if (
+                updateEmployeeDto.employeeCode &&
+                updateEmployeeDto.employeeCode !== existingEmployee.employeeCode
+            ) {
                 const existingByCode = await this.employeeRepository.findByEmployeeCode(
                     updateEmployeeDto.employeeCode,
-                    scope,
+                    scope
                 );
 
                 if (existingByCode && existingByCode.id !== id) {
-                    throw new ConflictException('Employee code already exists in this organization');
+                    throw new ConflictException(
+                        'Employee code already exists in this organization'
+                    );
                 }
             }
 
-            const updatedEmployee = await this.employeeRepository.update(id, updateEmployeeDto, scope);
+            const updatedEmployee = await this.employeeRepository.update(
+                id,
+                updateEmployeeDto,
+                scope
+            );
 
             this.logger.logUserAction(
                 updatedByUserId,
@@ -151,14 +171,16 @@ export class EmployeeService {
                     newFullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`,
                 },
                 scope.organizationId,
-                correlationId,
+                correlationId
             );
 
             return updatedEmployee;
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
-                throw new ConflictException(`Employee with this ${fields.join(', ')} already exists`);
+                throw new ConflictException(
+                    `Employee with this ${fields.join(', ')} already exists`
+                );
             }
             throw error;
         }
@@ -171,7 +193,7 @@ export class EmployeeService {
         id: string,
         scope: DataScope,
         deletedByUserId: string,
-        correlationId?: string,
+        correlationId?: string
     ): Promise<void> {
         const existingEmployee = await this.employeeRepository.findById(id, scope);
         if (!existingEmployee) {
@@ -190,7 +212,7 @@ export class EmployeeService {
                 branchId: existingEmployee.branchId,
             },
             scope.organizationId,
-            correlationId,
+            correlationId
         );
     }
 
@@ -239,7 +261,7 @@ export class EmployeeService {
         isActive: boolean,
         scope: DataScope,
         updatedByUserId: string,
-        correlationId?: string,
+        correlationId?: string
     ): Promise<Employee> {
         const existingEmployee = await this.employeeRepository.findById(id, scope);
         if (!existingEmployee) {
@@ -259,7 +281,7 @@ export class EmployeeService {
                 newStatus: isActive,
             },
             scope.organizationId,
-            correlationId,
+            correlationId
         );
 
         return updatedEmployee;

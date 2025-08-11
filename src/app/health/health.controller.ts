@@ -4,17 +4,17 @@ import { Public } from '../../shared/decorators';
 
 @Controller('health')
 export class HealthController {
-  constructor(private readonly healthService: HealthService) {}
+    constructor(private readonly healthService: HealthService) {}
 
-  @Get()
-  @Public()
-  async getHealth() {
-    return this.healthService.getHealthStatus();
-  }
+    @Get()
+    @Public()
+    async getHealth() {
+        return this.healthService.getHealthStatus();
+    }
 
-  @Get('detailed')
-  @Public()
-  async getDetailedHealth() {
-    return this.healthService.getDetailedHealthStatus();
-  }
+    @Get('detailed')
+    @Public()
+    async getDetailedHealth() {
+        return this.healthService.getDetailedHealthStatus();
+    }
 }

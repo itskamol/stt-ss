@@ -1,14 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { RolesGuard, RequestWithUser } from './roles.guard';
+import { RequestWithUser, RolesGuard } from './roles.guard';
 import { LoggerService } from '../../core/logger/logger.service';
 import { UserContext } from '../interfaces/data-scope.interface';
 
 describe('RolesGuard', () => {
     let guard: RolesGuard;
-    let reflector: Reflector;
-    let logger: LoggerService;
 
     const mockReflector = {
         getAllAndOverride: jest.fn(),
@@ -35,8 +33,6 @@ describe('RolesGuard', () => {
         }).compile();
 
         guard = module.get<RolesGuard>(RolesGuard);
-        reflector = module.get<Reflector>(Reflector);
-        logger = module.get<LoggerService>(LoggerService);
     });
 
     afterEach(() => {
@@ -116,7 +112,7 @@ describe('RolesGuard', () => {
                     userRoles: ['ORG_ADMIN'],
                     requiredRoles: ['ORG_ADMIN', 'SUPER_ADMIN'],
                     module: 'roles-guard',
-                }),
+                })
             );
         });
 
@@ -137,7 +133,7 @@ describe('RolesGuard', () => {
                 }),
                 'user-123',
                 'org-456',
-                'test-correlation-id',
+                'test-correlation-id'
             );
         });
 
@@ -158,7 +154,7 @@ describe('RolesGuard', () => {
                     userPermissions: ['employee:create', 'employee:read:all'],
                     requiredPermissions: ['employee:create'],
                     module: 'roles-guard',
-                }),
+                })
             );
         });
 
@@ -192,7 +188,7 @@ describe('RolesGuard', () => {
                 }),
                 'user-123',
                 'org-456',
-                'test-correlation-id',
+                'test-correlation-id'
             );
         });
 

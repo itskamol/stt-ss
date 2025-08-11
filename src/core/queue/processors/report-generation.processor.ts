@@ -1,5 +1,5 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
+import { Inject, Injectable } from '@nestjs/common';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { LoggerService } from '../../logger/logger.service';
 import { BaseJobProcessor } from './base.processor';
@@ -16,8 +16,6 @@ import { DataScope } from '../../../shared/interfaces';
 
 @Injectable()
 @Processor('exports')
-
-
 export class ReportGenerationProcessor extends BaseJobProcessor<ReportGenerationData> {
     constructor(
         protected readonly logger: LoggerService,
@@ -28,7 +26,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
         private readonly guestService: GuestService,
         private readonly auditLogService: AuditLogService,
         @Inject('IStorageAdapter') private readonly storageAdapter: IStorageAdapter,
-        @Inject('INotificationAdapter') private readonly notificationAdapter: INotificationAdapter,
+        @Inject('INotificationAdapter') private readonly notificationAdapter: INotificationAdapter
     ) {
         super(logger);
     }
@@ -66,25 +64,44 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
 
             switch (data.type) {
                 case 'DAILY_ATTENDANCE':
-                    ({ reportData, fileName, recordCount } = await this.generateDailyAttendanceReport(data, scope, job));
+                    ({ reportData, fileName, recordCount } =
+                        await this.generateDailyAttendanceReport(data, scope, job));
                     break;
                 case 'WEEKLY_ATTENDANCE':
-                    ({ reportData, fileName, recordCount } = await this.generateWeeklyAttendanceReport(data, scope, job));
+                    ({ reportData, fileName, recordCount } =
+                        await this.generateWeeklyAttendanceReport(data, scope, job));
                     break;
                 case 'MONTHLY_ATTENDANCE':
-                    ({ reportData, fileName, recordCount } = await this.generateMonthlyAttendanceReport(data, scope, job));
+                    ({ reportData, fileName, recordCount } =
+                        await this.generateMonthlyAttendanceReport(data, scope, job));
                     break;
                 case 'EMPLOYEE_LIST':
-                    ({ reportData, fileName, recordCount } = await this.generateEmployeeListReport(data, scope, job));
+                    ({ reportData, fileName, recordCount } = await this.generateEmployeeListReport(
+                        data,
+                        scope,
+                        job
+                    ));
                     break;
                 case 'DEVICE_STATUS':
-                    ({ reportData, fileName, recordCount } = await this.generateDeviceStatusReport(data, scope, job));
+                    ({ reportData, fileName, recordCount } = await this.generateDeviceStatusReport(
+                        data,
+                        scope,
+                        job
+                    ));
                     break;
                 case 'GUEST_VISITS':
-                    ({ reportData, fileName, recordCount } = await this.generateGuestVisitsReport(data, scope, job));
+                    ({ reportData, fileName, recordCount } = await this.generateGuestVisitsReport(
+                        data,
+                        scope,
+                        job
+                    ));
                     break;
                 case 'SECURITY_AUDIT':
-                    ({ reportData, fileName, recordCount } = await this.generateSecurityAuditReport(data, scope, job));
+                    ({ reportData, fileName, recordCount } = await this.generateSecurityAuditReport(
+                        data,
+                        scope,
+                        job
+                    ));
                     break;
                 default:
                     throw new Error(`Unsupported report type: ${data.type}`);
@@ -97,18 +114,15 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             const uploadResult = await this.storageAdapter.uploadFile(
                 filePath,
                 Buffer.from(reportData),
-                this.getContentType(data.format),
+                this.getContentType(data.format)
             );
 
             await this.updateProgress(job, 85, 'Finalizing report');
 
             // Generate presigned URL for download
-            const fileUrl = await this.storageAdapter.generatePresignedDownloadUrl(
-                filePath,
-                {
-                    expiresIn: 7 * 24 * 60 * 60, // 7 days
-                },
-            );
+            const fileUrl = await this.storageAdapter.generatePresignedDownloadUrl(filePath, {
+                expiresIn: 7 * 24 * 60 * 60, // 7 days
+            });
 
             // Update report with completion details
             await this.reportingService.updateReportStatus(data.reportId, 'COMPLETED', {
@@ -156,7 +170,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
     private async generateDailyAttendanceReport(
         data: ReportGenerationData,
         scope: DataScope,
-        job: Job,
+        job: Job
     ) {
         const { date, branchId, includeDetails } = data.parameters;
         const reportDate = new Date(date);
@@ -166,7 +180,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
         const attendanceReport = await this.attendanceService.getDailyAttendanceReport(
             reportDate,
             branchId,
-            scope,
+            scope
         );
 
         await this.updateProgress(job, 50, 'Formatting report data');
@@ -191,7 +205,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
     private async generateWeeklyAttendanceReport(
         data: ReportGenerationData,
         scope: DataScope,
-        job: Job,
+        job: Job
     ) {
         const { startDate, branchId, includeSummary } = data.parameters;
         const weekStartDate = new Date(startDate);
@@ -201,7 +215,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
         const weeklyReport = await this.attendanceService.getWeeklyAttendanceReport(
             weekStartDate,
             branchId,
-            scope,
+            scope
         );
 
         await this.updateProgress(job, 50, 'Formatting report data');
@@ -218,7 +232,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
 
         const totalRecords = weeklyReport.dailyReports.reduce(
             (sum, daily) => sum + daily.employeeDetails.length,
-            0,
+            0
         );
 
         return {
@@ -231,7 +245,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
     private async generateMonthlyAttendanceReport(
         data: ReportGenerationData,
         scope: DataScope,
-        job: Job,
+        job: Job
     ) {
         const { year, month, branchId, includeSummary } = data.parameters;
 
@@ -241,7 +255,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             year,
             month,
             branchId,
-            scope,
+            scope
         );
 
         await this.updateProgress(job, 50, 'Formatting report data');
@@ -266,7 +280,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
     private async generateEmployeeListReport(
         data: ReportGenerationData,
         scope: DataScope,
-        job: Job,
+        job: Job
     ) {
         const { branchId, departmentId, isActive, includeContactInfo } = data.parameters;
 
@@ -308,7 +322,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
     private async generateDeviceStatusReport(
         data: ReportGenerationData,
         scope: DataScope,
-        job: Job,
+        job: Job
     ) {
         const { branchId, deviceType, includeOffline } = data.parameters;
 
@@ -350,7 +364,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
     private async generateGuestVisitsReport(
         data: ReportGenerationData,
         scope: DataScope,
-        job: Job,
+        job: Job
     ) {
         const { startDate, endDate, branchId, status } = data.parameters;
 
@@ -387,7 +401,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
     private async generateSecurityAuditReport(
         data: ReportGenerationData,
         scope: DataScope,
-        job: Job,
+        job: Job
     ) {
         const { startDate, endDate, severity, includeDetails } = data.parameters;
 
@@ -399,11 +413,10 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             severity,
         };
 
-        const securityEvents = await this.auditLogService.getSecurityEvents(
-            filters,
-            scope,
-            { page: 1, limit: 10000 },
-        );
+        const securityEvents = await this.auditLogService.getSecurityEvents(filters, scope, {
+            page: 1,
+            limit: 10000,
+        });
 
         await this.updateProgress(job, 50, 'Formatting report data');
 
@@ -451,14 +464,17 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             if (includeDetails) {
                 row.push(
                     employee.checkIns.map((time: Date) => time.toISOString()).join('; '),
-                    employee.checkOuts.map((time: Date) => time.toISOString()).join('; '),
+                    employee.checkOuts.map((time: Date) => time.toISOString()).join('; ')
                 );
             }
 
             return row;
         });
 
-        return [headers.join(','), ...rows.map(row => row.map(field => `\"${field}\"`).join(','))].join('\n');
+        return [
+            headers.join(','),
+            ...rows.map(row => row.map(field => `\"${field}\"`).join(',')),
+        ].join('\n');
     }
 
     private formatWeeklyAttendanceCSV(report: any, includeSummary: boolean): string {
@@ -476,14 +492,14 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
         csvContent += 'Date,Total Employees,Present,Partial,Absent,Total Hours\n';
 
         report.dailyReports.forEach((daily: any) => {
-            csvContent += [
+            csvContent += `${[
                 daily.date.toISOString().split('T')[0],
                 daily.totalEmployees,
                 daily.presentEmployees,
                 daily.partialEmployees,
                 daily.absentEmployees,
                 daily.totalHours,
-            ].join(',') + '\n';
+            ].join(',')}\n`;
         });
 
         return csvContent;
@@ -504,13 +520,15 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
         csvContent += 'Employee Code,Employee Name,Total Hours,Days Worked,Average Hours Per Day\n';
 
         report.employeeReports.forEach((employee: any) => {
-            csvContent += [
+            csvContent += `${[
                 employee.employee.employeeCode,
                 `${employee.employee.firstName} ${employee.employee.lastName}`,
                 employee.totalHours,
                 employee.daysWorked,
                 employee.averageHoursPerDay,
-            ].map((field: any) => `\"${field}\"`).join(',') + '\n';
+            ]
+                .map((field: any) => `\"${field}\"`)
+                .join(',')}\n`;
         });
 
         return csvContent;
@@ -549,7 +567,10 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             return row;
         });
 
-        return [headers.join(','), ...rows.map(row => row.map(field => `\"${field}\"`).join(','))].join('\n');
+        return [
+            headers.join(','),
+            ...rows.map(row => row.map(field => `\"${field}\"`).join(',')),
+        ].join('\n');
     }
 
     private formatDeviceStatusCSV(devices: any[]): string {
@@ -573,7 +594,10 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             device.createdAt.toISOString(),
         ]);
 
-        return [headers.join(','), ...rows.map(row => row.map(field => `\"${field}\"`).join(','))].join('\n');
+        return [
+            headers.join(','),
+            ...rows.map(row => row.map(field => `\"${field}\"`).join(',')),
+        ].join('\n');
     }
 
     private formatGuestVisitsCSV(guestVisits: any[]): string {
@@ -597,7 +621,10 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             visit.createdAt.toISOString(),
         ]);
 
-        return [headers.join(','), ...rows.map(row => row.map(field => `\"${field}\"`).join(','))].join('\n');
+        return [
+            headers.join(','),
+            ...rows.map(row => row.map(field => `\"${field}\"`).join(',')),
+        ].join('\n');
     }
 
     private formatSecurityAuditCSV(auditLogs: any[], includeDetails: boolean): string {
@@ -633,7 +660,10 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             return row;
         });
 
-        return [headers.join(','), ...rows.map(row => row.map(field => `\"${field}\"`).join(','))].join('\n');
+        return [
+            headers.join(','),
+            ...rows.map(row => row.map(field => `\"${field}\"`).join(',')),
+        ].join('\n');
     }
 
     private getContentType(format: string): string {
@@ -654,7 +684,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
     private async sendCompletionNotification(
         data: ReportGenerationData,
         fileName: string,
-        recordCount: number,
+        recordCount: number
     ) {
         try {
             // This would typically get the user's email from the database

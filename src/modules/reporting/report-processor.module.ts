@@ -10,17 +10,17 @@ import { LoggerModule } from '../../core/logger/logger.module';
 import { AdapterModule } from '../../shared/adapters/adapter.module';
 
 @Module({
-  imports: [
-    LoggerModule,
-    AdapterModule,
-    ReportingModule,
-    AttendanceModule,
-    EmployeeModule,
-    DeviceModule,
-    GuestModule,
-    AuditModule,
-  ],
-  providers: [ReportGenerationProcessor],
-  exports: [ReportGenerationProcessor],
+    imports: [
+        LoggerModule,
+        AdapterModule,
+        ReportingModule,
+        AttendanceModule,
+        EmployeeModule,
+        DeviceModule,
+        GuestModule,
+        AuditModule,
+    ],
+    providers: [ReportGenerationProcessor],
+    exports: [ReportGenerationProcessor],
 })
 export class ReportProcessorModule {}

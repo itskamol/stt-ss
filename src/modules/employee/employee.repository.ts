@@ -7,135 +7,135 @@ import { QueryBuilder } from '../../shared/utils/query-builder.util';
 
 @Injectable()
 export class EmployeeRepository {
-  constructor(private readonly prisma: PrismaService) {}
+    constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: CreateEmployeeDto, scope: DataScope): Promise<Employee> {
-    return this.prisma.employee.create({
-      data: {
-        ...data,
-        organizationId: scope.organizationId,
-      },
-    });
-  }
+    async create(data: CreateEmployeeDto, scope: DataScope): Promise<Employee> {
+        return this.prisma.employee.create({
+            data: {
+                ...data,
+                organizationId: scope.organizationId,
+            },
+        });
+    }
 
-  async findById(id: string, scope: DataScope): Promise<Employee | null> {
-    const whereClause = QueryBuilder.buildBranchScope(scope);
-    
-    return this.prisma.employee.findFirst({
-      where: {
-        id,
-        ...whereClause,
-      },
-      include: {
-        branch: true,
-        department: true,
-      },
-    });
-  }
+    async findById(id: string, scope: DataScope): Promise<Employee | null> {
+        const whereClause = QueryBuilder.buildBranchScope(scope);
 
-  async findByEmployeeCode(employeeCode: string, scope: DataScope): Promise<Employee | null> {
-    const whereClause = QueryBuilder.buildOrganizationScope(scope);
-    
-    return this.prisma.employee.findFirst({
-      where: {
-        employeeCode,
-        ...whereClause,
-      },
-    });
-  }
+        return this.prisma.employee.findFirst({
+            where: {
+                id,
+                ...whereClause,
+            },
+            include: {
+                branch: true,
+                department: true,
+            },
+        });
+    }
 
-  async findMany(filters: any = {}, scope: DataScope): Promise<Employee[]> {
-    const whereClause = QueryBuilder.buildBranchScope(scope);
-    
-    return this.prisma.employee.findMany({
-      where: {
-        ...filters,
-        ...whereClause,
-      },
-      include: {
-        branch: true,
-        department: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
+    async findByEmployeeCode(employeeCode: string, scope: DataScope): Promise<Employee | null> {
+        const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
-  async update(id: string, data: UpdateEmployeeDto, scope: DataScope): Promise<Employee> {
-    const whereClause = QueryBuilder.buildBranchScope(scope);
-    
-    return this.prisma.employee.update({
-      where: { id },
-      data,
-    });
-  }
+        return this.prisma.employee.findFirst({
+            where: {
+                employeeCode,
+                ...whereClause,
+            },
+        });
+    }
 
-  async delete(id: string, scope: DataScope): Promise<void> {
-    const whereClause = QueryBuilder.buildBranchScope(scope);
-    
-    await this.prisma.employee.delete({
-      where: { id },
-    });
-  }
+    async findMany(filters: any = {}, scope: DataScope): Promise<Employee[]> {
+        const whereClause = QueryBuilder.buildBranchScope(scope);
 
-  async count(filters: any = {}, scope: DataScope): Promise<number> {
-    const whereClause = QueryBuilder.buildBranchScope(scope);
-    
-    return this.prisma.employee.count({
-      where: {
-        ...filters,
-        ...whereClause,
-      },
-    });
-  }
+        return this.prisma.employee.findMany({
+            where: {
+                ...filters,
+                ...whereClause,
+            },
+            include: {
+                branch: true,
+                department: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
 
-  async findByBranch(branchId: string, scope: DataScope): Promise<Employee[]> {
-    const whereClause = QueryBuilder.buildOrganizationScope(scope);
-    
-    return this.prisma.employee.findMany({
-      where: {
-        branchId,
-        ...whereClause,
-      },
-      include: {
-        department: true,
-      },
-      orderBy: { lastName: 'asc' },
-    });
-  }
+    async update(id: string, data: UpdateEmployeeDto, scope: DataScope): Promise<Employee> {
+        const whereClause = QueryBuilder.buildBranchScope(scope);
 
-  async findByDepartment(departmentId: string, scope: DataScope): Promise<Employee[]> {
-    const whereClause = QueryBuilder.buildBranchScope(scope);
-    
-    return this.prisma.employee.findMany({
-      where: {
-        departmentId,
-        ...whereClause,
-      },
-      include: {
-        branch: true,
-      },
-      orderBy: { lastName: 'asc' },
-    });
-  }
+        return this.prisma.employee.update({
+            where: { id },
+            data,
+        });
+    }
 
-  async searchEmployees(searchTerm: string, scope: DataScope): Promise<Employee[]> {
-    const whereClause = QueryBuilder.buildBranchScope(scope);
-    
-    return this.prisma.employee.findMany({
-      where: {
-        ...whereClause,
-        OR: [
-          { firstName: { contains: searchTerm, mode: 'insensitive' } },
-          { lastName: { contains: searchTerm, mode: 'insensitive' } },
-          { employeeCode: { contains: searchTerm, mode: 'insensitive' } },
-          { email: { contains: searchTerm, mode: 'insensitive' } },
-        ],
-      },
-      include: {
-        branch: true,
-        department: true,
-      },
-      orderBy: { lastName: 'asc' },
-    });
-  }
+    async delete(id: string, scope: DataScope): Promise<void> {
+        const whereClause = QueryBuilder.buildBranchScope(scope);
+
+        await this.prisma.employee.delete({
+            where: { id },
+        });
+    }
+
+    async count(filters: any = {}, scope: DataScope): Promise<number> {
+        const whereClause = QueryBuilder.buildBranchScope(scope);
+
+        return this.prisma.employee.count({
+            where: {
+                ...filters,
+                ...whereClause,
+            },
+        });
+    }
+
+    async findByBranch(branchId: string, scope: DataScope): Promise<Employee[]> {
+        const whereClause = QueryBuilder.buildOrganizationScope(scope);
+
+        return this.prisma.employee.findMany({
+            where: {
+                branchId,
+                ...whereClause,
+            },
+            include: {
+                department: true,
+            },
+            orderBy: { lastName: 'asc' },
+        });
+    }
+
+    async findByDepartment(departmentId: string, scope: DataScope): Promise<Employee[]> {
+        const whereClause = QueryBuilder.buildBranchScope(scope);
+
+        return this.prisma.employee.findMany({
+            where: {
+                departmentId,
+                ...whereClause,
+            },
+            include: {
+                branch: true,
+            },
+            orderBy: { lastName: 'asc' },
+        });
+    }
+
+    async searchEmployees(searchTerm: string, scope: DataScope): Promise<Employee[]> {
+        const whereClause = QueryBuilder.buildBranchScope(scope);
+
+        return this.prisma.employee.findMany({
+            where: {
+                ...whereClause,
+                OR: [
+                    { firstName: { contains: searchTerm, mode: 'insensitive' } },
+                    { lastName: { contains: searchTerm, mode: 'insensitive' } },
+                    { employeeCode: { contains: searchTerm, mode: 'insensitive' } },
+                    { email: { contains: searchTerm, mode: 'insensitive' } },
+                ],
+            },
+            include: {
+                branch: true,
+                department: true,
+            },
+            orderBy: { lastName: 'asc' },
+        });
+    }
 }

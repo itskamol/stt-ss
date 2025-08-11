@@ -4,7 +4,7 @@ import { DataScopeGuard } from './data-scope.guard';
 import { RolesGuard } from './roles.guard';
 
 @Module({
-  providers: [JwtAuthGuard, DataScopeGuard, RolesGuard],
-  exports: [JwtAuthGuard, DataScopeGuard, RolesGuard],
+    providers: [JwtAuthGuard, DataScopeGuard, RolesGuard],
+    exports: [JwtAuthGuard, DataScopeGuard, RolesGuard],
 })
 export class GuardsModule {}

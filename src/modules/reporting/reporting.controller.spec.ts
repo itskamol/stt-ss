@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ReportingController } from './reporting.controller';
 import { ReportingService } from './reporting.service';
 import { CreateReportDto } from '../../shared/dto';
-import { UserContext, DataScope } from '../../shared/interfaces';
+import { DataScope, UserContext } from '../../shared/interfaces';
 
 describe('ReportingController', () => {
     let controller: ReportingController;
@@ -80,12 +80,16 @@ describe('ReportingController', () => {
 
             reportingService.generateReport.mockResolvedValue(mockReport as any);
 
-            const result = await controller.generateReport(createDto, mockUserContext, mockDataScope);
+            const result = await controller.generateReport(
+                createDto,
+                mockUserContext,
+                mockDataScope
+            );
 
             expect(reportingService.generateReport).toHaveBeenCalledWith(
                 createDto,
                 mockDataScope,
-                mockUserContext.sub,
+                mockUserContext.sub
             );
             expect(result).toEqual({
                 id: mockReport.id,
@@ -123,7 +127,7 @@ describe('ReportingController', () => {
             const result = await controller.getReports(
                 mockDataScope,
                 { type: 'DAILY_ATTENDANCE' },
-                { page: 1, limit: 20 },
+                { page: 1, limit: 20 }
             );
 
             expect(reportingService.getReports).toHaveBeenCalledWith(
@@ -131,7 +135,7 @@ describe('ReportingController', () => {
                     type: 'DAILY_ATTENDANCE',
                 }),
                 mockDataScope,
-                { page: 1, limit: 20 },
+                { page: 1, limit: 20 }
             );
             expect(result.data).toHaveLength(1);
             expect(result.total).toBe(1);
@@ -171,16 +175,19 @@ describe('ReportingController', () => {
 
             const result = await controller.getReportById('report-123', mockDataScope);
 
-            expect(reportingService.getReportById).toHaveBeenCalledWith('report-123', mockDataScope);
+            expect(reportingService.getReportById).toHaveBeenCalledWith(
+                'report-123',
+                mockDataScope
+            );
             expect(result.id).toBe('report-123');
         });
 
         it('should throw error when report not found', async () => {
             reportingService.getReportById.mockResolvedValue(null);
 
-            await expect(
-                controller.getReportById('report-123', mockDataScope),
-            ).rejects.toThrow('Report not found');
+            await expect(controller.getReportById('report-123', mockDataScope)).rejects.toThrow(
+                'Report not found'
+            );
         });
     });
 
@@ -195,7 +202,10 @@ describe('ReportingController', () => {
 
             const result = await controller.downloadReport('report-123', mockDataScope);
 
-            expect(reportingService.getReportDownloadUrl).toHaveBeenCalledWith('report-123', mockDataScope);
+            expect(reportingService.getReportDownloadUrl).toHaveBeenCalledWith(
+                'report-123',
+                mockDataScope
+            );
             expect(result).toEqual(mockDownload);
         });
     });
@@ -210,12 +220,16 @@ describe('ReportingController', () => {
 
             reportingService.regenerateReport.mockResolvedValue(updatedReport as any);
 
-            const result = await controller.regenerateReport('report-123', mockUserContext, mockDataScope);
+            const result = await controller.regenerateReport(
+                'report-123',
+                mockUserContext,
+                mockDataScope
+            );
 
             expect(reportingService.regenerateReport).toHaveBeenCalledWith(
                 'report-123',
                 mockDataScope,
-                mockUserContext.sub,
+                mockUserContext.sub
             );
             expect(result.status).toBe('PENDING');
         });
@@ -235,7 +249,7 @@ describe('ReportingController', () => {
             const result = await controller.generateDailyAttendanceReport(
                 params,
                 mockUserContext,
-                mockDataScope,
+                mockDataScope
             );
 
             expect(reportingService.generateReport).toHaveBeenCalledWith(
@@ -250,7 +264,7 @@ describe('ReportingController', () => {
                     },
                 }),
                 mockDataScope,
-                mockUserContext.sub,
+                mockUserContext.sub
             );
             expect(result.type).toBe('DAILY_ATTENDANCE');
         });
@@ -271,7 +285,7 @@ describe('ReportingController', () => {
             const result = await controller.generateMonthlyAttendanceReport(
                 params,
                 mockUserContext,
-                mockDataScope,
+                mockDataScope
             );
 
             expect(reportingService.generateReport).toHaveBeenCalledWith(
@@ -287,7 +301,7 @@ describe('ReportingController', () => {
                     },
                 }),
                 mockDataScope,
-                mockUserContext.sub,
+                mockUserContext.sub
             );
             expect(result.type).toBe('DAILY_ATTENDANCE'); // Mock returns this type
         });
@@ -308,7 +322,7 @@ describe('ReportingController', () => {
             const result = await controller.generateEmployeeListReport(
                 params,
                 mockUserContext,
-                mockDataScope,
+                mockDataScope
             );
 
             expect(reportingService.generateReport).toHaveBeenCalledWith(
@@ -324,7 +338,7 @@ describe('ReportingController', () => {
                     },
                 }),
                 mockDataScope,
-                mockUserContext.sub,
+                mockUserContext.sub
             );
         });
     });
@@ -344,7 +358,7 @@ describe('ReportingController', () => {
             const result = await controller.generateSecurityAuditReport(
                 params,
                 mockUserContext,
-                mockDataScope,
+                mockDataScope
             );
 
             expect(reportingService.generateReport).toHaveBeenCalledWith(
@@ -360,7 +374,7 @@ describe('ReportingController', () => {
                     },
                 }),
                 mockDataScope,
-                mockUserContext.sub,
+                mockUserContext.sub
             );
         });
     });

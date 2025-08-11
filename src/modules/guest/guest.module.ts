@@ -7,9 +7,9 @@ import { LoggerModule } from '../../core/logger/logger.module';
 import { QueueModule } from '../../core/queue/queue.module';
 
 @Module({
-  imports: [DatabaseModule, LoggerModule, QueueModule],
-  controllers: [GuestController],
-  providers: [GuestService, GuestRepository],
-  exports: [GuestService, GuestRepository],
+    imports: [DatabaseModule, LoggerModule, QueueModule],
+    controllers: [GuestController],
+    providers: [GuestService, GuestRepository],
+    exports: [GuestService, GuestRepository],
 })
 export class GuestModule {}

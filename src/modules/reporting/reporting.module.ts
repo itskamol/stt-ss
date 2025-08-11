@@ -13,19 +13,19 @@ import { GuestModule } from '../guest/guest.module';
 import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [
-    DatabaseModule,
-    LoggerModule,
-    QueueModule,
-    AdapterModule,
-    AttendanceModule,
-    EmployeeModule,
-    DeviceModule,
-    GuestModule,
-    AuditModule,
-  ],
-  controllers: [ReportingController],
-  providers: [ReportingService, ReportRepository],
-  exports: [ReportingService, ReportRepository],
+    imports: [
+        DatabaseModule,
+        LoggerModule,
+        QueueModule,
+        AdapterModule,
+        AttendanceModule,
+        EmployeeModule,
+        DeviceModule,
+        GuestModule,
+        AuditModule,
+    ],
+    controllers: [ReportingController],
+    providers: [ReportingService, ReportRepository],
+    exports: [ReportingService, ReportRepository],
 })
 export class ReportingModule {}

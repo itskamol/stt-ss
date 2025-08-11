@@ -4,8 +4,8 @@ import { BranchRepository } from './branch.repository';
 import { BranchService } from './branch.service';
 
 @Module({
-  controllers: [BranchController],
-  providers: [BranchRepository, BranchService],
-  exports: [BranchRepository, BranchService],
+    controllers: [BranchController],
+    providers: [BranchRepository, BranchService],
+    exports: [BranchRepository, BranchService],
 })
 export class BranchModule {}

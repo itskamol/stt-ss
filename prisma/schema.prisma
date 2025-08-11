@@ -33,6 +33,10 @@ enum Role {
 }
 
 enum DeviceType {
+  card_reader
+  biometric
+  qr_scanner
+  facial_recognition
   CAMERA
   CARD_READER
   FINGERPRINT
@@ -41,6 +45,10 @@ enum DeviceType {
 }
 
 enum DeviceStatus {
+  online
+  offline
+  error
+  maintenance
   ONLINE
   OFFLINE
   DEGRADED
@@ -221,13 +229,17 @@ model Device {
   branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   branchId       String
 
-  name       String
-  type       DeviceType
-  ipAddress  String?
-  macAddress String?      @unique
-  model      String?
-  status     DeviceStatus @default(ONLINE)
-  lastSeenAt DateTime?
+  name             String
+  deviceIdentifier String?      @unique // Added missing field
+  type             DeviceType
+  ipAddress        String?
+  macAddress       String?      @unique
+  model            String?
+  description      String?      // Added missing field
+  status           DeviceStatus @default(ONLINE)
+  isActive         Boolean      @default(true) // Added missing field
+  lastSeenAt       DateTime?
+  lastSeen         DateTime?    // Added missing field (alias for lastSeenAt)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

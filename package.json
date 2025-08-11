@@ -47,6 +47,7 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.33.0",
     "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^11.0.7",
     "@nestjs/testing": "^11.1.6",
@@ -72,7 +73,8 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.0"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -89,6 +91,18 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "globals": {
+      "ts-jest": {
+        "tsconfig": "tsconfig.spec.json",
+        "isolatedModules": true
+      }
+    },
+    "moduleNameMapping": {
+      "^@/(.*)$": "<rootDir>/$1",
+      "^@/core/(.*)$": "<rootDir>/core/$1",
+      "^@/shared/(.*)$": "<rootDir>/shared/$1",
+      "^@/modules/(.*)$": "<rootDir>/modules/$1"
+    }
   }
 }
