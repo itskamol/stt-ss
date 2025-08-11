@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app/app.module';
 import { ConfigService } from './core/config/config.service';
 import { LoggerService } from './core/logger/logger.service';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, {
@@ -44,6 +45,16 @@ async function bootstrap() {
 
     // Global prefix for all routes
     app.setGlobalPrefix('api/v1');
+
+    const config = new DocumentBuilder()
+        .setTitle('Sector Staff API')
+        .setDescription('API documentation for the Sector Staff application')
+        .setVersion('2.1.0')
+        .addTag('API')
+        .addBearerAuth()
+        .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
 
     // Enable CORS
     app.enableCors();
