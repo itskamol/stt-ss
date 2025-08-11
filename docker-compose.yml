@@ -3,48 +3,67 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: sector-staff-postgres
+    container_name: sector-staff-postgres-${ENVIRONMENT:-dev}
     environment:
-      POSTGRES_DB: sector_staff_v2
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-sector_staff_v2}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_${ENVIRONMENT:-dev}_data:/var/lib/postgresql/data
     networks:
-      - sector-staff-network
+      - sector-staff-${ENVIRONMENT:-dev}-network
+    restart: ${RESTART_POLICY:-unless-stopped}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      disable: ${DISABLE_HEALTHCHECK:-false}
 
   redis:
     image: redis:7-alpine
-    container_name: sector-staff-redis
+    container_name: sector-staff-redis-${ENVIRONMENT:-dev}
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - redis_data:/data
+      - redis_${ENVIRONMENT:-dev}_data:/data
     networks:
-      - sector-staff-network
+      - sector-staff-${ENVIRONMENT:-dev}-network
+    restart: ${RESTART_POLICY:-unless-stopped}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      disable: ${DISABLE_HEALTHCHECK:-false}
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
-    container_name: sector-staff-app
+      target: ${BUILD_TARGET:-development}
+    container_name: sector-staff-app-${ENVIRONMENT:-dev}
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:3000"
     env_file:
-      - .env.docker
+      - config/environments/${ENVIRONMENT:-dev}.env
     environment:
-      - NODE_ENV=docker
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sector_staff_v2
+      - NODE_ENV=${NODE_ENV:-development}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-sector_staff_v2}
       - REDIS_URL=redis://redis:6379
+    volumes:
+      - ${VOLUMES_CONFIG:-.:/app}
+      - ${NODE_MODULES_VOLUME:-/app/node_modules}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: ${DEPENDS_CONDITION:-service_started}
+      redis:
+        condition: ${DEPENDS_CONDITION:-service_started}
     networks:
-      - sector-staff-network
-    restart: unless-stopped
+      - sector-staff-${ENVIRONMENT:-dev}-network
+    restart: ${RESTART_POLICY:-unless-stopped}
 
   # minio:
   #   image: minio/minio:latest
@@ -62,10 +81,23 @@ services:
   #     - sector-staff-network
 
 volumes:
-  postgres_data:
-  redis_data:
-  minio_data:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  postgres_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local
+  postgres_staging_data:
+    driver: local
+  redis_staging_data:
+    driver: local
 
 networks:
-  sector-staff-network:
+  sector-staff-dev-network:
+    driver: bridge
+  sector-staff-prod-network:
+    driver: bridge
+  sector-staff-staging-network:
     driver: bridge

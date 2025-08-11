@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Docker Environment Management Script
+# Docker Compose Environment Helper Script
+# Usage: ./docker-env.sh [dev|prod|staging] [up|down|build|logs|restart]
 
 set -e
 
@@ -11,92 +12,88 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Functions
+ENVIRONMENT=${1:-dev}
+COMMAND=${2:-up}
+
+# Print usage function
 print_usage() {
-    echo -e "${BLUE}Usage: $0 [COMMAND] [ENVIRONMENT]${NC}"
+    echo -e "${BLUE}Docker Environment Helper${NC}"
+    echo -e "Usage: $0 [ENVIRONMENT] [COMMAND]"
     echo ""
-    echo "Commands:"
-    echo "  up        Start services"
+    echo -e "${YELLOW}Environments:${NC}"
+    echo "  dev       Development environment (hot reload, port 3001)"
+    echo "  prod      Production environment (optimized, port 3000)"
+    echo "  staging   Staging environment (production-like, port 3002)"
+    echo ""
+    echo -e "${YELLOW}Commands:${NC}"
+    echo "  up        Start services (default)"
     echo "  down      Stop services"
     echo "  build     Build services"
-    echo "  restart   Restart services"
     echo "  logs      View logs"
-    echo "  status    Show service status"
+    echo "  restart   Restart services"
+    echo "  ps        Show container status"
     echo ""
-    echo "Environments:"
-    echo "  dev       Development environment (docker-compose.dev.yml)"
-    echo "  prod      Production environment (docker-compose.prod.yml)"
-    echo "  default   Default environment (docker-compose.yml)"
-    echo ""
-    echo "Examples:"
-    echo "  $0 up dev        # Start development environment"
-    echo "  $0 down prod     # Stop production environment"
-    echo "  $0 build default # Build default environment"
-    echo "  $0 logs dev      # View development logs"
+    echo -e "${YELLOW}Examples:${NC}"
+    echo "  $0 dev up        # Start development environment"
+    echo "  $0 prod down     # Stop production environment"
+    echo "  $0 staging logs  # View staging logs"
 }
 
-get_compose_file() {
-    case $1 in
-        dev|development)
-            echo "docker-compose.dev.yml"
-            ;;
-        prod|production)
-            echo "docker-compose.prod.yml"
-            ;;
-        default|"")
-            echo "docker-compose.yml"
-            ;;
-        *)
-            echo -e "${RED}Error: Unknown environment '$1'${NC}"
-            print_usage
-            exit 1
-            ;;
-    esac
-}
-
-run_command() {
-    local command=$1
-    local environment=$2
-    local compose_file=$(get_compose_file $environment)
-    
-    echo -e "${GREEN}Running: docker compose -f $compose_file $command${NC}"
-    
-    case $command in
-        up)
-            docker compose -f $compose_file up -d
-            ;;
-        down)
-            docker compose -f $compose_file down
-            ;;
-        build)
-            docker compose -f $compose_file build
-            ;;
-        restart)
-            docker compose -f $compose_file restart
-            ;;
-        logs)
-            docker compose -f $compose_file logs -f
-            ;;
-        status)
-            docker compose -f $compose_file ps
-            ;;
-        *)
-            echo -e "${RED}Error: Unknown command '$command'${NC}"
-            print_usage
-            exit 1
-            ;;
-    esac
-}
-
-# Main script
-if [ $# -eq 0 ]; then
+# Check for help flag
+if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
     print_usage
+    exit 0
+fi
+
+# Check if environment file exists
+ENV_FILE="config/environments/${ENVIRONMENT}.env"
+if [ ! -f "$ENV_FILE" ]; then
+    echo -e "${RED}❌ Environment file $ENV_FILE not found!${NC}"
+    echo -e "${YELLOW}Available environments: dev, prod, staging${NC}"
+    echo -e "${BLUE}Available files:${NC}"
+    ls -1 config/environments/ 2>/dev/null || echo "  No environment files found"
     exit 1
 fi
 
-COMMAND=$1
-ENVIRONMENT=${2:-default}
+# Load environment variables
+set -a  # automatically export all variables
+source $ENV_FILE
+set +a
 
-run_command $COMMAND $ENVIRONMENT
+echo -e "${GREEN}🚀 Running Docker Compose for ${ENVIRONMENT} environment...${NC}"
+echo -e "${BLUE}📁 Using environment file: ${ENV_FILE}${NC}"
+echo -e "${BLUE}🔧 Command: ${COMMAND}${NC}"
+echo -e "${BLUE}🌐 App will be available on port: ${APP_PORT}${NC}"
 
-echo -e "${GREEN}Operation completed successfully!${NC}"
+# Execute docker-compose command
+case $COMMAND in
+    "up")
+        docker-compose --env-file $ENV_FILE up -d
+        ;;
+    "down")
+        docker-compose --env-file $ENV_FILE down
+        ;;
+    "build")
+        docker-compose --env-file $ENV_FILE build --no-cache
+        ;;
+    "logs")
+        docker-compose --env-file $ENV_FILE logs -f
+        ;;
+    "restart")
+        echo -e "${YELLOW}⏳ Restarting containers...${NC}"
+        docker-compose --env-file $ENV_FILE down
+        docker-compose --env-file $ENV_FILE up -d
+        ;;
+    "ps")
+        docker-compose --env-file $ENV_FILE ps
+        ;;
+    *)
+        echo -e "${RED}❌ Unknown command: $COMMAND${NC}"
+        echo -e "${YELLOW}Available commands: up, down, build, logs, restart, ps${NC}"
+        exit 1
+        ;;
+esac
+
+echo -e "${GREEN}✅ Docker Compose command completed!${NC}"
+echo -e "${BLUE}📊 Container status:${NC}"
+docker-compose --env-file $ENV_FILE ps

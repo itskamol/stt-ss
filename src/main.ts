@@ -13,6 +13,21 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
     const logger = app.get(LoggerService);
 
+    // Validate environment configuration
+    try {
+        configService.validateConfig();
+        logger.log('Environment configuration validated successfully', {
+            environment: configService.nodeEnv,
+            module: 'bootstrap',
+        });
+    } catch (error) {
+        logger.error('Environment configuration validation failed', {
+            error: error.message,
+            module: 'bootstrap',
+        });
+        process.exit(1);
+    }
+
     // Use custom logger
     app.useLogger(logger);
 
