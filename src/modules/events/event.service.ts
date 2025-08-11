@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { EventRepository } from './event.repository';
 import { DeviceRepository } from '../device/device.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { CacheService } from '../../core/cache/cache.service';
-import { QueueProducer } from '../../core/queue/queue.producer';
-import { CreateRawEventDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
+import { LoggerService } from '@/core/logger/logger.service';
+import { CacheService } from '@/core/cache/cache.service';
+import { QueueProducer } from '@/core/queue/queue.producer';
+import { CreateRawEventDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
 
 @Injectable()
 export class EventService {

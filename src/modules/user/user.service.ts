@@ -1,15 +1,15 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { UserRepository } from './user.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { DatabaseUtil, PasswordUtil } from '../../shared/utils';
+import { LoggerService } from '@/core/logger/logger.service';
+import { DatabaseUtil, PasswordUtil } from '@/shared/utils';
 import {
     AssignUserToOrganizationDto,
     ChangePasswordDto,
     CreateUserDto,
     UpdateUserDto,
-} from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
+} from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
 
 @Injectable()
 export class UserService {

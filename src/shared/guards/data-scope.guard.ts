@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { LoggerService } from '../../core/logger/logger.service';
+import { LoggerService } from '@/core/logger/logger.service';
 import { DataScope, UserContext } from '../interfaces/data-scope.interface';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 import { Role } from '@prisma/client';

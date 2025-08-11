@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GuestController } from './guest.controller';
 import { GuestService } from './guest.service';
-import { ApproveGuestVisitDto, CreateGuestVisitDto, UpdateGuestVisitDto } from '../../shared/dto';
-import { DataScope, UserContext } from '../../shared/interfaces';
+import { ApproveGuestVisitDto, CreateGuestVisitDto, UpdateGuestVisitDto } from '@/shared/dto';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 describe('GuestController', () => {
     let controller: GuestController;

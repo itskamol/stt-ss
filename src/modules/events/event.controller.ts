@@ -10,10 +10,10 @@ import {
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EventService } from './event.service';
-import { LoggerService } from '../../core/logger/logger.service';
-import { CreateRawEventDto } from '../../shared/dto';
-import { Public } from '../../shared/decorators';
-import { DeviceAuthGuard } from '../../shared/guards/device-auth.guard';
+import { LoggerService } from '@/core/logger/logger.service';
+import { CreateRawEventDto } from '@/shared/dto';
+import { Public } from '@/shared/decorators';
+import { DeviceAuthGuard } from '@/shared/guards/device-auth.guard';
 import { UseGuards } from '@nestjs/common';
 
 @ApiTags('Events')
@@ -22,7 +22,7 @@ import { UseGuards } from '@nestjs/common';
 export class EventController {
     constructor(
         private readonly eventService: EventService,
-        private readonly logger: LoggerService,
+        private readonly logger: LoggerService
     ) {}
 
     @Post('raw')
@@ -48,7 +48,7 @@ export class EventController {
         @Body() createRawEventDto: CreateRawEventDto,
         @Headers('x-device-id') deviceId: string,
         @Headers('x-device-signature') signature: string,
-        @Headers('x-idempotency-key') idempotencyKey?: string,
+        @Headers('x-idempotency-key') idempotencyKey?: string
     ): Promise<{ eventId: string; status: string; message: string }> {
         // Validate required headers
         if (!deviceId) {
@@ -68,7 +68,7 @@ export class EventController {
                 createRawEventDto,
                 deviceId,
                 signature,
-                finalIdempotencyKey,
+                finalIdempotencyKey
             );
 
             this.logger.log('Raw event processed successfully', {

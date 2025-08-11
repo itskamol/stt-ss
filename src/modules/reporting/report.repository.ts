@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../core/database/prisma.service';
-import { DataScope } from '../../shared/interfaces';
-import { QueryBuilder } from '../../shared/utils/query-builder.util';
+import { PrismaService } from '@/core/database/prisma.service';
+import { DataScope } from '@/shared/interfaces';
+import { QueryBuilder } from '@/shared/utils/query-builder.util';
 
 export interface CreateReportData {
     name: string;

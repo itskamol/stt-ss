@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Employee } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
-import { CreateEmployeeDto, UpdateEmployeeDto } from '../../shared/dto/employee.dto';
-import { DataScope } from '../../shared/interfaces/data-scope.interface';
-import { QueryBuilder } from '../../shared/utils/query-builder.util';
+import { PrismaService } from '@/core/database/prisma.service';
+import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto/employee.dto';
+import { DataScope } from '@/shared/interfaces/data-scope.interface';
+import { QueryBuilder } from '@/shared/utils/query-builder.util';
 
 @Injectable()
 export class EmployeeRepository {

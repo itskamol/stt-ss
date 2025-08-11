@@ -164,9 +164,9 @@ describe('QueueProducer', () => {
                 filters: { branchId: 'branch-123' },
                 requestedBy: 'user-123',
                 organizationId: 'org-123',
-                userId: "12332112",
-                reportId: "asdasdasdsa",
-                parameters: []
+                userId: '12332112',
+                reportId: 'asdasdasdsa',
+                parameters: [],
             };
 
             const mockJob = { id: 'job-report' };

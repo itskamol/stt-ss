@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { AttendanceRepository } from './attendance.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { CreateAttendanceDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
+import { LoggerService } from '@/core/logger/logger.service';
+import { CreateAttendanceDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
 
 describe('AttendanceService', () => {
     let service: AttendanceService;

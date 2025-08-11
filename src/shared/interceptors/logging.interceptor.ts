@@ -1,7 +1,7 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { LoggerService } from '../../core/logger/logger.service';
+import { LoggerService } from '@/core/logger/logger.service';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 
 @Injectable()

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditLogRepository } from './audit-log.repository';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '@/core/database/prisma.service';
 import { DataScope } from '../interfaces';
 
 describe('AuditLogRepository', () => {
@@ -47,7 +47,7 @@ describe('AuditLogRepository', () => {
             user: {
                 findMany: jest.fn(),
             },
-        } as any
+        } as any;
 
         const module: TestingModule = await Test.createTestingModule({
             providers: [

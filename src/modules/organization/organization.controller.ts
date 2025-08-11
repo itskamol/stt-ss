@@ -20,16 +20,16 @@ import {
     ApiTags,
 } from '@nestjs/swagger';
 import { OrganizationService } from './organization.service';
-import { LoggerService } from '../../core/logger/logger.service';
+import { LoggerService } from '@/core/logger/logger.service';
 import {
     CreateOrganizationDto,
     OrganizationResponseDto,
     PaginationDto,
     PaginationResponseDto,
     UpdateOrganizationDto,
-} from '../../shared/dto';
-import { NoScoping, Permissions, Roles, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
+} from '@/shared/dto';
+import { NoScoping, Permissions, Roles, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@prisma/client';
 
 @ApiTags('Organizations')
@@ -38,7 +38,7 @@ import { Role } from '@prisma/client';
 export class OrganizationController {
     constructor(
         private readonly organizationService: OrganizationService,
-        private readonly logger: LoggerService,
+        private readonly logger: LoggerService
     ) {}
 
     @Post()
@@ -55,11 +55,11 @@ export class OrganizationController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async createOrganization(
         @Body() createOrganizationDto: CreateOrganizationDto,
-        @User() user: UserContext,
+        @User() user: UserContext
     ): Promise<OrganizationResponseDto> {
         const organization = await this.organizationService.createOrganization(
             createOrganizationDto,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -83,7 +83,7 @@ export class OrganizationController {
     })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getAllOrganizations(
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<OrganizationResponseDto>> {
         const organizations = await this.organizationService.getAllOrganizations();
 
@@ -154,7 +154,7 @@ export class OrganizationController {
     @ApiResponse({ status: 404, description: 'Organization not found.' })
     async getCurrentOrganization(@Scope() scope: DataScope): Promise<OrganizationResponseDto> {
         const organization = await this.organizationService.getOrganizationById(
-            scope.organizationId,
+            scope.organizationId
         );
 
         if (!organization) {
@@ -235,12 +235,12 @@ export class OrganizationController {
     async updateCurrentOrganization(
         @Body() updateOrganizationDto: UpdateOrganizationDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<OrganizationResponseDto> {
         const organization = await this.organizationService.updateOrganization(
             scope.organizationId,
             updateOrganizationDto,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -269,12 +269,12 @@ export class OrganizationController {
     async updateOrganization(
         @Param('id') id: string,
         @Body() updateOrganizationDto: UpdateOrganizationDto,
-        @User() user: UserContext,
+        @User() user: UserContext
     ): Promise<OrganizationResponseDto> {
         const organization = await this.organizationService.updateOrganization(
             id,
             updateOrganizationDto,
-            user.sub,
+            user.sub
         );
 
         return {

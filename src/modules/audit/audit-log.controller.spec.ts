@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditLogController } from './audit-log.controller';
-import { AuditLogService } from '../../shared/services/audit-log.service';
-import { AuditLogFiltersDto } from '../../shared/dto';
-import { DataScope, UserContext } from '../../shared/interfaces';
+import { AuditLogService } from '@/shared/services/audit-log.service';
+import { AuditLogFiltersDto } from '@/shared/dto';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 describe('AuditLogController', () => {
     let controller: AuditLogController;

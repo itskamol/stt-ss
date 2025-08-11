@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { DeviceAuthGuard } from './device-auth.guard';
-import { LoggerService } from '../../core/logger/logger.service';
+import { LoggerService } from '@/core/logger/logger.service';
 
 describe('DeviceAuthGuard', () => {
     let guard: DeviceAuthGuard;

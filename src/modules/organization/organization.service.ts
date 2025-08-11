@@ -1,9 +1,9 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Organization } from '@prisma/client';
 import { OrganizationRepository } from './organization.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { DatabaseUtil } from '../../shared/utils';
-import { CreateOrganizationDto, UpdateOrganizationDto } from '../../shared/dto';
+import { LoggerService } from '@/core/logger/logger.service';
+import { DatabaseUtil } from '@/shared/utils';
+import { CreateOrganizationDto, UpdateOrganizationDto } from '@/shared/dto';
 
 @Injectable()
 export class OrganizationService {

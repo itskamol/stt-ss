@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { EmployeeRepository } from './employee.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { CreateEmployeeDto, UpdateEmployeeDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
+import { LoggerService } from '@/core/logger/logger.service';
+import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
 
 describe('EmployeeService', () => {
     let service: EmployeeService;

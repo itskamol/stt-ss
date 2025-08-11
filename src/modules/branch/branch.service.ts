@@ -1,10 +1,10 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Branch } from '@prisma/client';
 import { BranchRepository } from './branch.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { DatabaseUtil } from '../../shared/utils';
-import { AssignBranchManagerDto, CreateBranchDto, UpdateBranchDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
+import { LoggerService } from '@/core/logger/logger.service';
+import { DatabaseUtil } from '@/shared/utils';
+import { AssignBranchManagerDto, CreateBranchDto, UpdateBranchDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
 
 @Injectable()
 export class BranchService {

@@ -47,10 +47,14 @@ export class ConfigService {
     get refreshTokenSecret(): string {
         const secret = this.configService.get<string>('REFRESH_TOKEN_SECRET');
         if (!secret) {
-            throw new Error('REFRESH_TOKEN_SECRET is required but not provided in environment variables');
+            throw new Error(
+                'REFRESH_TOKEN_SECRET is required but not provided in environment variables'
+            );
         }
         if (secret.length < 32) {
-            throw new Error('REFRESH_TOKEN_SECRET must be at least 32 characters long for security');
+            throw new Error(
+                'REFRESH_TOKEN_SECRET must be at least 32 characters long for security'
+            );
         }
         return secret;
     }
@@ -100,12 +104,7 @@ export class ConfigService {
      * Call this method in app bootstrap to ensure all required vars are present
      */
     validateConfig(): void {
-        const requiredVars = [
-            'DATABASE_URL',
-            'REDIS_URL',
-            'JWT_SECRET',
-            'REFRESH_TOKEN_SECRET'
-        ];
+        const requiredVars = ['DATABASE_URL', 'REDIS_URL', 'JWT_SECRET', 'REFRESH_TOKEN_SECRET'];
 
         const missing = requiredVars.filter(varName => {
             const value = this.configService.get<string>(varName);
@@ -115,7 +114,7 @@ export class ConfigService {
         if (missing.length > 0) {
             throw new Error(
                 `Missing required environment variables: ${missing.join(', ')}\n` +
-                `Please check your environment configuration files in config/environments/`
+                    `Please check your environment configuration files in config/environments/`
             );
         }
 

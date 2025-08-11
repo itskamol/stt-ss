@@ -30,9 +30,9 @@ import {
     PaginationResponseDto,
     RejectGuestVisitDto,
     UpdateGuestVisitDto,
-} from '../../shared/dto';
-import { Permissions, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
+} from '@/shared/dto';
+import { Permissions, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Guests')
 @ApiBearerAuth()
@@ -54,12 +54,12 @@ export class GuestController {
     async createGuestVisit(
         @Body() createGuestVisitDto: CreateGuestVisitDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.createGuestVisit(
             createGuestVisitDto,
             scope,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -93,7 +93,7 @@ export class GuestController {
     async getGuestVisits(
         @Scope() scope: DataScope,
         @Query() filtersDto: GuestVisitFiltersDto,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<GuestVisitResponseDto>> {
         const filters = {
             status: filtersDto.status,
@@ -141,7 +141,7 @@ export class GuestController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async searchGuestVisits(
         @Query('q') searchTerm: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto[]> {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
@@ -178,7 +178,7 @@ export class GuestController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getGuestVisitStats(
         @Scope() scope: DataScope,
-        @Query() filtersDto: GuestVisitFiltersDto,
+        @Query() filtersDto: GuestVisitFiltersDto
     ): Promise<GuestVisitStatsDto> {
         const filters = {
             branchId: filtersDto.branchId,
@@ -201,7 +201,7 @@ export class GuestController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getGuestVisitsByStatus(
         @Param('status') status: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto[]> {
         const guestVisits = await this.guestService.getGuestVisitsByStatus(status, scope);
 
@@ -235,7 +235,7 @@ export class GuestController {
     @ApiResponse({ status: 404, description: 'Guest visit not found.' })
     async getGuestVisitById(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.getGuestVisitById(id, scope);
 
@@ -277,13 +277,13 @@ export class GuestController {
         @Param('id') id: string,
         @Body() updateGuestVisitDto: UpdateGuestVisitDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.updateGuestVisit(
             id,
             updateGuestVisitDto,
             scope,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -319,13 +319,13 @@ export class GuestController {
         @Param('id') id: string,
         @Body() approveDto: ApproveGuestVisitDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.approveGuestVisit(
             id,
             approveDto,
             scope,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -362,13 +362,13 @@ export class GuestController {
         @Param('id') id: string,
         @Body() rejectDto: RejectGuestVisitDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.rejectGuestVisit(
             id,
             rejectDto.reason,
             scope,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -402,7 +402,7 @@ export class GuestController {
     async activateGuestVisit(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.activateGuestVisit(id, scope, user.sub);
 
@@ -437,7 +437,7 @@ export class GuestController {
     async completeGuestVisit(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto> {
         const guestVisit = await this.guestService.completeGuestVisit(id, scope, user.sub);
 

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Device } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
-import { CreateDeviceDto, UpdateDeviceDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
-import { QueryBuilder } from '../../shared/utils/query-builder.util';
+import { PrismaService } from '@/core/database/prisma.service';
+import { CreateDeviceDto, UpdateDeviceDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
+import { QueryBuilder } from '@/shared/utils/query-builder.util';
 
 @Injectable()
 export class DeviceRepository {

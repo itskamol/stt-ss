@@ -26,10 +26,10 @@ import {
     PaginationDto,
     PaginationResponseDto,
     UpdateEmployeeDto,
-} from '../../shared/dto';
-import { Permissions, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
-import { AuditLog } from '../../shared/interceptors/audit-log.interceptor';
+} from '@/shared/dto';
+import { Permissions, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
+import { AuditLog } from '@/shared/interceptors/audit-log.interceptor';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -57,12 +57,12 @@ export class EmployeeController {
     async createEmployee(
         @Body() createEmployeeDto: CreateEmployeeDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<EmployeeResponseDto> {
         const employee = await this.employeeService.createEmployee(
             createEmployeeDto,
             scope,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -93,7 +93,7 @@ export class EmployeeController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getEmployees(
         @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<EmployeeResponseDto>> {
         const employees = await this.employeeService.getEmployees(scope);
 
@@ -133,7 +133,7 @@ export class EmployeeController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async searchEmployees(
         @Query('q') searchTerm: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<EmployeeResponseDto[]> {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
@@ -180,7 +180,7 @@ export class EmployeeController {
     @ApiResponse({ status: 404, description: 'Branch not found.' })
     async getEmployeesByBranch(
         @Param('branchId') branchId: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<EmployeeResponseDto[]> {
         const employees = await this.employeeService.getEmployeesByBranch(branchId, scope);
 
@@ -209,7 +209,7 @@ export class EmployeeController {
     @ApiResponse({ status: 404, description: 'Branch not found.' })
     async getEmployeeCountByBranch(
         @Param('branchId') branchId: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<{ count: number }> {
         const count = await this.employeeService.getEmployeeCountByBranch(branchId, scope);
         return { count };
@@ -228,7 +228,7 @@ export class EmployeeController {
     @ApiResponse({ status: 404, description: 'Department not found.' })
     async getEmployeesByDepartment(
         @Param('departmentId') departmentId: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<EmployeeResponseDto[]> {
         const employees = await this.employeeService.getEmployeesByDepartment(departmentId, scope);
 
@@ -257,7 +257,7 @@ export class EmployeeController {
     @ApiResponse({ status: 404, description: 'Department not found.' })
     async getEmployeeCountByDepartment(
         @Param('departmentId') departmentId: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<{ count: number }> {
         const count = await this.employeeService.getEmployeeCountByDepartment(departmentId, scope);
         return { count };
@@ -272,7 +272,7 @@ export class EmployeeController {
     @ApiResponse({ status: 404, description: 'Employee not found.' })
     async getEmployeeByCode(
         @Param('employeeCode') employeeCode: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<EmployeeResponseDto> {
         const employee = await this.employeeService.getEmployeeByCode(employeeCode, scope);
 
@@ -305,7 +305,7 @@ export class EmployeeController {
     @ApiResponse({ status: 404, description: 'Employee not found.' })
     async getEmployeeById(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<EmployeeResponseDto> {
         const employee = await this.employeeService.getEmployeeById(id, scope);
 
@@ -352,13 +352,13 @@ export class EmployeeController {
         @Param('id') id: string,
         @Body() updateEmployeeDto: UpdateEmployeeDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<EmployeeResponseDto> {
         const employee = await this.employeeService.updateEmployee(
             id,
             updateEmployeeDto,
             scope,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -401,13 +401,13 @@ export class EmployeeController {
         @Param('id') id: string,
         @Body('isActive') isActive: boolean,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<EmployeeResponseDto> {
         const employee = await this.employeeService.toggleEmployeeStatus(
             id,
             isActive,
             scope,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -442,7 +442,7 @@ export class EmployeeController {
     async deleteEmployee(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<void> {
         await this.employeeService.deleteEmployee(id, scope, user.sub);
     }

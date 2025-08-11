@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmployeeController } from './employee.controller';
 import { EmployeeService } from './employee.service';
-import { CreateEmployeeDto, UpdateEmployeeDto } from '../../shared/dto';
-import { DataScope, UserContext } from '../../shared/interfaces';
+import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 describe('EmployeeController', () => {
     let controller: EmployeeController;

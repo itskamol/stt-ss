@@ -1,7 +1,7 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import { QueueService } from './queue.service';
 import { QueueProducer } from './queue.producer';
-import { Permissions, Public } from '../../shared/decorators';
+import { Permissions, Public } from '@/shared/decorators';
 
 @Controller('admin/queues')
 export class QueueController {

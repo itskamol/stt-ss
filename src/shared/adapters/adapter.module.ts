@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { LoggerModule } from '../../core/logger/logger.module';
+import { LoggerModule } from '@/core/logger/logger.module';
 import { StubStorageAdapter } from './implementations/stub-storage.adapter';
 import { StubNotificationAdapter } from './implementations/stub-notification.adapter';
 import { StubDeviceAdapter } from './implementations/stub-device.adapter';

@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AttendanceRepository } from './attendance.repository';
-import { PrismaService } from '../../core/database/prisma.service';
-import { CreateAttendanceDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
+import { PrismaService } from '@/core/database/prisma.service';
+import { CreateAttendanceDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
 
 describe('AttendanceRepository', () => {
     let repository: AttendanceRepository;

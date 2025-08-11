@@ -9,7 +9,7 @@ import { DeviceEventProcessor } from './processors/device-event.processor';
 import { LoggerModule } from '../logger/logger.module';
 import { EmployeeModule } from '../../modules/employee/employee.module';
 import { AttendanceModule } from '../../modules/attendance/attendance.module';
-import { AdapterModule } from '../../shared/adapters/adapter.module';
+import { AdapterModule } from '@/shared/adapters/adapter.module';
 
 @Module({
     imports: [

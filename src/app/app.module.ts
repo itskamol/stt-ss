@@ -2,31 +2,34 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '../core/config/config.module';
-import { DatabaseModule } from '../core/database/database.module';
-import { LoggerModule } from '../core/logger/logger.module';
-import { CacheModule } from '../core/cache/cache.module';
 import { HealthModule } from './health/health.module';
-import { AuthModule } from '../modules/auth/auth.module';
-import { UserModule } from '../modules/user/user.module';
-import { OrganizationModule } from '../modules/organization/organization.module';
-import { BranchModule } from '../modules/branch/branch.module';
-import { DepartmentModule } from '../modules/department/department.module';
-import { EmployeeModule } from '../modules/employee/employee.module';
-import { QueueModule } from '../core/queue/queue.module';
-import { AdapterModule } from '../shared/adapters/adapter.module';
-import { DeviceModule } from '../modules/device/device.module';
-import { EventModule } from '../modules/events/event.module';
-import { AttendanceModule } from '../modules/attendance/attendance.module';
-import { GuestModule } from '../modules/guest/guest.module';
-// import { AuditModule } from '../modules/audit/audit.module';
-// import { ReportingModule } from '../modules/reporting/reporting.module';
-// import { ReportProcessorModule } from '../modules/reporting/report-processor.module';
-import { CorrelationIdMiddleware } from '../shared/middleware/correlation-id.middleware';
-import { LoggingInterceptor } from '../shared/interceptors/logging.interceptor';
-// import { AuditLogInterceptor } from '../shared/interceptors/audit-log.interceptor';
-import { GlobalExceptionFilter } from '../shared/filters/global-exception.filter';
-import { DataScopeGuard, JwtAuthGuard, RolesGuard } from '../shared/guards';
+
+import { ConfigModule } from '@/core/config/config.module';
+import { DatabaseModule } from '@/core/database/database.module';
+import { LoggerModule } from '@/core/logger/logger.module';
+import { CacheModule } from '@/core/cache/cache.module';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { UserModule } from '@/modules/user/user.module';
+import { OrganizationModule } from '@/modules/organization/organization.module';
+import { BranchModule } from '@/modules/branch/branch.module';
+import { DepartmentModule } from '@/modules/department/department.module';
+import { EmployeeModule } from '@/modules/employee/employee.module';
+import { QueueModule } from '@/core/queue/queue.module';
+import { AdapterModule } from '@/shared/adapters/adapter.module';
+import { DeviceModule } from '@/modules/device/device.module';
+import { EventModule } from '@/modules/events/event.module';
+import { AttendanceModule } from '@/modules/attendance/attendance.module';
+import { GuestModule } from '@/modules/guest/guest.module';
+
+import { LoggingInterceptor } from '@/shared/interceptors';
+import { GlobalExceptionFilter } from '@/shared/filters';
+import { DataScopeGuard, JwtAuthGuard, RolesGuard } from '@/shared/guards';
+import { CorrelationIdMiddleware } from '@/shared/middleware';
+
+// import { AuditModule } from '@/modules/audit/audit.module';
+// import { ReportingModule } from '@/modules/reporting/reporting.module';
+// import { ReportProcessorModule } from '@/modules/reporting/report-processor.module';
+// import { AuditLogInterceptor } from '@/shared/interceptors/audit-log.interceptor';
 
 @Module({
     imports: [

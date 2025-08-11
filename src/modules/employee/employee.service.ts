@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { Employee } from '@prisma/client';
 import { EmployeeRepository } from './employee.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { DatabaseUtil } from '../../shared/utils';
-import { CreateEmployeeDto, UpdateEmployeeDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
+import { LoggerService } from '@/core/logger/logger.service';
+import { DatabaseUtil } from '@/shared/utils';
+import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
 
 @Injectable()
 export class EmployeeService {

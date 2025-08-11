@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserRepository } from '../user/user.repository';
 import { CustomJwtService, JwtPayload } from './jwt.service';
-import { LoggerService } from '../../core/logger/logger.service';
-import { CacheService } from '../../core/cache/cache.service';
-import { PasswordUtil } from '../../shared/utils/password.util';
-import { Role } from '../../shared/enums';
+import { LoggerService } from '@/core/logger/logger.service';
+import { CacheService } from '@/core/cache/cache.service';
+import { PasswordUtil } from '@/shared/utils/password.util';
+import { Role } from '@/shared/enums';
 
 export interface LoginDto {
     email: string;

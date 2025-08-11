@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReportingController } from './reporting.controller';
 import { ReportingService } from './reporting.service';
-import { CreateReportDto } from '../../shared/dto';
-import { DataScope, UserContext } from '../../shared/interfaces';
+import { CreateReportDto } from '@/shared/dto';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 describe('ReportingController', () => {
     let controller: ReportingController;

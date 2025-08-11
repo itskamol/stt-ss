@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { GuestVisit } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
-import { CreateGuestVisitDto, UpdateGuestVisitDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
-import { QueryBuilder } from '../../shared/utils/query-builder.util';
+import { PrismaService } from '@/core/database/prisma.service';
+import { CreateGuestVisitDto, UpdateGuestVisitDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
+import { QueryBuilder } from '@/shared/utils/query-builder.util';
 
 @Injectable()
 export class GuestRepository {

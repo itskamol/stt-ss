@@ -8,16 +8,16 @@ import {
     ApiResponse,
     ApiTags,
 } from '@nestjs/swagger';
-import { AuditLogService } from '../../shared/services/audit-log.service';
+import { AuditLogService } from '@/shared/services/audit-log.service';
 import {
     AuditLogFiltersDto,
     AuditLogResponseDto,
     AuditLogStatsDto,
     PaginationDto,
     PaginationResponseDto,
-} from '../../shared/dto';
-import { Permissions, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
+} from '@/shared/dto';
+import { Permissions, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
@@ -39,7 +39,7 @@ export class AuditLogController {
     async getAuditLogs(
         @Scope() scope: DataScope,
         @Query() filtersDto: AuditLogFiltersDto,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<AuditLogResponseDto>> {
         const filters = {
             userId: filtersDto.userId,
@@ -95,7 +95,7 @@ export class AuditLogController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getAuditLogStats(
         @Scope() scope: DataScope,
-        @Query() filtersDto: Pick<AuditLogFiltersDto, 'startDate' | 'endDate'>,
+        @Query() filtersDto: Pick<AuditLogFiltersDto, 'startDate' | 'endDate'>
     ): Promise<AuditLogStatsDto> {
         const filters = {
             startDate: filtersDto.startDate ? new Date(filtersDto.startDate) : undefined,
@@ -119,7 +119,7 @@ export class AuditLogController {
         @Param('userId') userId: string,
         @Query('startDate') startDate: string,
         @Query('endDate') endDate: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ) {
         if (!startDate || !endDate) {
             throw new Error('Start date and end date are required');
@@ -129,7 +129,7 @@ export class AuditLogController {
             userId,
             new Date(startDate),
             new Date(endDate),
-            scope,
+            scope
         );
     }
 
@@ -150,7 +150,7 @@ export class AuditLogController {
         @Param('resource') resource: string,
         @Param('resourceId') resourceId: string,
         @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<AuditLogResponseDto>> {
         const { page = 1, limit = 50 } = paginationDto;
 
@@ -201,7 +201,7 @@ export class AuditLogController {
     async getSecurityEvents(
         @Scope() scope: DataScope,
         @Query() filtersDto: AuditLogFiltersDto,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<AuditLogResponseDto>> {
         const filters = {
             startDate: filtersDto.startDate ? new Date(filtersDto.startDate) : undefined,
@@ -257,7 +257,7 @@ export class AuditLogController {
     @ApiResponse({ status: 404, description: 'Audit log not found.' })
     async getAuditLogById(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<AuditLogResponseDto> {
         const log = await this.auditLogService.getAuditLogById(id, scope);
 
@@ -318,7 +318,7 @@ export class AuditLogController {
             filters: AuditLogFiltersDto;
             format: 'CSV' | 'JSON';
         },
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ) {
         const filters = {
             userId: exportRequest.filters.userId,
@@ -356,11 +356,11 @@ export class AuditLogController {
             olderThanDays: number;
         },
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ) {
         const deletedCount = await this.auditLogService.cleanupOldAuditLogs(
             cleanupRequest.olderThanDays,
-            scope.organizationId,
+            scope.organizationId
         );
 
         return {

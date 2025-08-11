@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { LoggerService } from '../../core/logger/logger.service';
+import { LoggerService } from '@/core/logger/logger.service';
 import { Role } from '@prisma/client';
 
 describe('JwtAuthGuard', () => {

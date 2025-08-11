@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { EventController } from './event.controller';
 import { EventService } from './event.service';
-import { LoggerService } from '../../core/logger/logger.service';
-import { CreateRawEventDto } from '../../shared/dto';
+import { LoggerService } from '@/core/logger/logger.service';
+import { CreateRawEventDto } from '@/shared/dto';
 
 describe('EventController', () => {
     let controller: EventController;

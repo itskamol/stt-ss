@@ -3,12 +3,12 @@ import { UnauthorizedException } from '@nestjs/common';
 import { AuthService, LoginDto } from './auth.service';
 import { UserRepository } from '../user/user.repository';
 import { JwtService as CustomJwtService } from './jwt.service';
-import { LoggerService } from '../../core/logger/logger.service';
-import { PasswordUtil } from '../../shared/utils/password.util';
-import { Role } from '../../shared/enums';
+import { LoggerService } from '@/core/logger/logger.service';
+import { PasswordUtil } from '@/shared/utils/password.util';
+import { Role } from '@/shared/enums';
 
 // Mock PasswordUtil
-jest.mock('../../shared/utils/password.util');
+jest.mock('@/shared/utils/password.util');
 
 describe('AuthService', () => {
     let service: AuthService;

@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { DepartmentController } from './department.controller';
 import { DepartmentService } from './department.service';
 import { DepartmentRepository } from './department.repository';
-import { DatabaseModule } from '../../core/database/database.module';
-import { LoggerModule } from '../../core/logger/logger.module';
+import { DatabaseModule } from '@/core/database/database.module';
+import { LoggerModule } from '@/core/logger/logger.module';
 
 @Module({
     imports: [DatabaseModule, LoggerModule],

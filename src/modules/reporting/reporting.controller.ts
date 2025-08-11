@@ -15,10 +15,10 @@ import {
     PaginationResponseDto,
     ReportFiltersDto,
     ReportResponseDto,
-} from '../../shared/dto';
-import { Permissions, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
-import { AuditLog } from '../../shared/interceptors/audit-log.interceptor';
+} from '@/shared/dto';
+import { Permissions, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
+import { AuditLog } from '@/shared/interceptors/audit-log.interceptor';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
@@ -46,7 +46,7 @@ export class ReportingController {
     async generateReport(
         @Body() createReportDto: CreateReportDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<ReportResponseDto> {
         const report = await this.reportingService.generateReport(createReportDto, scope, user.sub);
 
@@ -84,7 +84,7 @@ export class ReportingController {
     async getReports(
         @Scope() scope: DataScope,
         @Query() filtersDto: ReportFiltersDto,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<ReportResponseDto>> {
         const filters = {
             type: filtersDto.type,
@@ -157,7 +157,7 @@ export class ReportingController {
     @ApiResponse({ status: 404, description: 'Report not found.' })
     async getReportById(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<ReportResponseDto> {
         const report = await this.reportingService.getReportById(id, scope);
 
@@ -201,7 +201,7 @@ export class ReportingController {
     @ApiResponse({ status: 404, description: 'Report not found or not completed.' })
     async downloadReport(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<{
         downloadUrl: string;
         expiresAt: Date;
@@ -230,7 +230,7 @@ export class ReportingController {
     async regenerateReport(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<ReportResponseDto> {
         const report = await this.reportingService.regenerateReport(id, scope, user.sub);
 
@@ -283,7 +283,7 @@ export class ReportingController {
             includeDetails?: boolean;
         },
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<ReportResponseDto> {
         const createReportDto: CreateReportDto = {
             name: `Daily Attendance Report - ${params.date}`,
@@ -349,7 +349,7 @@ export class ReportingController {
             includeSummary?: boolean;
         },
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<ReportResponseDto> {
         const createReportDto: CreateReportDto = {
             name: `Monthly Attendance Report - ${params.year}-${params.month.toString().padStart(2, '0')}`,
@@ -416,7 +416,7 @@ export class ReportingController {
             includeContactInfo?: boolean;
         },
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<ReportResponseDto> {
         const createReportDto: CreateReportDto = {
             name: 'Employee List Report',
@@ -483,7 +483,7 @@ export class ReportingController {
             includeDetails?: boolean;
         },
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<ReportResponseDto> {
         const createReportDto: CreateReportDto = {
             name: `Security Audit Report - ${params.startDate} to ${params.endDate}`,

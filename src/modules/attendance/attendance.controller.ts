@@ -27,9 +27,9 @@ import {
     CreateAttendanceDto,
     PaginationDto,
     PaginationResponseDto,
-} from '../../shared/dto';
-import { Permissions, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
+} from '@/shared/dto';
+import { Permissions, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Attendance')
 @ApiBearerAuth()
@@ -55,7 +55,7 @@ export class AttendanceController {
     ): Promise<AttendanceResponseDto> {
         const attendance = await this.attendanceService.createAttendanceRecord(
             createAttendanceDto,
-            scope,
+            scope
         );
 
         return {
@@ -86,7 +86,7 @@ export class AttendanceController {
     async getAttendanceRecords(
         @Scope() scope: DataScope,
         @Query() filtersDto: AttendanceFiltersDto,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<AttendanceResponseDto>> {
         const filters = {
             employeeId: filtersDto.employeeId,
@@ -133,7 +133,7 @@ export class AttendanceController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getAttendanceStats(
         @Scope() scope: DataScope,
-        @Query() filtersDto: AttendanceFiltersDto,
+        @Query() filtersDto: AttendanceFiltersDto
     ): Promise<AttendanceStatsDto> {
         const filters = {
             branchId: filtersDto.branchId,
@@ -159,7 +159,7 @@ export class AttendanceController {
     async getEmployeeAttendance(
         @Param('employeeId') employeeId: string,
         @Scope() scope: DataScope,
-        @Query() filtersDto: AttendanceFiltersDto,
+        @Query() filtersDto: AttendanceFiltersDto
     ): Promise<AttendanceResponseDto[]> {
         const filters = {
             employeeId,
@@ -204,7 +204,7 @@ export class AttendanceController {
         @Param('employeeId') employeeId: string,
         @Query('startDate') startDate: string,
         @Query('endDate') endDate: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<AttendanceSummaryDto> {
         if (!startDate || !endDate) {
             throw new Error('Start date and end date are required');
@@ -214,7 +214,7 @@ export class AttendanceController {
             employeeId,
             new Date(startDate),
             new Date(endDate),
-            scope,
+            scope
         );
     }
 
@@ -233,7 +233,7 @@ export class AttendanceController {
     async getBranchAttendance(
         @Param('branchId') branchId: string,
         @Scope() scope: DataScope,
-        @Query() filtersDto: AttendanceFiltersDto,
+        @Query() filtersDto: AttendanceFiltersDto
     ): Promise<AttendanceResponseDto[]> {
         const filters = {
             branchId,
@@ -276,7 +276,7 @@ export class AttendanceController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getTodayAttendance(
         @Scope() scope: DataScope,
-        @Query() filtersDto: Pick<AttendanceFiltersDto, 'employeeId' | 'branchId'>,
+        @Query() filtersDto: Pick<AttendanceFiltersDto, 'employeeId' | 'branchId'>
     ): Promise<AttendanceResponseDto[]> {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -323,7 +323,7 @@ export class AttendanceController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getLiveAttendance(
         @Scope() scope: DataScope,
-        @Query() filtersDto: Pick<AttendanceFiltersDto, 'branchId'>,
+        @Query() filtersDto: Pick<AttendanceFiltersDto, 'branchId'>
     ): Promise<{
         currentlyPresent: Array<{
             employeeId: string;
@@ -443,7 +443,7 @@ export class AttendanceController {
     @ApiResponse({ status: 404, description: 'Attendance record not found.' })
     async getAttendanceById(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<AttendanceResponseDto> {
         const attendance = await this.attendanceService.getAttendanceById(id, scope);
 
@@ -474,7 +474,7 @@ export class AttendanceController {
     async deleteAttendanceRecord(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<void> {
         await this.attendanceService.deleteAttendanceRecord(id, scope);
     }
@@ -489,7 +489,7 @@ export class AttendanceController {
     async getDailyAttendanceReport(
         @Query('date') date: string,
         @Query('branchId') branchId?: string,
-        @Scope() scope?: DataScope,
+        @Scope() scope?: DataScope
     ) {
         const reportDate = date ? new Date(date) : new Date();
         return this.attendanceService.getDailyAttendanceReport(reportDate, branchId, scope);
@@ -506,7 +506,7 @@ export class AttendanceController {
     async getWeeklyAttendanceReport(
         @Query('startDate') startDate: string,
         @Query('branchId') branchId?: string,
-        @Scope() scope?: DataScope,
+        @Scope() scope?: DataScope
     ) {
         if (!startDate) {
             throw new Error('Start date is required for weekly report');
@@ -514,7 +514,7 @@ export class AttendanceController {
         return this.attendanceService.getWeeklyAttendanceReport(
             new Date(startDate),
             branchId,
-            scope,
+            scope
         );
     }
 
@@ -531,7 +531,7 @@ export class AttendanceController {
         @Query('year') year: string,
         @Query('month') month: string,
         @Query('branchId') branchId?: string,
-        @Scope() scope?: DataScope,
+        @Scope() scope?: DataScope
     ) {
         if (!year || !month) {
             throw new Error('Year and month are required for monthly report');
@@ -540,7 +540,7 @@ export class AttendanceController {
             parseInt(year),
             parseInt(month),
             branchId,
-            scope,
+            scope
         );
     }
 

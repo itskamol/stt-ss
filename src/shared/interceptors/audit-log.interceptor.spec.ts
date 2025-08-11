@@ -4,7 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { of, throwError } from 'rxjs';
 import { AuditLog, AuditLogInterceptor } from './audit-log.interceptor';
 import { AuditLogService } from '../services/audit-log.service';
-import { LoggerService } from '../../core/logger/logger.service';
+import { LoggerService } from '@/core/logger/logger.service';
 
 describe('AuditLogInterceptor', () => {
     let interceptor: AuditLogInterceptor;

@@ -28,9 +28,9 @@ import {
     PaginationDto,
     PaginationResponseDto,
     UpdateBranchDto,
-} from '../../shared/dto';
-import { Permissions, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
+} from '@/shared/dto';
+import { Permissions, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Branches')
 @ApiBearerAuth()
@@ -52,7 +52,7 @@ export class BranchController {
     async createBranch(
         @Body() createBranchDto: CreateBranchDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<BranchResponseDto> {
         const branch = await this.branchService.createBranch(createBranchDto, scope, user.sub);
 
@@ -78,7 +78,7 @@ export class BranchController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getBranches(
         @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<BranchResponseDto>> {
         const branches = await this.branchService.getBranches(scope);
 
@@ -112,7 +112,7 @@ export class BranchController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async searchBranches(
         @Query('q') searchTerm: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<BranchResponseDto[]> {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
@@ -149,7 +149,7 @@ export class BranchController {
     @ApiResponse({ status: 404, description: 'Branch not found.' })
     async getBranchById(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<BranchResponseDto> {
         const branch = await this.branchService.getBranchById(id, scope);
 
@@ -195,7 +195,7 @@ export class BranchController {
         @Param('id') id: string,
         @Body() updateBranchDto: UpdateBranchDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<BranchResponseDto> {
         const branch = await this.branchService.updateBranch(id, updateBranchDto, scope, user.sub);
 
@@ -220,7 +220,7 @@ export class BranchController {
     async deleteBranch(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<void> {
         await this.branchService.deleteBranch(id, scope, user.sub);
     }
@@ -236,7 +236,7 @@ export class BranchController {
     async assignBranchManager(
         @Param('branchId') branchId: string,
         @Body() assignDto: AssignBranchManagerBodyDto,
-        @User() user: UserContext,
+        @User() user: UserContext
     ) {
         const fullAssignDto: AssignBranchManagerDto = {
             managerId: assignDto.managerId,
@@ -265,7 +265,7 @@ export class BranchController {
     async removeBranchManager(
         @Param('branchId') branchId: string,
         @Param('managerId') managerId: string,
-        @User() user: UserContext,
+        @User() user: UserContext
     ): Promise<void> {
         await this.branchService.removeBranchManager(managerId, branchId, user.sub);
     }

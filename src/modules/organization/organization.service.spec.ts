@@ -2,12 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { OrganizationService } from './organization.service';
 import { OrganizationRepository } from './organization.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { CreateOrganizationDto, UpdateOrganizationDto } from '../../shared/dto';
-import { DatabaseUtil } from '../../shared/utils';
+import { LoggerService } from '@/core/logger/logger.service';
+import { CreateOrganizationDto, UpdateOrganizationDto } from '@/shared/dto';
+import { DatabaseUtil } from '@/shared/utils';
 
 // Mock the utility functions
-jest.mock('../../shared/utils/database.util');
+jest.mock('@/shared/utils/database.util');
 
 describe('OrganizationService', () => {
     let service: OrganizationService;

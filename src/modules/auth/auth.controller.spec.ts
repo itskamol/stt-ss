@@ -7,9 +7,9 @@ import {
     RefreshTokenRequestDto,
 } from './auth.controller';
 import { AuthService, LoginResponse } from './auth.service';
-import { LoggerService } from '../../core/logger/logger.service';
-import { UserContext } from '../../shared/interfaces';
-import { RequestWithCorrelation } from '../../shared/middleware/correlation-id.middleware';
+import { LoggerService } from '@/core/logger/logger.service';
+import { UserContext } from '@/shared/interfaces';
+import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
 import { Role } from '@prisma/client';
 
 describe('AuthController', () => {

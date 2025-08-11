@@ -7,11 +7,11 @@ import {
 } from '@nestjs/common';
 import { Device } from '@prisma/client';
 import { DeviceRepository } from './device.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { DatabaseUtil } from '../../shared/utils';
-import { CreateDeviceDto, UpdateDeviceDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
-import { DeviceCommand, IDeviceAdapter } from '../../shared/adapters/device.adapter';
+import { LoggerService } from '@/core/logger/logger.service';
+import { DatabaseUtil } from '@/shared/utils';
+import { CreateDeviceDto, UpdateDeviceDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
+import { DeviceCommand, IDeviceAdapter } from '@/shared/adapters/device.adapter';
 
 @Injectable()
 export class DeviceService {

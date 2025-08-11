@@ -26,9 +26,9 @@ import {
     PaginationDto,
     PaginationResponseDto,
     UpdateDepartmentDto,
-} from '../../shared/dto';
-import { Permissions, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
+} from '@/shared/dto';
+import { Permissions, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Departments')
 @ApiBearerAuth()
@@ -50,12 +50,12 @@ export class DepartmentController {
     async createDepartment(
         @Body() createDepartmentDto: CreateDepartmentDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DepartmentResponseDto> {
         const department = await this.departmentService.createDepartment(
             createDepartmentDto,
             scope,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -80,7 +80,7 @@ export class DepartmentController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getDepartments(
         @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<DepartmentResponseDto>> {
         const departments = await this.departmentService.getDepartments(scope);
 
@@ -114,7 +114,7 @@ export class DepartmentController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async searchDepartments(
         @Query('q') searchTerm: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DepartmentResponseDto[]> {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
@@ -122,7 +122,7 @@ export class DepartmentController {
 
         const departments = await this.departmentService.searchDepartments(
             searchTerm.trim(),
-            scope,
+            scope
         );
 
         return departments.map(department => ({
@@ -158,7 +158,7 @@ export class DepartmentController {
     @ApiResponse({ status: 404, description: 'Branch not found.' })
     async getDepartmentsByBranch(
         @Param('branchId') branchId: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DepartmentResponseDto[]> {
         const departments = await this.departmentService.getDepartmentsByBranch(branchId, scope);
 
@@ -198,7 +198,7 @@ export class DepartmentController {
     @ApiResponse({ status: 404, description: 'Department not found.' })
     async getDepartmentById(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DepartmentResponseDto> {
         const department = await this.departmentService.getDepartmentById(id, scope);
 
@@ -244,13 +244,13 @@ export class DepartmentController {
         @Param('id') id: string,
         @Body() updateDepartmentDto: UpdateDepartmentDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DepartmentResponseDto> {
         const department = await this.departmentService.updateDepartment(
             id,
             updateDepartmentDto,
             scope,
-            user.sub,
+            user.sub
         );
 
         return {
@@ -274,7 +274,7 @@ export class DepartmentController {
     async deleteDepartment(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<void> {
         await this.departmentService.deleteDepartment(id, scope, user.sub);
     }

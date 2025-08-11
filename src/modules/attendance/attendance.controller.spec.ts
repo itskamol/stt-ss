@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
-import { AttendanceFiltersDto, CreateAttendanceDto } from '../../shared/dto';
-import { DataScope, UserContext } from '../../shared/interfaces';
+import { AttendanceFiltersDto, CreateAttendanceDto } from '@/shared/dto';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 describe('AttendanceController', () => {
     let controller: AttendanceController;

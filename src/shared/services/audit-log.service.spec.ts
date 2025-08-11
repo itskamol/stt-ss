@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditLogService } from './audit-log.service';
 import { AuditLogRepository } from './audit-log.repository';
-import { LoggerService } from '../../core/logger/logger.service';
+import { LoggerService } from '@/core/logger/logger.service';
 import { DataScope } from '../interfaces';
 
 describe('AuditLogService', () => {
@@ -173,7 +173,13 @@ describe('AuditLogService', () => {
                 logsByAction: [{ action: 'CREATE', count: 30 }],
                 logsByResource: [{ resource: 'employee', count: 40 }],
                 logsByStatus: [{ status: 'SUCCESS', count: 90 }],
-                logsByUser: [{ userId: 'user-123', user: { id: 'user-123', email: 'test@example.com', fullName: 'Test User' }, count: 50 }],
+                logsByUser: [
+                    {
+                        userId: 'user-123',
+                        user: { id: 'user-123', email: 'test@example.com', fullName: 'Test User' },
+                        count: 50,
+                    },
+                ],
             };
 
             auditLogRepository.getAuditLogStats.mockResolvedValue(mockStats);

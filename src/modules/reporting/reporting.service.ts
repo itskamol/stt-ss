@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ReportRepository } from './report.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { QueueProducer } from '../../core/queue/queue.producer';
-import { IStorageAdapter } from '../../shared/adapters/storage.adapter';
-import { CreateReportDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
+import { LoggerService } from '@/core/logger/logger.service';
+import { QueueProducer } from '@/core/queue/queue.producer';
+import { IStorageAdapter } from '@/shared/adapters/storage.adapter';
+import { CreateReportDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
 
 export interface ReportFilters {
     type?: string;

@@ -1,10 +1,10 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags, ApiProperty } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService, LoginDto, LoginResponse, RefreshTokenDto } from './auth.service';
-import { LoggerService } from '../../core/logger/logger.service';
-import { Public, User } from '../../shared/decorators';
-import { UserContext } from '../../shared/interfaces';
-import { RequestWithCorrelation } from '../../shared/middleware/correlation-id.middleware';
+import { LoggerService } from '@/core/logger/logger.service';
+import { Public, User } from '@/shared/decorators';
+import { UserContext } from '@/shared/interfaces';
+import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
 import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 
 export class LoginRequestDto implements LoginDto {
@@ -65,7 +65,7 @@ export class LoginResponseDto {
 export class AuthController {
     constructor(
         private readonly authService: AuthService,
-        private readonly logger: LoggerService,
+        private readonly logger: LoggerService
     ) {}
 
     @Post('login')
@@ -77,7 +77,7 @@ export class AuthController {
     @ApiResponse({ status: 401, description: 'Unauthorized' })
     async login(
         @Body() loginDto: LoginRequestDto,
-        @Req() request: RequestWithCorrelation,
+        @Req() request: RequestWithCorrelation
     ): Promise<LoginResponse> {
         const startTime = Date.now();
 
@@ -109,7 +109,7 @@ export class AuthController {
                 },
                 undefined,
                 undefined,
-                request.correlationId,
+                request.correlationId
             );
             throw error;
         }
@@ -133,14 +133,14 @@ export class AuthController {
     @ApiResponse({ status: 401, description: 'Unauthorized' })
     async refreshToken(
         @Body() refreshTokenDto: RefreshTokenRequestDto,
-        @Req() request: RequestWithCorrelation,
+        @Req() request: RequestWithCorrelation
     ): Promise<{ accessToken: string; refreshToken: string }> {
         const startTime = Date.now();
 
         try {
             const result = await this.authService.refreshToken(
                 refreshTokenDto,
-                request.correlationId,
+                request.correlationId
             );
 
             const responseTime = Date.now() - startTime;
@@ -163,7 +163,7 @@ export class AuthController {
                 },
                 undefined,
                 undefined,
-                request.correlationId,
+                request.correlationId
             );
             throw error;
         }
@@ -178,7 +178,7 @@ export class AuthController {
     async logout(
         @Body() logoutDto: LogoutRequestDto,
         @User() user: UserContext,
-        @Req() request: RequestWithCorrelation,
+        @Req() request: RequestWithCorrelation
     ): Promise<void> {
         try {
             await this.authService.logout(logoutDto.refreshToken, request.correlationId);
@@ -188,7 +188,7 @@ export class AuthController {
                 'LOGOUT_SUCCESS',
                 {},
                 user.organizationId,
-                request.correlationId,
+                request.correlationId
             );
         } catch (error) {
             this.logger.logSecurityEvent(
@@ -201,7 +201,7 @@ export class AuthController {
                 },
                 user.sub,
                 user.organizationId,
-                request.correlationId,
+                request.correlationId
             );
             throw error;
         }
@@ -232,7 +232,7 @@ export class AuthController {
     @ApiResponse({ status: 401, description: 'Unauthorized' })
     async validateToken(
         @User() user: UserContext,
-        @Req() request: RequestWithCorrelation,
+        @Req() request: RequestWithCorrelation
     ): Promise<{
         valid: boolean;
         user: {

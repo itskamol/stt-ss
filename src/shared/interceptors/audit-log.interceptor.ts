@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
 import { AuditLogService } from '../services/audit-log.service';
-import { LoggerService } from '../../core/logger/logger.service';
+import { LoggerService } from '@/core/logger/logger.service';
 import { DataScope, UserContext } from '../interfaces';
 
 export interface AuditLogOptions {

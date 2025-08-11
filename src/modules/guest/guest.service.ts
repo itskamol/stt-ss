@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { GuestVisit } from '@prisma/client';
 import { GuestRepository } from './guest.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { QueueProducer } from '../../core/queue/queue.producer';
-import { ApproveGuestVisitDto, CreateGuestVisitDto, UpdateGuestVisitDto } from '../../shared/dto';
-import { DataScope } from '../../shared/interfaces';
+import { LoggerService } from '@/core/logger/logger.service';
+import { QueueProducer } from '@/core/queue/queue.producer';
+import { ApproveGuestVisitDto, CreateGuestVisitDto, UpdateGuestVisitDto } from '@/shared/dto';
+import { DataScope } from '@/shared/interfaces';
 
 @Injectable()
 export class GuestService {

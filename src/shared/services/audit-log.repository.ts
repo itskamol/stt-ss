@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '@/core/database/prisma.service';
 import { DataScope } from '../interfaces';
 import { QueryBuilder } from '../utils/query-builder.util';
 

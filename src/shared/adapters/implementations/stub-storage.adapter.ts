@@ -1,6 +1,5 @@
 import { Readable } from 'stream';
 import { Injectable } from '@nestjs/common';
-import { LoggerService } from '../../../core/logger/logger.service';
 import {
     DownloadResult,
     IStorageAdapter,
@@ -8,10 +7,11 @@ import {
     StorageObject,
     UploadResult,
 } from '../storage.adapter';
+import { LoggerService } from '@/core/logger/logger.service';
 
 @Injectable()
 export class StubStorageAdapter implements IStorageAdapter {
-    constructor(private readonly logger: LoggerService) { }
+    constructor(private readonly logger: LoggerService) {}
 
     async generatePresignedUploadUrl(key: string, options?: PresignedUrlOptions): Promise<string> {
         this.logger.log('Generating presigned upload URL (stub)', { key, options });

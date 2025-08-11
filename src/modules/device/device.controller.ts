@@ -28,9 +28,9 @@ import {
     PaginationDto,
     PaginationResponseDto,
     UpdateDeviceDto,
-} from '../../shared/dto';
-import { Permissions, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
+} from '@/shared/dto';
+import { Permissions, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Devices')
 @ApiBearerAuth()
@@ -73,7 +73,7 @@ export class DeviceController {
     async createDevice(
         @Body() createDeviceDto: CreateDeviceDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DeviceResponseDto> {
         const device = await this.deviceService.createDevice(createDeviceDto, scope, user.sub);
 
@@ -92,7 +92,7 @@ export class DeviceController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getDevices(
         @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<DeviceResponseDto>> {
         const devices = await this.deviceService.getDevices(scope);
 
@@ -119,7 +119,7 @@ export class DeviceController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async searchDevices(
         @Query('q') searchTerm: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DeviceResponseDto[]> {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
@@ -166,7 +166,7 @@ export class DeviceController {
     @ApiResponse({ status: 404, description: 'Branch not found.' })
     async getDevicesByBranch(
         @Param('branchId') branchId: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DeviceResponseDto[]> {
         const devices = await this.deviceService.getDevicesByBranch(branchId, scope);
 
@@ -182,7 +182,7 @@ export class DeviceController {
     @ApiResponse({ status: 404, description: 'Branch not found.' })
     async getDeviceCountByBranch(
         @Param('branchId') branchId: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<{ count: number }> {
         const count = await this.deviceService.getDeviceCountByBranch(branchId, scope);
         return { count };
@@ -197,7 +197,7 @@ export class DeviceController {
     @ApiResponse({ status: 404, description: 'Device not found.' })
     async getDeviceByIdentifier(
         @Param('identifier') identifier: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DeviceResponseDto> {
         const device = await this.deviceService.getDeviceByIdentifier(identifier, scope);
 
@@ -217,7 +217,7 @@ export class DeviceController {
     @ApiResponse({ status: 404, description: 'Device not found.' })
     async getDeviceById(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DeviceResponseDto> {
         const device = await this.deviceService.getDeviceById(id, scope);
 
@@ -274,7 +274,7 @@ export class DeviceController {
         @Param('id') id: string,
         @Body() commandDto: DeviceCommandDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ) {
         return this.deviceService.sendDeviceCommand(
             id,
@@ -284,7 +284,7 @@ export class DeviceController {
                 timeout: commandDto.timeout,
             },
             scope,
-            user.sub,
+            user.sub
         );
     }
 
@@ -305,7 +305,7 @@ export class DeviceController {
         @Param('id') id: string,
         @Body() updateDeviceDto: UpdateDeviceDto,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DeviceResponseDto> {
         const device = await this.deviceService.updateDevice(id, updateDeviceDto, scope, user.sub);
 
@@ -330,7 +330,7 @@ export class DeviceController {
         @Param('id') id: string,
         @Body('isActive') isActive: boolean,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<DeviceResponseDto> {
         const device = await this.deviceService.toggleDeviceStatus(id, isActive, scope, user.sub);
 
@@ -348,7 +348,7 @@ export class DeviceController {
     async deleteDevice(
         @Param('id') id: string,
         @User() user: UserContext,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<void> {
         await this.deviceService.deleteDevice(id, scope, user.sub);
     }

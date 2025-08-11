@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { OrganizationUser, Role, User } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '@/core/database/prisma.service';
 import {
     AssignUserToOrganizationDto,
     CreateUserDto,
     UpdateUserDto,
-} from '../../shared/dto/user.dto';
-import { DataScope } from '../../shared/interfaces/data-scope.interface';
-import { QueryBuilder } from '../../shared/utils/query-builder.util';
+} from '@/shared/dto/user.dto';
+import { DataScope } from '@/shared/interfaces/data-scope.interface';
+import { QueryBuilder } from '@/shared/utils/query-builder.util';
 
 @Injectable()
 export class UserRepository {

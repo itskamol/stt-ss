@@ -20,7 +20,7 @@ import {
     ApiTags,
 } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { LoggerService } from '../../core/logger/logger.service';
+import { LoggerService } from '@/core/logger/logger.service';
 import {
     AssignUserToOrganizationDto,
     ChangePasswordDto,
@@ -29,9 +29,9 @@ import {
     PaginationResponseDto,
     UpdateUserDto,
     UserResponseDto,
-} from '../../shared/dto';
-import { NoScoping, Permissions, Roles, Scope, User } from '../../shared/decorators';
-import { DataScope, UserContext } from '../../shared/interfaces';
+} from '@/shared/dto';
+import { NoScoping, Permissions, Roles, Scope, User } from '@/shared/decorators';
+import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@prisma/client';
 
 @ApiTags('Users')
@@ -40,7 +40,7 @@ import { Role } from '@prisma/client';
 export class UserController {
     constructor(
         private readonly userService: UserService,
-        private readonly logger: LoggerService,
+        private readonly logger: LoggerService
     ) {}
 
     @Post()
@@ -57,7 +57,7 @@ export class UserController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async createUser(
         @Body() createUserDto: CreateUserDto,
-        @User() user: UserContext,
+        @User() user: UserContext
     ): Promise<UserResponseDto> {
         const createdUser = await this.userService.createUser(createUserDto, user.sub);
 
@@ -80,7 +80,7 @@ export class UserController {
     @ApiResponse({ status: 404, description: 'User not found.' })
     async getUserById(
         @Param('id') id: string,
-        @Scope() scope: DataScope,
+        @Scope() scope: DataScope
     ): Promise<UserResponseDto> {
         const user = await this.userService.findById(id);
 
@@ -111,7 +111,7 @@ export class UserController {
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getOrganizationUsers(
         @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto,
+        @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<any>> {
         const users = await this.userService.getOrganizationUsers(scope);
 
@@ -154,7 +154,7 @@ export class UserController {
     async updateUser(
         @Param('id') id: string,
         @Body() updateUserDto: UpdateUserDto,
-        @User() user: UserContext,
+        @User() user: UserContext
     ): Promise<UserResponseDto> {
         const updatedUser = await this.userService.updateUser(id, updateUserDto, user.sub);
 
@@ -181,7 +181,7 @@ export class UserController {
     async changeUserPassword(
         @Param('id') id: string,
         @Body() changePasswordDto: ChangePasswordDto,
-        @User() user: UserContext,
+        @User() user: UserContext
     ): Promise<void> {
         await this.userService.changePassword(id, changePasswordDto, user.sub);
     }
@@ -198,7 +198,7 @@ export class UserController {
     async assignUserToOrganization(
         @Param('id') userId: string,
         @Body() assignDto: AssignUserToOrganizationDto,
-        @User() user: UserContext,
+        @User() user: UserContext
     ) {
         const assignmentData = {
             ...assignDto,
@@ -229,7 +229,7 @@ export class UserController {
     async removeUserFromOrganization(
         @Param('userId') userId: string,
         @Param('organizationId') organizationId: string,
-        @User() user: UserContext,
+        @User() user: UserContext
     ): Promise<void> {
         await this.userService.removeFromOrganization(userId, organizationId, user.sub);
     }
@@ -247,7 +247,7 @@ export class UserController {
     @ApiResponse({ status: 404, description: 'User not found.' })
     async activateUser(
         @Param('id') id: string,
-        @User() user: UserContext,
+        @User() user: UserContext
     ): Promise<UserResponseDto> {
         const activatedUser = await this.userService.activateUser(id, user.sub);
 
@@ -274,7 +274,7 @@ export class UserController {
     @ApiResponse({ status: 404, description: 'User not found.' })
     async deactivateUser(
         @Param('id') id: string,
-        @User() user: UserContext,
+        @User() user: UserContext
     ): Promise<UserResponseDto> {
         const deactivatedUser = await this.userService.deactivateUser(id, user.sub);
 

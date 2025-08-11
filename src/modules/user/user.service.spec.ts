@@ -2,14 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserRepository } from './user.repository';
-import { LoggerService } from '../../core/logger/logger.service';
-import { ChangePasswordDto, CreateUserDto, UpdateUserDto } from '../../shared/dto';
-import { DatabaseUtil, PasswordUtil } from '../../shared/utils';
-import { Role } from '../../shared/enums';
+import { LoggerService } from '@/core/logger/logger.service';
+import { ChangePasswordDto, CreateUserDto, UpdateUserDto } from '@/shared/dto';
+import { DatabaseUtil, PasswordUtil } from '@/shared/utils';
+import { Role } from '@/shared/enums';
 
 // Mock the utility functions
-jest.mock('../../shared/utils/password.util');
-jest.mock('../../shared/utils/database.util');
+jest.mock('@/shared/utils/password.util');
+jest.mock('@/shared/utils/database.util');
 
 describe('UserService', () => {
     let service: UserService;

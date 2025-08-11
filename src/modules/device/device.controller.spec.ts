@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeviceController } from './device.controller';
 import { DeviceService } from './device.service';
-import { CreateDeviceDto, DeviceCommandDto, UpdateDeviceDto } from '../../shared/dto';
-import { DataScope, UserContext } from '../../shared/interfaces';
+import { CreateDeviceDto, DeviceCommandDto, UpdateDeviceDto } from '@/shared/dto';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 describe('DeviceController', () => {
     let controller: DeviceController;

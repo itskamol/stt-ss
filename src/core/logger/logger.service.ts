@@ -24,7 +24,7 @@ export class LoggerService implements NestLoggerService {
         // Handle NestJS internal logging which might pass different types
         const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
         const contextObj = typeof context === 'string' ? { context } : context;
-        
+
         console.log(this.formatMessage('info', messageStr, contextObj));
     }
 
@@ -32,7 +32,7 @@ export class LoggerService implements NestLoggerService {
         const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
         const traceStr = typeof trace === 'string' ? trace : undefined;
         const contextObj = typeof context === 'string' ? { context } : context;
-        
+
         const errorContext = {
             ...(contextObj || {}),
             ...(traceStr && { trace: traceStr }),
@@ -43,7 +43,7 @@ export class LoggerService implements NestLoggerService {
     warn(message: any, context?: any): void {
         const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
         const contextObj = typeof context === 'string' ? { context } : context;
-        
+
         console.warn(this.formatMessage('warn', messageStr, contextObj));
     }
 
@@ -51,7 +51,7 @@ export class LoggerService implements NestLoggerService {
         if (this.configService.isDevelopment || this.configService.logLevel === 'debug') {
             const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
             const contextObj = typeof context === 'string' ? { context } : context;
-            
+
             console.debug(this.formatMessage('debug', messageStr, contextObj));
         }
     }
@@ -60,7 +60,7 @@ export class LoggerService implements NestLoggerService {
         if (this.configService.isDevelopment || this.configService.logLevel === 'verbose') {
             const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
             const contextObj = typeof context === 'string' ? { context } : context;
-            
+
             console.log(this.formatMessage('verbose', messageStr, contextObj));
         }
     }

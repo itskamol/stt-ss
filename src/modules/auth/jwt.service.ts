@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '../../core/config/config.service';
-import { LoggerService } from '../../core/logger/logger.service';
-import { UserContext } from '../../shared/interfaces/data-scope.interface';
+import { ConfigService } from '@/core/config/config.service';
+import { LoggerService } from '@/core/logger/logger.service';
+import { UserContext } from '@/shared/interfaces/data-scope.interface';
 
 export interface JwtPayload {
     sub: string;

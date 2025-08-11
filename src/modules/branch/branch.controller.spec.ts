@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BranchController } from './branch.controller';
 import { BranchService } from './branch.service';
-import { LoggerService } from '../../core/logger/logger.service';
-import { AssignBranchManagerDto, CreateBranchDto, UpdateBranchDto } from '../../shared/dto';
-import { DataScope, UserContext } from '../../shared/interfaces';
+import { LoggerService } from '@/core/logger/logger.service';
+import { AssignBranchManagerDto, CreateBranchDto, UpdateBranchDto } from '@/shared/dto';
+import { DataScope, UserContext } from '@/shared/interfaces';
 
 describe('BranchController', () => {
     let controller: BranchController;
