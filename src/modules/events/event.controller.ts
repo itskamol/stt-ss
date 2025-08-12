@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import {
     BadRequestException,
     Body,
@@ -109,7 +110,6 @@ export class EventController {
     }
 
     private hashEventData(eventData: CreateRawEventDto): string {
-        const crypto = require('crypto');
         const dataString = JSON.stringify({
             eventType: eventData.eventType,
             employeeId: eventData.employeeId,

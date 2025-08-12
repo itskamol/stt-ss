@@ -1,9 +1,5 @@
-import {
-    BadRequestException,
-    ConflictException,
-    Injectable,
-    NotFoundException,
-} from '@nestjs/common';
+import crypto from 'crypto';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { GuestStatus, GuestVisit } from '@prisma/client';
 import { GuestRepository } from './guest.repository';
 import { LoggerService } from '@/core/logger/logger.service';
@@ -412,8 +408,6 @@ export class GuestService {
         visit: GuestVisit,
         credentialType: string
     ): Promise<{ credential: string; hash: string }> {
-        const crypto = require('crypto');
-
         switch (credentialType) {
             case 'QR_CODE':
                 // Generate QR code data

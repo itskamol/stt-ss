@@ -122,7 +122,7 @@ export class GuestRepository {
 
         return this.prisma.guestVisit.findMany({
             where: {
-                status: status,
+                status,
                 branch: whereClause,
             },
             orderBy: { scheduledEntryTime: 'desc' },

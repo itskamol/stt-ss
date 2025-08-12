@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { LoggerService } from '../../logger/logger.service';
 import { BaseJobProcessor } from './base.processor';

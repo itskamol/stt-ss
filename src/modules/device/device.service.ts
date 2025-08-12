@@ -5,7 +5,7 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { Device, DeviceStatus, DeviceType } from '@prisma/client';
+import { Device } from '@prisma/client';
 import { DeviceRepository } from './device.repository';
 import { DeviceConfigurationService } from './device-configuration.service';
 import { EmployeeSyncService } from './employee-sync.service';
@@ -639,12 +639,7 @@ export class DeviceService {
     /**
      * Retry failed syncs for device
      */
-    async retryFailedSyncs(
-        id: string,
-        scope: DataScope,
-        retriedByUserId: string,
-        correlationId?: string
-    ) {
+    async retryFailedSyncs(id: string, scope: DataScope, retriedByUserId: string) {
         return this.employeeSyncService.retryFailedSyncs(id, scope, retriedByUserId);
     }
 

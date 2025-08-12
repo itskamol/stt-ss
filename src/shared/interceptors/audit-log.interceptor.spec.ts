@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CallHandler, ExecutionContext } from '@nestjs/common';
+import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { of, throwError } from 'rxjs';
 import { AuditLog, AuditLogInterceptor } from './audit-log.interceptor';
@@ -275,7 +275,7 @@ describe('AuditLogInterceptor', () => {
             },
         ];
 
-        testCases.forEach((testCase, index) => {
+        testCases.forEach(testCase => {
             const mockRequest = {
                 headers: testCase.headers || {},
                 connection: testCase.connection,

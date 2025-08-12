@@ -4,7 +4,6 @@ import { PrismaService } from '@/core/database/prisma.service';
 
 describe('OrganizationRepository', () => {
     let repository: OrganizationRepository;
-    let prismaService: PrismaService;
 
     const mockPrismaService = {
         organization: {
@@ -29,7 +28,6 @@ describe('OrganizationRepository', () => {
         }).compile();
 
         repository = module.get<OrganizationRepository>(OrganizationRepository);
-        prismaService = module.get<PrismaService>(PrismaService);
     });
 
     afterEach(() => {

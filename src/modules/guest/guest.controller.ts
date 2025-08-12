@@ -1,7 +1,6 @@
 import {
     Body,
     Controller,
-    Delete,
     Get,
     HttpCode,
     HttpStatus,
@@ -33,7 +32,7 @@ import {
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
-import { DataScope, UserContext, GuestVisitWithCredentials } from '@/shared/interfaces';
+import { DataScope, GuestVisitWithCredentials, UserContext } from '@/shared/interfaces';
 import { GuestStatus } from '@prisma/client';
 
 @ApiTags('Guests')

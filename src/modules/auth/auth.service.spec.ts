@@ -13,9 +13,6 @@ jest.mock('@/shared/utils/password.util');
 
 describe('AuthService', () => {
     let service: AuthService;
-    let userRepository: UserRepository;
-    let jwtService: CustomJwtService;
-    let logger: LoggerService;
 
     const mockUserRepository = {
         findByEmail: jest.fn(),
@@ -54,9 +51,6 @@ describe('AuthService', () => {
         }).compile();
 
         service = module.get<AuthService>(AuthService);
-        userRepository = module.get<UserRepository>(UserRepository);
-        jwtService = module.get<CustomJwtService>(CustomJwtService);
-        logger = module.get<LoggerService>(LoggerService);
     });
 
     afterEach(() => {
@@ -203,7 +197,7 @@ describe('AuthService', () => {
                 refreshToken: 'refresh-token',
             });
 
-            const result = await service.login(loginDto, 'correlation-123');
+            await service.login(loginDto, 'correlation-123');
 
             expect(mockJwtService.generateTokenPair).toHaveBeenCalledWith(
                 expect.objectContaining({

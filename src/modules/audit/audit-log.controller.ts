@@ -17,7 +17,6 @@ import {
     PaginationResponseDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
-import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Audit Logs')

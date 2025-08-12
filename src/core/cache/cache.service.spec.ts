@@ -23,8 +23,6 @@ jest.mock('redis', () => ({
 
 describe('CacheService', () => {
     let service: CacheService;
-    let configService: ConfigService;
-    let logger: LoggerService;
 
     const mockConfigService = {
         redisUrl: 'redis://localhost:6379',
@@ -52,8 +50,6 @@ describe('CacheService', () => {
         }).compile();
 
         service = module.get<CacheService>(CacheService);
-        configService = module.get<ConfigService>(ConfigService);
-        logger = module.get<LoggerService>(LoggerService);
     });
 
     afterEach(() => {

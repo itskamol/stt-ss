@@ -320,11 +320,7 @@ describe('ReportingController', () => {
                 includeContactInfo: false,
             };
 
-            const result = await controller.generateEmployeeListReport(
-                params,
-                mockUserContext,
-                mockDataScope
-            );
+            await controller.generateEmployeeListReport(params, mockUserContext, mockDataScope);
 
             expect(reportingService.generateReport).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -356,11 +352,7 @@ describe('ReportingController', () => {
                 includeDetails: true,
             };
 
-            const result = await controller.generateSecurityAuditReport(
-                params,
-                mockUserContext,
-                mockDataScope
-            );
+            await controller.generateSecurityAuditReport(params, mockUserContext, mockDataScope);
 
             expect(reportingService.generateReport).toHaveBeenCalledWith(
                 expect.objectContaining({

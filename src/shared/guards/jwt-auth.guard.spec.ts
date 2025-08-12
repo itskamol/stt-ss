@@ -7,8 +7,6 @@ import { Role } from '@prisma/client';
 
 describe('JwtAuthGuard', () => {
     let guard: JwtAuthGuard;
-    let reflector: Reflector;
-    let logger: LoggerService;
 
     const mockReflector = {
         getAllAndOverride: jest.fn(),
@@ -35,8 +33,6 @@ describe('JwtAuthGuard', () => {
         }).compile();
 
         guard = module.get<JwtAuthGuard>(JwtAuthGuard);
-        reflector = module.get<Reflector>(Reflector);
-        logger = module.get<LoggerService>(LoggerService);
     });
 
     afterEach(() => {
@@ -77,8 +73,6 @@ describe('JwtAuthGuard', () => {
                 'canActivate'
             );
             superCanActivateSpy.mockReturnValue(true);
-
-            const result = guard.canActivate(mockContext);
 
             expect(superCanActivateSpy).toHaveBeenCalledWith(mockContext);
             superCanActivateSpy.mockRestore();

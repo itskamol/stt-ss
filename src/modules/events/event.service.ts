@@ -164,7 +164,7 @@ export class EventService {
         return this.eventRepository.findEventLogs(
             {
                 deviceId,
-                eventType: eventType,
+                eventType,
                 startDate,
                 endDate,
             },

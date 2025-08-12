@@ -1,10 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LoggerService } from './logger.service';
-import { ConfigService } from '../config/config.service';
 
 describe('LoggerService', () => {
     let service: LoggerService;
-    let configService: ConfigService;
 
     const mockConfigService = {
         nodeEnv: 'test',
@@ -14,17 +12,10 @@ describe('LoggerService', () => {
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                LoggerService,
-                {
-                    provide: ConfigService,
-                    useValue: mockConfigService,
-                },
-            ],
+            providers: [LoggerService],
         }).compile();
 
         service = module.get<LoggerService>(LoggerService);
-        configService = module.get<ConfigService>(ConfigService);
 
         // Mock console methods
         jest.spyOn(console, 'log').mockImplementation();

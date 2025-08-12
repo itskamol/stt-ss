@@ -9,8 +9,6 @@ import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('UserController', () => {
     let controller: UserController;
-    let userService: UserService;
-    let logger: LoggerService;
 
     const mockUserService = {
         createUser: jest.fn(),
@@ -70,8 +68,6 @@ describe('UserController', () => {
         }).compile();
 
         controller = module.get<UserController>(UserController);
-        userService = module.get<UserService>(UserService);
-        logger = module.get<LoggerService>(LoggerService);
     });
 
     afterEach(() => {

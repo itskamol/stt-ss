@@ -8,7 +8,6 @@ import {
     IsNumber,
     IsOptional,
     IsString,
-    IsUrl,
     Max,
     MaxLength,
     Min,

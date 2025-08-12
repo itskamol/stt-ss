@@ -8,9 +8,6 @@ import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('CustomJwtService', () => {
     let service: CustomJwtService;
-    let jwtService: JwtService;
-    let configService: ConfigService;
-    let logger: LoggerService;
 
     const mockJwtService = {
         sign: jest.fn(),
@@ -51,9 +48,6 @@ describe('CustomJwtService', () => {
         }).compile();
 
         service = module.get<CustomJwtService>(CustomJwtService);
-        jwtService = module.get<JwtService>(JwtService);
-        configService = module.get<ConfigService>(ConfigService);
-        logger = module.get<LoggerService>(LoggerService);
     });
 
     afterEach(() => {

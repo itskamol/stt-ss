@@ -30,7 +30,7 @@ import {
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
-import { DataScope, UserContext, AttendanceWithRelations } from '@/shared/interfaces';
+import { AttendanceWithRelations, DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Attendance')
 @ApiBearerAuth()

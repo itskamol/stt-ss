@@ -50,7 +50,7 @@ export class OrganizationService {
      * Get all organizations (SUPER_ADMIN only)
      */
     async getAllOrganizations(correlationId?: string): Promise<Organization[]> {
-        return this.organizationRepository.findMany();
+        return this.organizationRepository.findMany({ correlationId });
     }
 
     /**

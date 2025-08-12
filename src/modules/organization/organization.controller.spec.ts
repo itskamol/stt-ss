@@ -9,8 +9,6 @@ import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('OrganizationController', () => {
     let controller: OrganizationController;
-    let organizationService: OrganizationService;
-    let logger: LoggerService;
 
     const mockOrganizationService = {
         createOrganization: jest.fn(),
@@ -67,8 +65,6 @@ describe('OrganizationController', () => {
         }).compile();
 
         controller = module.get<OrganizationController>(OrganizationController);
-        organizationService = module.get<OrganizationService>(OrganizationService);
-        logger = module.get<LoggerService>(LoggerService);
     });
 
     afterEach(() => {

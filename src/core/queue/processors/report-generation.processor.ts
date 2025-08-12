@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { LoggerService } from '../../logger/logger.service';
 import { BaseJobProcessor } from './base.processor';
@@ -111,11 +111,6 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
 
             // Upload file to storage
             const filePath = `reports/${data.organizationId}/${data.reportId}/${fileName}`;
-            const uploadResult = await this.storageAdapter.uploadFile(
-                filePath,
-                Buffer.from(reportData),
-                this.getContentType(data.format)
-            );
 
             await this.updateProgress(job, 85, 'Finalizing report');
 
