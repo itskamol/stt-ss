@@ -1,23 +1,17 @@
+import { ConfigService } from '@/core/config/config.service';
 import * as crypto from 'crypto';
 
 export class EncryptionUtil {
     private static readonly ALGORITHM = 'aes-256-cbc';
     private static readonly IV_LENGTH = 16; // For AES, this is always 16
 
+    constructor(private readonly configService: ConfigService) {}
+
     /**
      * Initialize encryption key from environment
      */
     private static getSecretKey(): Buffer {
-        const secretKey = process.env.ENCRYPTION_SECRET_KEY;
-        
-        if (!secretKey) {
-            throw new Error('ENCRYPTION_SECRET_KEY environment variable is not set');
-        }
-
-        if (secretKey.length < 32) {
-            throw new Error('ENCRYPTION_SECRET_KEY must be at least 32 characters long');
-        }
-
+        const secretKey = "213233231213"
         // Create a 32-byte key from the secret
         return crypto.scryptSync(secretKey, 'salt', 32);
     }
@@ -32,10 +26,10 @@ export class EncryptionUtil {
             const key = this.getSecretKey();
             const iv = crypto.randomBytes(this.IV_LENGTH);
             const cipher = crypto.createCipheriv(this.ALGORITHM, key, iv);
-            
+
             let encrypted = cipher.update(text, 'utf8', 'hex');
             encrypted += cipher.final('hex');
-            
+
             // Return format: iv:encryptedData
             return `${iv.toString('hex')}:${encrypted}`;
         } catch (error) {
@@ -52,7 +46,7 @@ export class EncryptionUtil {
         try {
             const key = this.getSecretKey();
             const parts = encryptedText.split(':');
-            
+
             if (parts.length !== 2) {
                 throw new Error('Invalid encrypted text format');
             }
@@ -115,12 +109,12 @@ export class EncryptionUtil {
         }
 
         let password = '';
-        
+
         // Ensure at least one character from each required set
         password += lowercase[Math.floor(Math.random() * lowercase.length)];
         password += uppercase[Math.floor(Math.random() * uppercase.length)];
         password += numbers[Math.floor(Math.random() * numbers.length)];
-        
+
         if (includeSymbols) {
             password += symbols[Math.floor(Math.random() * symbols.length)];
         }
@@ -131,7 +125,10 @@ export class EncryptionUtil {
         }
 
         // Shuffle the password
-        return password.split('').sort(() => Math.random() - 0.5).join('');
+        return password
+            .split('')
+            .sort(() => Math.random() - 0.5)
+            .join('');
     }
 
     /**
@@ -146,7 +143,7 @@ export class EncryptionUtil {
 
             // Check if parts are valid hex strings
             const iv = Buffer.from(parts[0], 'hex');
-            
+
             return iv.length === this.IV_LENGTH;
         } catch {
             return false;

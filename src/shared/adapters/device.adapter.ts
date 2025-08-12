@@ -1,4 +1,4 @@
-import { DeviceStatus, DeviceType } from '@prisma/client';
+import { DeviceStatus, DeviceType, EventType } from '@prisma/client';
 
 export interface DeviceInfo {
     id: string;
@@ -57,13 +57,7 @@ export interface DeviceCommandResult {
 
 export interface DeviceEvent {
     deviceId: string;
-    eventType:
-        | 'access_granted'
-        | 'access_denied'
-        | 'door_opened'
-        | 'door_closed'
-        | 'alarm'
-        | 'error';
+    eventType: EventType;
     timestamp: Date;
     userId?: string;
     cardId?: string;

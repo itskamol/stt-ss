@@ -1,7 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { LoggerService } from '@/core/logger/logger.service';
-import { HikvisionAuthService } from '../services/hikvision-auth.service';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 
 interface DeviceInfo {
@@ -20,7 +19,6 @@ export class DeviceAuthGuard implements CanActivate {
     constructor(
         private reflector: Reflector,
         private readonly logger: LoggerService,
-        private readonly hikvisionAuthService: HikvisionAuthService
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {

@@ -57,7 +57,7 @@ describe('EncryptionUtil', () => {
         });
 
         it('should trim whitespace from passwords', () => {
-            const passwordWithSpaces = '  ' + testPassword + '  ';
+            const passwordWithSpaces = `  ${  testPassword  }  `;
             const encrypted = EncryptionUtil.encryptPassword(passwordWithSpaces);
             const decrypted = EncryptionUtil.decryptPassword(encrypted);
 

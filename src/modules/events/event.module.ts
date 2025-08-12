@@ -7,7 +7,6 @@ import { LoggerModule } from '@/core/logger/logger.module';
 import { CacheModule } from '@/core/cache/cache.module';
 import { QueueModule } from '@/core/queue/queue.module';
 import { DeviceModule } from '../device/device.module';
-import { HikvisionAuthModule } from '@/shared/hikvision-auth.module';
 
 @Module({
     imports: [
@@ -16,7 +15,6 @@ import { HikvisionAuthModule } from '@/shared/hikvision-auth.module';
         CacheModule,
         QueueModule,
         DeviceModule,
-        HikvisionAuthModule,
     ],
     controllers: [EventController],
     providers: [EventService, EventRepository],

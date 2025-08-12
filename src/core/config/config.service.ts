@@ -59,6 +59,34 @@ export class ConfigService {
         return secret;
     }
 
+    get encryptionSecretKey(): string {
+        const secretKey = this.configService.get<string>('ENCRYPTION_SECRET_KEY');
+
+        if (!secretKey) {
+            throw new Error('ENCRYPTION_SECRET_KEY environment variable is not set');
+        }
+
+        if (secretKey.length < 32) {
+            throw new Error('ENCRYPTION_SECRET_KEY must be at least 32 characters long');
+        }
+
+        return secretKey
+    }
+
+    get encryptionAlgoritm(): string {
+        const secretKey = this.configService.get<string>('ENCRYPTION_SECRET_KEY');
+
+        if (!secretKey) {
+            throw new Error('ENCRYPTION_SECRET_KEY environment variable is not set');
+        }
+
+        if (secretKey.length < 32) {
+            throw new Error('ENCRYPTION_SECRET_KEY must be at least 32 characters long');
+        }
+
+        return secretKey
+    }
+
     get refreshTokenExpirationTime(): string {
         return this.configService.get<string>('REFRESH_TOKEN_EXPIRATION_TIME', '7d');
     }
