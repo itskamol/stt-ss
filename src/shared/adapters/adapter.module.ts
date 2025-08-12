@@ -46,25 +46,22 @@ export class AdapterModule {
                     provide: 'IStorageAdapter',
                     useClass: StubStorageAdapter,
                 },
-                
+
                 // Notification adapter
                 {
                     provide: 'INotificationAdapter',
                     useClass: StubNotificationAdapter,
                 },
-                
+
                 // Matching adapter
                 {
                     provide: 'IMatchingAdapter',
                     useClass: StubMatchingAdapter,
                 },
-
-                // Device adapter is provided by HikvisionAdapterModule
             ],
             exports: [
-                'IStorageAdapter', 
-                'INotificationAdapter', 
-                'IDeviceAdapter', 
+                'IStorageAdapter',
+                'INotificationAdapter',
                 'IMatchingAdapter',
                 HikvisionAdapterModule,
             ],
@@ -101,13 +98,13 @@ export class AdapterModule {
                     provide: 'IStorageAdapter',
                     useClass: StubStorageAdapter,
                 },
-                
+
                 // Notification adapter
                 {
                     provide: 'INotificationAdapter',
                     useClass: StubNotificationAdapter,
                 },
-                
+
                 // Matching adapter
                 {
                     provide: 'IMatchingAdapter',
@@ -115,12 +112,12 @@ export class AdapterModule {
                 },
             ],
             exports: [
-                'IStorageAdapter', 
-                'INotificationAdapter', 
-                'IDeviceAdapter', 
+                'IStorageAdapter',
+                'INotificationAdapter',
                 'IMatchingAdapter',
                 HikvisionAdapterModule,
             ],
         };
     }
 }
+
