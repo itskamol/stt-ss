@@ -4,14 +4,14 @@ import { AppModule } from './app/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from './core/config/config.service';
 import { LoggerService } from './core/logger/logger.service';
-import { MinimalLoggerService } from './core/logger/minimal-logger.service';
+import { SimpleLoggerService } from './core/logger/simple-logger.service';
 import { CustomValidationException } from './shared/exceptions/validation.exception';
 
 async function bootstrap() {
     // Create app with minimal logging during startup
     const app = await NestFactory.create(AppModule, {
-        bufferLogs: true,
-        logger: false, // Disable default logger during creation
+
+        logger: ['log', 'error', 'warn', 'debug', 'verbose'],
     });
 
     // Get services
@@ -19,8 +19,8 @@ async function bootstrap() {
     const logger = app.get(LoggerService);
     
     // Create minimal logger for NestJS internal use
-    const minimalLogger = new MinimalLoggerService(configService);
-    app.useLogger(minimalLogger);
+    const simpleLogger = new SimpleLoggerService();
+    app.useLogger(simpleLogger);
 
     // Validate environment configuration
     try {

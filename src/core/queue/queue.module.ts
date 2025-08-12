@@ -17,7 +17,7 @@ import { AdapterModule } from '@/shared/adapters/adapter.module';
         LoggerModule,
         EmployeeModule,
         AttendanceModule,
-        AdapterModule,
+        AdapterModule.forRoot({ useStubAdapters: true }),
         BullModule.forRootAsync({
             imports: [ConfigModule],
             useFactory: async (configService: ConfigService) => ({

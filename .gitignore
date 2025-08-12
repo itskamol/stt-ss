@@ -42,9 +42,11 @@ lerna-debug.log*
 .env.production.local
 
 # Keep environment templates and config
-!config/environments/dev.env
-!config/environments/prod.env
-!config/environments/staging.env
+config/environments/dev.env
+config/environments/local.env
+config/environments/prod.env
+config/environments/staging.env
+config/environments/docker.env
 !config/environments/example.env
 
 # Prisma
