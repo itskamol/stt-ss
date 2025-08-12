@@ -13,7 +13,7 @@ export class DeviceRepository {
         return this.prisma.device.create({
             data: {
                 name: data.name,
-                type: data.type as any,
+                type: data.type,
                 branchId: data.branchId,
                 ipAddress: data.ipAddress,
                 macAddress: data.macAddress,
@@ -152,7 +152,6 @@ export class DeviceRepository {
         });
     }
 
-    
     async updateLastSeen(id: string, lastSeen: Date): Promise<void> {
         await this.prisma.device.update({
             where: { id },

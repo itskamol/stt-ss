@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GuestVisit } from '@prisma/client';
+import { GuestStatus, GuestVisit } from '@prisma/client';
 import { PrismaService } from '@/core/database/prisma.service';
 import { CreateGuestVisitDto, UpdateGuestVisitDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
@@ -117,12 +117,12 @@ export class GuestRepository {
         });
     }
 
-    async findByStatus(status: string, scope: DataScope): Promise<GuestVisit[]> {
+    async findByStatus(status: GuestStatus, scope: DataScope): Promise<GuestVisit[]> {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
         return this.prisma.guestVisit.findMany({
             where: {
-                status: status as any,
+                status: status,
                 branch: whereClause,
             },
             orderBy: { scheduledEntryTime: 'desc' },

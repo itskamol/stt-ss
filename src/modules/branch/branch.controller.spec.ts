@@ -4,6 +4,7 @@ import { BranchService } from './branch.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { AssignBranchManagerDto, CreateBranchDto, UpdateBranchDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('BranchController', () => {
     let controller: BranchController;
@@ -15,7 +16,7 @@ describe('BranchController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: ['branch:create', 'branch:read:all'],
+        permissions: [PERMISSIONS.BRANCH.CREATE, PERMISSIONS.BRANCH.READ_ALL],
     };
 
     const mockDataScope: DataScope = {

@@ -5,7 +5,13 @@ import { LoggerService } from '@/core/logger/logger.service';
 import { Public, User } from '@/shared/decorators';
 import { UserContext } from '@/shared/interfaces';
 import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
-import { LoginRequestDto, LoginResponse, LoginResponseDto, LogoutRequestDto, RefreshTokenRequestDto } from '@/shared/dto';
+import {
+    LoginRequestDto,
+    LoginResponse,
+    LoginResponseDto,
+    LogoutRequestDto,
+    RefreshTokenRequestDto,
+} from '@/shared/dto';
 
 @ApiTags('Authentication')
 @Controller('auth')

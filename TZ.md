@@ -124,10 +124,10 @@ In the initial technical specification, the BRANCH_MANAGER role was linked to a 
 To solve this issue, the managedBranchId and managedBranch fields are removed from the OrganizationUser model, and a new ManagedBranch model is introduced to link the OrganizationUser and Branch models. This change fully aligns the data model with the authentication mechanism.
 
 #### **3.1.2. Final Schema**
+
 ```js
 // This is your Prisma schema file,  
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// learn more about it in the docs: https://pris.ly/d/prisma-sche
 generator client {  
   provider = "prisma-client-js"  
 }
@@ -398,6 +398,7 @@ model AuditLog {
   @@index([organizationId, userId, createdAt])  
 }
 ```
+
 #### **3.1.3. Data Integrity and Performance**
 
 * **onDelete Relation Policies:**  
@@ -508,7 +509,7 @@ This module is responsible for managing the lifecycle of physical devices (camer
 
 * **Description:** The main entry point for receiving all raw events (e.g., face scans, card reads) from physical devices. This endpoint is designed for high throughput and reliability. Its primary task is to quickly accept the event, queue it for processing, and return an immediate response.  
 * **Required Role(s):** None (authentication is done via a device-specific API key/secret, not a user JWT). A separate DeviceAuthGuard will be implemented for this purpose.  
-* **Request Headers:** Idempotency-Key: <UUID> — Mandatory.  
+* **Request Headers:** Idempotency-Key: `UUID` — Mandatory.  
 * **Request Body:** A generic event payload. For example:
 
 ```json
@@ -538,15 +539,15 @@ This module is responsible for managing the lifecycle of physical devices (camer
   The logic of the endpoint is as follows:  
   1. Authenticate the device via DeviceAuthGuard.  
   2. Extract the Idempotency-Key from the header. If it is missing, return 400 Bad Request.  
-  3. Check for a cached response for this key in Redis (GET idempotency:response:<key>).  
+  3. Check for a cached response for this key in Redis (GET idempotency:response:`key`).  
   4. **If a response is found for the key:** Immediately return the cached response (e.g., 202 Accepted) and do not perform any further actions. This effectively handles duplicate requests.  
   5. If the key is not found:  
-     a. Set a short-term lock in Redis to prevent race conditions (SET idempotency:lock:<key> "locked" NX EX 60). If the lock fails to set (meaning another parallel request has set the lock), either wait and retry or return a 409 Conflict.  
+     a. Set a short-term lock in Redis to prevent race conditions (SET idempotency:lock:`key` "locked" NX EX 60). If the lock fails to set (meaning another parallel request has set the lock), either wait and retry or return a 409 Conflict.  
      b. Upload the incoming raw payload to S3/MinIO via IStorageAdapter.  
      c. Create a new DeviceEventLog record in PostgreSQL, storing a reference to the S3 object (rawPayloadUrl).  
      d. Add a task named RAW_DEVICE_EVENT to the events-queue in BullMQ. The payload includes the ID of the DeviceEventLog record.  
-     e. Upon successful queuing, cache the 202 Accepted response in Redis along with the Idempotency-Key (SET idempotency:response:<key> '{"status": 202}' EX 86400).  
-     f. Remove the lock (DEL idempotency:lock:<key>).  
+     e. Upon successful queuing, cache the 202 Accepted response in Redis along with the Idempotency-Key (SET idempotency:response:`key` '{"status": 202}' EX 86400).  
+     f. Remove the lock (DEL idempotency:lock:`key`).  
      g. Return the 202 Accepted response to the client.
 
 ## **6. Asynchronous Processing and Background Jobs (BullMQ)**

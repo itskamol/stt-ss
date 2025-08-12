@@ -4,6 +4,7 @@ import { JwtService as CustomJwtService, JwtPayload } from './jwt.service';
 import { ConfigService } from '@/core/config/config.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { Role } from '@prisma/client';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('CustomJwtService', () => {
     let service: CustomJwtService;
@@ -67,7 +68,7 @@ describe('CustomJwtService', () => {
                 organizationId: 'org-456',
                 branchIds: ['branch-1'],
                 roles: [Role.ORG_ADMIN],
-                permissions: ['employee:create'],
+                permissions: [PERMISSIONS.EMPLOYEE.CREATE],
             };
 
             const expectedToken = 'generated-access-token';
@@ -156,7 +157,7 @@ describe('CustomJwtService', () => {
                 email: 'test@example.com',
                 organizationId: 'org-456',
                 roles: [Role.ORG_ADMIN],
-                permissions: ['employee:create'],
+                permissions: [PERMISSIONS.EMPLOYEE.CREATE],
                 iat: 1234567890,
                 exp: 1234567890,
             };
@@ -196,7 +197,7 @@ describe('CustomJwtService', () => {
                 sub: 'user-123',
                 email: 'test@example.com',
                 roles: [Role.ORG_ADMIN],
-                permissions: ['employee:create'],
+                permissions: [PERMISSIONS.EMPLOYEE.CREATE],
             };
 
             mockJwtService.sign
@@ -221,7 +222,7 @@ describe('CustomJwtService', () => {
                 organizationId: 'org-456',
                 branchIds: ['branch-1'],
                 roles: [Role.ORG_ADMIN],
-                permissions: ['employee:create'],
+                permissions: [PERMISSIONS.EMPLOYEE.CREATE],
                 iat: 1234567890,
                 exp: 1234567890,
             };
@@ -234,7 +235,7 @@ describe('CustomJwtService', () => {
                 organizationId: 'org-456',
                 branchIds: ['branch-1'],
                 roles: [Role.ORG_ADMIN],
-                permissions: ['employee:create'],
+                permissions: [PERMISSIONS.EMPLOYEE.CREATE],
             });
         });
     });

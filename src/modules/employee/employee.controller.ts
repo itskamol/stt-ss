@@ -30,6 +30,7 @@ import {
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { AuditLog } from '@/shared/interceptors/audit-log.interceptor';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -38,7 +39,7 @@ export class EmployeeController {
     constructor(private readonly employeeService: EmployeeService) {}
 
     @Post()
-    @Permissions('employee:create')
+    @Permissions(PERMISSIONS.EMPLOYEE.CREATE)
     @AuditLog({
         action: 'CREATE',
         resource: 'employee',
@@ -82,7 +83,7 @@ export class EmployeeController {
     }
 
     @Get()
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get all employees with pagination' })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiResponse({
@@ -122,7 +123,7 @@ export class EmployeeController {
     }
 
     @Get('search')
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Search for employees' })
     @ApiQuery({ name: 'q', description: 'Search term (at least 2 characters)' })
     @ApiResponse({
@@ -158,7 +159,7 @@ export class EmployeeController {
     }
 
     @Get('count')
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get the total number of employees' })
     @ApiResponse({ status: 200, description: 'The total number of employees.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -168,7 +169,7 @@ export class EmployeeController {
     }
 
     @Get('branch/:branchId')
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get all employees for a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiResponse({
@@ -201,7 +202,7 @@ export class EmployeeController {
     }
 
     @Get('branch/:branchId/count')
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get the number of employees in a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiResponse({ status: 200, description: 'The number of employees in the branch.' })
@@ -216,7 +217,7 @@ export class EmployeeController {
     }
 
     @Get('department/:departmentId')
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get all employees for a specific department' })
     @ApiParam({ name: 'departmentId', description: 'ID of the department' })
     @ApiResponse({
@@ -249,7 +250,7 @@ export class EmployeeController {
     }
 
     @Get('department/:departmentId/count')
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get the number of employees in a specific department' })
     @ApiParam({ name: 'departmentId', description: 'ID of the department' })
     @ApiResponse({ status: 200, description: 'The number of employees in the department.' })
@@ -264,7 +265,7 @@ export class EmployeeController {
     }
 
     @Get('code/:employeeCode')
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get an employee by their employee code' })
     @ApiParam({ name: 'employeeCode', description: 'Employee code' })
     @ApiResponse({ status: 200, description: 'The employee details.', type: EmployeeResponseDto })
@@ -297,7 +298,7 @@ export class EmployeeController {
     }
 
     @Get(':id')
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get a specific employee by ID' })
     @ApiParam({ name: 'id', description: 'ID of the employee' })
     @ApiResponse({ status: 200, description: 'The employee details.', type: EmployeeResponseDto })
@@ -330,7 +331,7 @@ export class EmployeeController {
     }
 
     @Patch(':id')
-    @Permissions('employee:update:managed')
+    @Permissions(PERMISSIONS.EMPLOYEE.UPDATE_MANAGED)
     @AuditLog({
         action: 'UPDATE',
         resource: 'employee',
@@ -378,7 +379,7 @@ export class EmployeeController {
     }
 
     @Patch(':id/status')
-    @Permissions('employee:update:managed')
+    @Permissions(PERMISSIONS.EMPLOYEE.UPDATE_MANAGED)
     @AuditLog({
         action: 'STATUS_CHANGE',
         resource: 'employee',
@@ -427,7 +428,7 @@ export class EmployeeController {
     }
 
     @Delete(':id')
-    @Permissions('employee:update:managed')
+    @Permissions(PERMISSIONS.EMPLOYEE.UPDATE_MANAGED)
     @AuditLog({
         action: 'DELETE',
         resource: 'employee',

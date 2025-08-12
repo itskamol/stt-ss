@@ -30,6 +30,7 @@ import {
     UpdateBranchDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Branches')
@@ -39,7 +40,7 @@ export class BranchController {
     constructor(private readonly branchService: BranchService) {}
 
     @Post()
-    @Permissions('branch:create')
+    @Permissions(PERMISSIONS.BRANCH.CREATE)
     @ApiOperation({ summary: 'Create a new branch' })
     @ApiBody({ type: CreateBranchDto })
     @ApiResponse({
@@ -67,7 +68,7 @@ export class BranchController {
     }
 
     @Get()
-    @Permissions('branch:read:all')
+    @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Get all branches with pagination' })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiResponse({
@@ -101,7 +102,7 @@ export class BranchController {
     }
 
     @Get('search')
-    @Permissions('branch:read:all')
+    @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Search for branches' })
     @ApiQuery({ name: 'q', description: 'Search term (at least 2 characters)' })
     @ApiResponse({
@@ -131,7 +132,7 @@ export class BranchController {
     }
 
     @Get('count')
-    @Permissions('branch:read:all')
+    @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Get the total number of branches' })
     @ApiResponse({ status: 200, description: 'The total number of branches.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -141,7 +142,7 @@ export class BranchController {
     }
 
     @Get(':id')
-    @Permissions('branch:read:all')
+    @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Get a specific branch by ID' })
     @ApiParam({ name: 'id', description: 'ID of the branch' })
     @ApiResponse({ status: 200, description: 'The branch details.', type: BranchResponseDto })
@@ -168,7 +169,7 @@ export class BranchController {
     }
 
     @Get(':id/stats')
-    @Permissions('branch:read:all')
+    @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Get a branch with its statistics' })
     @ApiParam({ name: 'id', description: 'ID of the branch' })
     @ApiResponse({ status: 200, description: 'The branch with statistics.' })
@@ -179,7 +180,7 @@ export class BranchController {
     }
 
     @Patch(':id')
-    @Permissions('branch:update:managed')
+    @Permissions(PERMISSIONS.BRANCH.UPDATE_MANAGED)
     @ApiOperation({ summary: 'Update a branch' })
     @ApiParam({ name: 'id', description: 'ID of the branch to update' })
     @ApiBody({ type: UpdateBranchDto })
@@ -210,7 +211,7 @@ export class BranchController {
     }
 
     @Delete(':id')
-    @Permissions('branch:update:managed')
+    @Permissions(PERMISSIONS.BRANCH.UPDATE_MANAGED)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Delete a branch' })
     @ApiParam({ name: 'id', description: 'ID of the branch to delete' })
@@ -226,7 +227,7 @@ export class BranchController {
     }
 
     @Post(':branchId/managers')
-    @Permissions('user:manage:org')
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Assign a manager to a branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiBody({ type: AssignBranchManagerBodyDto })
@@ -254,7 +255,7 @@ export class BranchController {
     }
 
     @Delete(':branchId/managers/:managerId')
-    @Permissions('user:manage:org')
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Remove a manager from a branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
@@ -271,7 +272,7 @@ export class BranchController {
     }
 
     @Get(':branchId/managers')
-    @Permissions('branch:read:all')
+    @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Get all managers for a branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiResponse({ status: 200, description: 'A list of branch managers.' })

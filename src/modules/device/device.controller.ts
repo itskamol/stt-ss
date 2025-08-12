@@ -34,6 +34,7 @@ import {
     UpdateDeviceTemplateDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Devices')
@@ -72,7 +73,7 @@ export class DeviceController {
     }
 
     @Post()
-    @Permissions('device:create')
+    @Permissions(PERMISSIONS.DEVICE.CREATE)
     @ApiOperation({ summary: 'Create a new device' })
     @ApiBody({ type: CreateDeviceDto })
     @ApiResponse({
@@ -93,7 +94,7 @@ export class DeviceController {
     }
 
     @Get()
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all devices with pagination' })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiResponse({
@@ -120,7 +121,7 @@ export class DeviceController {
     }
 
     @Get('search')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Search for devices' })
     @ApiQuery({ name: 'q', description: 'Search term (at least 2 characters)' })
     @ApiResponse({
@@ -143,7 +144,7 @@ export class DeviceController {
     }
 
     @Get('count')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get the total number of devices' })
     @ApiResponse({ status: 200, description: 'The total number of devices.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -153,7 +154,7 @@ export class DeviceController {
     }
 
     @Get('discover')
-    @Permissions('device:create')
+    @Permissions(PERMISSIONS.DEVICE.CREATE)
     @ApiOperation({ summary: 'Discover devices on the network' })
     @ApiResponse({
         status: 200,
@@ -166,7 +167,7 @@ export class DeviceController {
     }
 
     @Get('branch/:branchId')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all devices for a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiResponse({
@@ -186,7 +187,7 @@ export class DeviceController {
     }
 
     @Get('branch/:branchId/count')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get the number of devices in a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiResponse({ status: 200, description: 'The number of devices in the branch.' })
@@ -201,7 +202,7 @@ export class DeviceController {
     }
 
     @Get('identifier/:identifier')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get a device by its unique identifier' })
     @ApiParam({ name: 'identifier', description: 'Unique identifier of the device' })
     @ApiResponse({ status: 200, description: 'The device details.', type: DeviceResponseDto })
@@ -221,7 +222,7 @@ export class DeviceController {
     }
 
     @Get(':id')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get a specific device by ID' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 200, description: 'The device details.', type: DeviceResponseDto })
@@ -241,7 +242,7 @@ export class DeviceController {
     }
 
     @Get(':id/stats')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get statistics for a specific device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 200, description: 'The device statistics.' })
@@ -252,7 +253,7 @@ export class DeviceController {
     }
 
     @Get(':id/health')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get the health status of a specific device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 200, description: 'The device health status.' })
@@ -263,7 +264,7 @@ export class DeviceController {
     }
 
     @Post(':id/test-connection')
-    @Permissions('device:manage:managed')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Test the connection to a device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 200, description: 'Connection test result.' })
@@ -274,7 +275,7 @@ export class DeviceController {
     }
 
     @Post(':id/command')
-    @Permissions('device:manage:managed')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Send a command to a device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiBody({ type: DeviceCommandDto })
@@ -301,7 +302,7 @@ export class DeviceController {
     }
 
     @Patch(':id')
-    @Permissions('device:update:managed')
+    @Permissions(PERMISSIONS.DEVICE.UPDATE_MANAGED)
     @ApiOperation({ summary: 'Update a device' })
     @ApiParam({ name: 'id', description: 'ID of the device to update' })
     @ApiBody({ type: UpdateDeviceDto })
@@ -325,7 +326,7 @@ export class DeviceController {
     }
 
     @Patch(':id/status')
-    @Permissions('device:update:managed')
+    @Permissions(PERMISSIONS.DEVICE.UPDATE_MANAGED)
     @ApiOperation({ summary: 'Toggle the active status of a device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiBody({
@@ -350,7 +351,7 @@ export class DeviceController {
     }
 
     @Post(':id/control')
-    @Permissions('device:manage:managed')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Control device actions (open door, reboot, etc.)' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiBody({ type: DeviceControlDto })
@@ -377,7 +378,7 @@ export class DeviceController {
     }
 
     @Post(':id/sync-employees')
-    @Permissions('device:manage:managed')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Sync employees to device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiBody({ type: DeviceSyncEmployeesDto })
@@ -406,7 +407,7 @@ export class DeviceController {
     }
 
     @Get(':id/sync-status')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get employee sync status for device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 200, description: 'Employee sync status.' })
@@ -417,7 +418,7 @@ export class DeviceController {
     }
 
     @Post(':id/retry-failed-syncs')
-    @Permissions('device:manage:managed')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Retry failed employee syncs for device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 200, description: 'Retry sync result.' })
@@ -432,7 +433,7 @@ export class DeviceController {
     }
 
     @Get(':id/configuration')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get device configuration' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 200, description: 'Device configuration.' })
@@ -443,7 +444,7 @@ export class DeviceController {
     }
 
     @Post(':id/configuration')
-    @Permissions('device:manage:managed')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Create device configuration' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 201, description: 'Device configuration created.' })
@@ -460,7 +461,7 @@ export class DeviceController {
     }
 
     @Patch(':id/configuration')
-    @Permissions('device:manage:managed')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Update device configuration' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 200, description: 'Device configuration updated.' })
@@ -477,7 +478,7 @@ export class DeviceController {
     }
 
     @Delete(':id/configuration')
-    @Permissions('device:manage:managed')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Delete device configuration' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 204, description: 'Device configuration deleted.' })
@@ -492,7 +493,7 @@ export class DeviceController {
     }
 
     @Delete(':id')
-    @Permissions('device:update:managed')
+    @Permissions(PERMISSIONS.DEVICE.UPDATE_MANAGED)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Delete a device' })
     @ApiParam({ name: 'id', description: 'ID of the device to delete' })
@@ -509,7 +510,7 @@ export class DeviceController {
 
     // Device Template Endpoints
     @Post('templates')
-    @Permissions('device:create')
+    @Permissions(PERMISSIONS.DEVICE.CREATE)
     @ApiOperation({ summary: 'Create a device template' })
     @ApiBody({ type: CreateDeviceTemplateDto })
     @ApiResponse({ status: 201, description: 'Device template created.' })
@@ -524,7 +525,7 @@ export class DeviceController {
     }
 
     @Get('templates')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all device templates' })
     @ApiResponse({ status: 200, description: 'List of device templates.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -533,21 +534,18 @@ export class DeviceController {
     }
 
     @Get('templates/:id')
-    @Permissions('device:read:all')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get a specific device template' })
     @ApiParam({ name: 'id', description: 'ID of the template' })
     @ApiResponse({ status: 200, description: 'Device template details.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     @ApiResponse({ status: 404, description: 'Template not found.' })
-    async getTemplateById(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ) {
+    async getTemplateById(@Param('id') id: string, @Scope() scope: DataScope) {
         return this.deviceService.getDeviceTemplateById(id, scope);
     }
 
     @Patch('templates/:id')
-    @Permissions('device:update:managed')
+    @Permissions(PERMISSIONS.DEVICE.UPDATE_MANAGED)
     @ApiOperation({ summary: 'Update a device template' })
     @ApiParam({ name: 'id', description: 'ID of the template' })
     @ApiBody({ type: UpdateDeviceTemplateDto })
@@ -565,7 +563,7 @@ export class DeviceController {
     }
 
     @Delete('templates/:id')
-    @Permissions('device:update:managed')
+    @Permissions(PERMISSIONS.DEVICE.UPDATE_MANAGED)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Delete a device template' })
     @ApiParam({ name: 'id', description: 'ID of the template' })
@@ -581,7 +579,7 @@ export class DeviceController {
     }
 
     @Post(':id/apply-template/:templateId')
-    @Permissions('device:manage:managed')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Apply a template to a device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiParam({ name: 'templateId', description: 'ID of the template' })

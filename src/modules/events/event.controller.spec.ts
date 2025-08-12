@@ -4,6 +4,7 @@ import { EventController } from './event.controller';
 import { EventService } from './event.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { CreateRawEventDto } from '@/shared/dto';
+import { EventType } from '@prisma/client';
 
 describe('EventController', () => {
     let controller: EventController;
@@ -47,7 +48,7 @@ describe('EventController', () => {
 
     describe('processRawEvent', () => {
         const mockEventDto: CreateRawEventDto = {
-            eventType: 'access_attempt',
+            eventType: EventType.CARD_SCAN,
             timestamp: new Date().toISOString(),
             cardId: 'CARD-123',
             additionalData: { location: 'main_entrance' },
@@ -179,7 +180,7 @@ describe('EventController', () => {
         it('should generate consistent idempotency keys', () => {
             const deviceId = 'device-123';
             const eventData: CreateRawEventDto = {
-                eventType: 'access_attempt',
+                eventType: EventType.CARD_SCAN,
                 timestamp: '2023-01-01T12:00:00Z',
                 cardId: 'CARD-123',
             };
@@ -196,11 +197,11 @@ describe('EventController', () => {
         it('should generate different keys for different data', () => {
             const deviceId = 'device-123';
             const eventData1: CreateRawEventDto = {
-                eventType: 'access_attempt',
+                eventType: EventType.CARD_SCAN,
                 cardId: 'CARD-123',
             };
             const eventData2: CreateRawEventDto = {
-                eventType: 'access_attempt',
+                eventType: EventType.CARD_SCAN,
                 cardId: 'CARD-456',
             };
 

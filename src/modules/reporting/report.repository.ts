@@ -2,36 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/core/database/prisma.service';
 import { DataScope } from '@/shared/interfaces';
 import { QueryBuilder } from '@/shared/utils/query-builder.util';
-
-export interface CreateReportData {
-    name: string;
-    type: string;
-    format: string;
-    parameters: Record<string, any>;
-    organizationId: string;
-    createdByUserId: string;
-    status: string;
-    startedAt: Date;
-}
-
-export interface UpdateReportData {
-    status?: string;
-    startedAt?: Date;
-    completedAt?: Date;
-    errorMessage?: string;
-    fileUrl?: string;
-    filePath?: string;
-    fileSize?: number;
-    recordCount?: number;
-}
-
-export interface ReportFilters {
-    type?: string;
-    status?: string;
-    createdByUserId?: string;
-    startDate?: Date;
-    endDate?: Date;
-}
+import { CreateReportData, UpdateReportData, ReportFilters } from '@/shared/interfaces';
 
 @Injectable()
 export class ReportRepository {
@@ -41,12 +12,12 @@ export class ReportRepository {
         return this.prisma.report.create({
             data: {
                 name: data.name,
-                type: data.type as any,
-                format: data.format as any,
+                type: data.type,
+                format: data.format,
                 parameters: data.parameters,
                 organizationId: data.organizationId,
                 createdByUserId: data.createdByUserId,
-                status: data.status as any,
+                status: data.status,
                 startedAt: data.startedAt,
             },
         });

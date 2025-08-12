@@ -3,6 +3,7 @@ import { ReportingController } from './reporting.controller';
 import { ReportingService } from './reporting.service';
 import { CreateReportDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('ReportingController', () => {
     let controller: ReportingController;
@@ -13,7 +14,7 @@ describe('ReportingController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: ['report:create', 'report:read:all', 'report:download'],
+        permissions: ['report:create', PERMISSIONS.REPORT.READ_ALL, 'report:download'],
     };
 
     const mockDataScope: DataScope = {

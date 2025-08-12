@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
-import { AttendanceFiltersDto, CreateAttendanceDto } from '@/shared/dto';
+import { CreateAttendanceDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('AttendanceController', () => {
     let controller: AttendanceController;
@@ -13,7 +14,7 @@ describe('AttendanceController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: ['attendance:create', 'attendance:read:all'],
+        permissions: [PERMISSIONS.ATTENDANCE.CREATE, PERMISSIONS.ATTENDANCE.READ_ALL],
     };
 
     const mockDataScope: DataScope = {

@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsIn, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { ReportFormat, ReportStatus, ReportType } from '@prisma/client';
+import {
+    IsDateString,
+    IsEnum,
+    IsIn,
+    IsNotEmpty,
+    IsObject,
+    IsOptional,
+    IsString,
+} from 'class-validator';
 
 const reportTypes = [
     'DAILY_ATTENDANCE',
@@ -24,14 +33,14 @@ export class CreateReportDto {
     @ApiProperty({ enum: reportTypes })
     @IsString()
     @IsNotEmpty()
-    @IsIn(reportTypes)
-    type: string;
+    @IsEnum(ReportType)
+    type: keyof typeof ReportType;
 
     @ApiProperty({ required: false, enum: reportFormats })
     @IsOptional()
     @IsString()
-    @IsIn(reportFormats)
-    format?: string;
+    @IsEnum(ReportStatus)
+    format?: keyof typeof ReportFormat;
 
     @ApiProperty({ required: false })
     @IsOptional()

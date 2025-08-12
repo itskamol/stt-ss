@@ -2,6 +2,7 @@ import { ExecutionContext } from '@nestjs/common';
 import { User } from './user.decorator';
 import { UserContext } from '../interfaces/data-scope.interface';
 import { Role } from '@prisma/client';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('User Decorator', () => {
     const mockUser: UserContext = {
@@ -10,7 +11,7 @@ describe('User Decorator', () => {
         organizationId: 'org-456',
         branchIds: ['branch-1'],
         roles: [Role.ORG_ADMIN],
-        permissions: ['employee:create'],
+        permissions: [PERMISSIONS.EMPLOYEE.CREATE],
     };
 
     const createMockContext = (user: UserContext): ExecutionContext => {

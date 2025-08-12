@@ -3,6 +3,7 @@ import { GuestController } from './guest.controller';
 import { GuestService } from './guest.service';
 import { ApproveGuestVisitDto, CreateGuestVisitDto, UpdateGuestVisitDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('GuestController', () => {
     let controller: GuestController;
@@ -13,7 +14,7 @@ describe('GuestController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: ['guest:create', 'guest:read:all'],
+        permissions: [PERMISSIONS.GUEST.CREATE, PERMISSIONS.GUEST.READ_ALL],
     };
 
     const mockDataScope: DataScope = {

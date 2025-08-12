@@ -3,26 +3,7 @@ import { PrismaService } from '@/core/database/prisma.service';
 import { DataScope } from '../interfaces';
 import { QueryBuilder } from '../utils/query-builder.util';
 
-export interface CreateAuditLogData {
-    action: string;
-    resource: string;
-    resourceId?: string;
-    userId?: string;
-    organizationId?: string;
-    method: string;
-    url: string;
-    userAgent?: string;
-    ipAddress?: string;
-    requestData?: any;
-    responseData?: any;
-    status: string;
-    duration: number;
-    timestamp: Date;
-    errorMessage?: string;
-    errorStack?: string;
-    oldValues?: any;
-    newValues?: any;
-}
+import { CreateAuditLogData } from '@/shared/interfaces';
 
 @Injectable()
 export class AuditLogRepository {

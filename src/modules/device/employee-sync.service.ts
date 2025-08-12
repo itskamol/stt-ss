@@ -34,7 +34,13 @@ export class EmployeeSyncService {
 
         try {
             // Get employees to sync
-            let employeesToSync: Array<{ id: string; employeeCode: string; firstName: string; lastName: string; email?: string }> = [];
+            let employeesToSync: Array<{
+                id: string;
+                employeeCode: string;
+                firstName: string;
+                lastName: string;
+                email?: string;
+            }> = [];
 
             if (syncDto.employeeIds && syncDto.employeeIds.length > 0) {
                 // Sync specific employees
@@ -63,9 +69,9 @@ export class EmployeeSyncService {
 
             // Determine which employees to add, update, or remove
             const employeesToAdd = newEmployeeIds.filter(id => !currentlySyncedIds.includes(id));
-            const employeesToRemove = syncDto.removeMissing ? 
-                currentlySyncedIds.filter(id => !newEmployeeIds.includes(id)) : 
-                [];
+            const employeesToRemove = syncDto.removeMissing
+                ? currentlySyncedIds.filter(id => !newEmployeeIds.includes(id))
+                : [];
             const employeesToUpdate = newEmployeeIds.filter(id => currentlySyncedIds.includes(id));
 
             // Process sync operations
@@ -143,10 +149,13 @@ export class EmployeeSyncService {
             },
         });
 
-        const statusCounts = stats.reduce((acc, stat) => {
-            acc[stat.syncStatus] = stat._count.syncStatus;
-            return acc;
-        }, {} as Record<string, number>);
+        const statusCounts = stats.reduce(
+            (acc, stat) => {
+                acc[stat.syncStatus] = stat._count.syncStatus;
+                return acc;
+            },
+            {} as Record<string, number>
+        );
 
         return {
             deviceId,

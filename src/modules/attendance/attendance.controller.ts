@@ -29,7 +29,8 @@ import {
     PaginationResponseDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
-import { DataScope, UserContext } from '@/shared/interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { DataScope, UserContext, AttendanceWithRelations } from '@/shared/interfaces';
 
 @ApiTags('Attendance')
 @ApiBearerAuth()
@@ -38,7 +39,7 @@ export class AttendanceController {
     constructor(private readonly attendanceService: AttendanceService) {}
 
     @Post()
-    @Permissions('attendance:create')
+    @Permissions(PERMISSIONS.ATTENDANCE.CREATE)
     @ApiOperation({ summary: 'Create a new attendance record' })
     @ApiBody({ type: CreateAttendanceDto })
     @ApiResponse({
@@ -73,7 +74,7 @@ export class AttendanceController {
     }
 
     @Get()
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get all attendance records with filters and pagination' })
     @ApiQuery({ name: 'filtersDto', type: AttendanceFiltersDto })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
@@ -122,7 +123,7 @@ export class AttendanceController {
     }
 
     @Get('stats')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get attendance statistics' })
     @ApiQuery({ name: 'filtersDto', type: AttendanceFiltersDto })
     @ApiResponse({
@@ -145,7 +146,7 @@ export class AttendanceController {
     }
 
     @Get('employee/:employeeId')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get all attendance records for a specific employee' })
     @ApiParam({ name: 'employeeId', description: 'ID of the employee' })
     @ApiQuery({ name: 'filtersDto', type: AttendanceFiltersDto })
@@ -187,7 +188,7 @@ export class AttendanceController {
     }
 
     @Get('employee/:employeeId/summary')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get attendance summary for a specific employee' })
     @ApiParam({ name: 'employeeId', description: 'ID of the employee' })
     @ApiQuery({ name: 'startDate', description: 'Start date for the summary (YYYY-MM-DD)' })
@@ -219,7 +220,7 @@ export class AttendanceController {
     }
 
     @Get('branch/:branchId')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get all attendance records for a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiQuery({ name: 'filtersDto', type: AttendanceFiltersDto })
@@ -261,7 +262,7 @@ export class AttendanceController {
     }
 
     @Get('today')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: "Get today's attendance records" })
     @ApiQuery({
         name: 'filtersDto',
@@ -309,7 +310,7 @@ export class AttendanceController {
     }
 
     @Get('live')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get live attendance data (currently present and recent activity)' })
     @ApiQuery({
         name: 'filtersDto',
@@ -431,7 +432,7 @@ export class AttendanceController {
     }
 
     @Get(':id')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get a specific attendance record by ID' })
     @ApiParam({ name: 'id', description: 'ID of the attendance record' })
     @ApiResponse({
@@ -458,13 +459,13 @@ export class AttendanceController {
             timestamp: attendance.timestamp,
             meta: attendance.meta,
             createdAt: attendance.createdAt,
-            employee: (attendance as any).employee,
-            device: (attendance as any).device,
+            employee: (attendance as AttendanceWithRelations).employee,
+            device: (attendance as AttendanceWithRelations).device,
         };
     }
 
     @Delete(':id')
-    @Permissions('attendance:delete:managed')
+    @Permissions(PERMISSIONS.ATTENDANCE.DELETE_MANAGED)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Delete an attendance record' })
     @ApiParam({ name: 'id', description: 'ID of the attendance record to delete' })
@@ -480,7 +481,7 @@ export class AttendanceController {
     }
 
     @Get('reports/daily')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get a daily attendance report' })
     @ApiQuery({ name: 'date', description: 'Date for the report (YYYY-MM-DD)', required: false })
     @ApiQuery({ name: 'branchId', description: 'Filter by branch ID', required: false })
@@ -496,7 +497,7 @@ export class AttendanceController {
     }
 
     @Get('reports/weekly')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get a weekly attendance report' })
     @ApiQuery({ name: 'startDate', description: 'Start date for the report (YYYY-MM-DD)' })
     @ApiQuery({ name: 'branchId', description: 'Filter by branch ID', required: false })
@@ -519,7 +520,7 @@ export class AttendanceController {
     }
 
     @Get('reports/monthly')
-    @Permissions('attendance:read:all')
+    @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get a monthly attendance report' })
     @ApiQuery({ name: 'year', description: 'Year for the report (YYYY)' })
     @ApiQuery({ name: 'month', description: 'Month for the report (1-12)' })

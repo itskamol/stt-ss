@@ -4,12 +4,12 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { GuestVisit } from '@prisma/client';
+import { GuestStatus, GuestVisit } from '@prisma/client';
 import { GuestRepository } from './guest.repository';
 import { LoggerService } from '@/core/logger/logger.service';
 import { QueueProducer } from '@/core/queue/queue.producer';
 import { ApproveGuestVisitDto, CreateGuestVisitDto, UpdateGuestVisitDto } from '@/shared/dto';
-import { DataScope } from '@/shared/interfaces';
+import { DataScope, GuestVisitWithCredentials } from '@/shared/interfaces';
 
 @Injectable()
 export class GuestService {
@@ -206,7 +206,7 @@ export class GuestService {
         return {
             ...updatedVisit,
             accessCredentials: accessCredentials.credential,
-        } as any;
+        } as GuestVisitWithCredentials;
     }
 
     /**
@@ -346,7 +346,7 @@ export class GuestService {
     /**
      * Get guest visits by status
      */
-    async getGuestVisitsByStatus(status: string, scope: DataScope): Promise<GuestVisit[]> {
+    async getGuestVisitsByStatus(status: GuestStatus, scope: DataScope): Promise<GuestVisit[]> {
         return this.guestRepository.findByStatus(status, scope);
     }
 

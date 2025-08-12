@@ -17,7 +17,7 @@ export class CreateAttendanceDto {
     @IsString()
     @IsEnum(AttendanceEventType)
     @IsNotEmpty()
-    eventType: string;
+    eventType: keyof typeof AttendanceEventType;
 
     @ApiProperty()
     @IsDateString()

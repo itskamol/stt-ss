@@ -11,15 +11,15 @@ import { DeviceConfigurationService } from './device-configuration.service';
 import { EmployeeSyncService } from './employee-sync.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { DatabaseUtil } from '@/shared/utils';
-import { 
-    CreateDeviceConfigurationDto, 
+import {
+    CreateDeviceConfigurationDto,
     CreateDeviceDto,
     CreateDeviceTemplateDto,
     DeviceControlDto,
     DeviceSyncEmployeesDto,
     UpdateDeviceConfigurationDto,
     UpdateDeviceDto,
-    UpdateDeviceTemplateDto
+    UpdateDeviceTemplateDto,
 } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 import { DeviceCommand, IDeviceAdapter } from '@/shared/adapters/device.adapter';
@@ -740,5 +740,4 @@ export class DeviceService {
             correlationId
         );
     }
-
-    }
+}

@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { DeviceConfiguration, DeviceTemplate } from '@prisma/client';
 import { PrismaService } from '@/core/database/prisma.service';
 import { LoggerService } from '@/core/logger/logger.service';
-import { 
-    CreateDeviceConfigurationDto, 
+import {
+    CreateDeviceConfigurationDto,
     CreateDeviceTemplateDto,
     UpdateDeviceConfigurationDto,
-    UpdateDeviceTemplateDto
+    UpdateDeviceTemplateDto,
 } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 import { DatabaseUtil } from '@/shared/utils';
@@ -89,7 +89,10 @@ export class DeviceConfigurationService {
     /**
      * Get device configuration
      */
-    async getConfiguration(deviceId: string, scope: DataScope): Promise<DeviceConfiguration | null> {
+    async getConfiguration(
+        deviceId: string,
+        scope: DataScope
+    ): Promise<DeviceConfiguration | null> {
         return this.prisma.deviceConfiguration.findFirst({
             where: {
                 device: {
@@ -131,7 +134,7 @@ export class DeviceConfigurationService {
         }
 
         const updateData: any = {};
-        
+
         // Build update data dynamically
         Object.keys(data).forEach(key => {
             if (data[key] !== undefined) {
@@ -297,7 +300,7 @@ export class DeviceConfigurationService {
         }
 
         const updateData: any = {};
-        
+
         // Build update data dynamically
         Object.keys(data).forEach(key => {
             if (data[key] !== undefined) {

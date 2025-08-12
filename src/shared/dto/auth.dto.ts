@@ -16,13 +16,12 @@ export class LoginRequestDto implements LoginDto {
     password: string;
 }
 
-
 export class LoginDto {
     @ApiProperty()
     @IsEmail()
     @IsNotEmpty()
     email: string;
-    
+
     @ApiProperty()
     @IsString()
     @IsNotEmpty()

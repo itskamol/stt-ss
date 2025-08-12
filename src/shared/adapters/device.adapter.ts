@@ -1,4 +1,4 @@
-import { DeviceStatus, DeviceType } from "@prisma/client";
+import { DeviceStatus, DeviceType } from '@prisma/client';
 
 export interface DeviceInfo {
     id: string;

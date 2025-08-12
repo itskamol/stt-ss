@@ -31,6 +31,7 @@ import {
     UserResponseDto,
 } from '@/shared/dto';
 import { NoScoping, Permissions, Roles, Scope, User } from '@/shared/decorators';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@prisma/client';
 
@@ -45,7 +46,7 @@ export class UserController {
 
     @Post()
     @NoScoping()
-    @Permissions('user:create:org_admin')
+    @Permissions(PERMISSIONS.USER.CREATE_ORG_ADMIN)
     @ApiOperation({ summary: 'Create a new user' })
     @ApiBody({ type: CreateUserDto })
     @ApiResponse({
@@ -72,7 +73,7 @@ export class UserController {
     }
 
     @Get(':id')
-    @Permissions('user:manage:org')
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Get a specific user by ID' })
     @ApiParam({ name: 'id', description: 'ID of the user' })
     @ApiResponse({ status: 200, description: 'The user details.', type: UserResponseDto })
@@ -100,7 +101,7 @@ export class UserController {
     }
 
     @Get()
-    @Permissions('user:manage:org')
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Get all users in the current organization' })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiResponse({
@@ -139,7 +140,7 @@ export class UserController {
     }
 
     @Patch(':id')
-    @Permissions('user:manage:org')
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Update a user' })
     @ApiParam({ name: 'id', description: 'ID of the user to update' })
     @ApiBody({ type: UpdateUserDto })
@@ -169,7 +170,7 @@ export class UserController {
     }
 
     @Patch(':id/password')
-    @Permissions('user:manage:org')
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Change a user’s password' })
     @ApiParam({ name: 'id', description: 'ID of the user' })
@@ -235,7 +236,7 @@ export class UserController {
     }
 
     @Patch(':id/activate')
-    @Permissions('user:manage:org')
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Activate a user' })
     @ApiParam({ name: 'id', description: 'ID of the user to activate' })
     @ApiResponse({
@@ -262,7 +263,7 @@ export class UserController {
     }
 
     @Patch(':id/deactivate')
-    @Permissions('user:manage:org')
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Deactivate a user' })
     @ApiParam({ name: 'id', description: 'ID of the user to deactivate' })
     @ApiResponse({
@@ -289,7 +290,7 @@ export class UserController {
     }
 
     @Get(':id/organizations')
-    @Permissions('user:manage:org')
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Get all organizations a user belongs to' })
     @ApiParam({ name: 'id', description: 'ID of the user' })
     @ApiResponse({ status: 200, description: 'A list of organizations for the user.' })

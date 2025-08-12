@@ -1,6 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { DeviceProtocol, DeviceStatus, DeviceType } from '@prisma/client';
-import { IsBoolean, IsEnum, IsIP, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl, Max, MaxLength, Min } from 'class-validator';
+import {
+    IsBoolean,
+    IsEnum,
+    IsIP,
+    IsNotEmpty,
+    IsNumber,
+    IsOptional,
+    IsString,
+    IsUrl,
+    Max,
+    MaxLength,
+    Min,
+} from 'class-validator';
 
 export class CreateDeviceDto {
     @ApiProperty()
@@ -604,8 +616,28 @@ export class UpdateDeviceTemplateDto {
 
 // Device Control DTOs
 export class DeviceControlDto {
-    @ApiProperty({ enum: ['open_door', 'lock_door', 'reboot', 'shutdown', 'sync_time', 'sync_employees', 'update_firmware', 'restart_services'] })
-    @IsEnum(['open_door', 'lock_door', 'reboot', 'shutdown', 'sync_time', 'sync_employees', 'update_firmware', 'restart_services'])
+    @ApiProperty({
+        enum: [
+            'open_door',
+            'lock_door',
+            'reboot',
+            'shutdown',
+            'sync_time',
+            'sync_employees',
+            'update_firmware',
+            'restart_services',
+        ],
+    })
+    @IsEnum([
+        'open_door',
+        'lock_door',
+        'reboot',
+        'shutdown',
+        'sync_time',
+        'sync_employees',
+        'update_firmware',
+        'restart_services',
+    ])
     @IsNotEmpty()
     action: string;
 

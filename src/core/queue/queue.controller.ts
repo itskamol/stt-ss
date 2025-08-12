@@ -2,6 +2,7 @@ import { Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nest
 import { QueueService } from './queue.service';
 import { QueueProducer } from './queue.producer';
 import { Permissions, Public } from '@/shared/decorators';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 @Controller('admin/queues')
 export class QueueController {
@@ -11,19 +12,19 @@ export class QueueController {
     ) {}
 
     @Get('stats')
-    @Permissions('admin:queue:read')
+    @Permissions(PERMISSIONS.ADMIN.QUEUE_READ)
     async getQueueStats() {
         return this.queueService.getAllQueueStats();
     }
 
     @Get(':queueName/stats')
-    @Permissions('admin:queue:read')
+    @Permissions(PERMISSIONS.ADMIN.QUEUE_READ)
     async getQueueStatsByName(@Param('queueName') queueName: string) {
         return this.queueService.getQueueStats(queueName);
     }
 
     @Post(':queueName/clean')
-    @Permissions('admin:queue:manage')
+    @Permissions(PERMISSIONS.ADMIN.QUEUE_MANAGE)
     @HttpCode(HttpStatus.OK)
     async cleanQueue(@Param('queueName') queueName: string, @Query('grace') grace?: number) {
         const cleanedCount = await this.queueService.cleanQueue(
@@ -39,7 +40,7 @@ export class QueueController {
     }
 
     @Post(':queueName/retry-failed')
-    @Permissions('admin:queue:manage')
+    @Permissions(PERMISSIONS.ADMIN.QUEUE_MANAGE)
     @HttpCode(HttpStatus.OK)
     async retryFailedJobs(@Param('queueName') queueName: string) {
         const retriedCount = await this.queueService.retryFailedJobs(queueName);
@@ -52,7 +53,7 @@ export class QueueController {
     }
 
     @Post('health-check')
-    @Permissions('admin:system:manage')
+    @Permissions(PERMISSIONS.ADMIN.SYSTEM_MANAGE)
     @HttpCode(HttpStatus.OK)
     async triggerHealthCheck() {
         const job = await this.queueProducer.scheduleHealthCheck({
@@ -67,7 +68,7 @@ export class QueueController {
     }
 
     @Post('monitoring')
-    @Permissions('admin:system:manage')
+    @Permissions(PERMISSIONS.ADMIN.SYSTEM_MANAGE)
     @HttpCode(HttpStatus.OK)
     async triggerQueueMonitoring() {
         const job = await this.queueProducer.scheduleQueueMonitoring();

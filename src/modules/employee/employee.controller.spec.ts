@@ -3,6 +3,7 @@ import { EmployeeController } from './employee.controller';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('EmployeeController', () => {
     let controller: EmployeeController;
@@ -13,7 +14,7 @@ describe('EmployeeController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: ['employee:create', 'employee:read:all'],
+        permissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL],
     };
 
     const mockDataScope: DataScope = {

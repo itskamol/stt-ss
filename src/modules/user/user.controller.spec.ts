@@ -5,6 +5,7 @@ import { LoggerService } from '@/core/logger/logger.service';
 import { ChangePasswordDto, CreateUserDto, UpdateUserDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@/shared/enums';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('UserController', () => {
     let controller: UserController;
@@ -36,7 +37,7 @@ describe('UserController', () => {
         organizationId: 'org-456',
         branchIds: [],
         roles: [Role.ORG_ADMIN],
-        permissions: ['user:manage:org'],
+        permissions: [PERMISSIONS.USER.MANAGE_ORG],
     };
 
     const mockScope: DataScope = {

@@ -3,6 +3,7 @@ import { AuditLogController } from './audit-log.controller';
 import { AuditLogService } from '@/shared/services/audit-log.service';
 import { AuditLogFiltersDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('AuditLogController', () => {
     let controller: AuditLogController;
@@ -13,7 +14,7 @@ describe('AuditLogController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: ['audit:read:all', 'audit:export'],
+        permissions: [PERMISSIONS.AUDIT.READ_ORG, 'audit:export'],
     };
 
     const mockDataScope: DataScope = {

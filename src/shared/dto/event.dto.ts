@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { EventType } from '@prisma/client';
 import { IsDateString, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
 
 export class CreateRawEventDto {
     @ApiProperty()
     @IsString()
     @IsNotEmpty()
-    eventType: string;
+    eventType: keyof typeof EventType;
 
     @ApiProperty({ required: false })
     @IsOptional()

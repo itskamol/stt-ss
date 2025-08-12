@@ -3,7 +3,13 @@ export {
     Role,
     DeviceType,
     DeviceStatus,
+    DeviceProtocol,
+    DeviceAuthType,
     GuestStatus,
     AccessCredentialType,
     AttendanceEventType,
+    ReportType,
+    ReportFormat,
+    EventType,
+    ReportStatus,
 } from '@prisma/client';

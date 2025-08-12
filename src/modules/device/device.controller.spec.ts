@@ -3,7 +3,8 @@ import { DeviceController } from './device.controller';
 import { DeviceService } from './device.service';
 import { CreateDeviceDto, DeviceCommandDto, UpdateDeviceDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
-import { DeviceStatus, DeviceType } from '@prisma/client';
+import { DeviceProtocol, DeviceStatus, DeviceType } from '@prisma/client';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('DeviceController', () => {
     let controller: DeviceController;
@@ -14,7 +15,7 @@ describe('DeviceController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: ['device:create', 'device:read:all'],
+        permissions: [PERMISSIONS.DEVICE.CREATE, PERMISSIONS.DEVICE.READ_ALL],
     };
 
     const mockDataScope: DataScope = {
@@ -26,16 +27,26 @@ describe('DeviceController', () => {
         id: 'device-123',
         organizationId: 'org-123',
         branchId: 'branch-123',
+        departmentId: 'dept-123',
         name: 'Main Door Reader',
         type: 'CARD_READER' as any,
         deviceIdentifier: 'READER-001',
         ipAddress: '192.168.1.100',
+        username: 'admin',
+        password: 'password123',
+        port: 8080,
+        protocol: DeviceProtocol.TCP,
         macAddress: '00:11:22:33:44:55',
+        manufacturer: 'DeviceCorp',
         model: 'Reader-X1',
+        firmware: 'v1.2.3',
         description: 'Main entrance card reader',
         status: 'ONLINE' as any,
         isActive: true,
         lastSeen: new Date(),
+        timeout: 5000,
+        retryAttempts: 3,
+        keepAlive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
     };

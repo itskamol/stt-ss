@@ -15,7 +15,7 @@ export class AttendanceRepository {
                 branchId: data.branchId,
                 employeeId: data.employeeId,
                 deviceId: data.deviceId,
-                eventType: data.eventType as any,
+                eventType: data.eventType,
                 timestamp: data.timestamp,
                 meta: data.metadata,
             },

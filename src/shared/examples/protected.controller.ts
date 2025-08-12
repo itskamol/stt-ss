@@ -1,6 +1,7 @@
 import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { DataScopeGuard, JwtAuthGuard, RolesGuard } from '../guards';
 import { NoScoping, Permissions, Public, Roles, Scope, User } from '../decorators';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '../interfaces/data-scope.interface';
 import { Role } from '@prisma/client';
 
@@ -30,7 +31,7 @@ export class ProtectedController {
     }
 
     @Get('organization-scoped')
-    @Permissions('employee:read:all')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     getOrganizationData(@User() user: UserContext, @Scope() scope: DataScope) {
         return {
             message: 'This data is scoped to your organization',
@@ -60,7 +61,7 @@ export class ProtectedController {
     }
 
     @Post('create-employee')
-    @Permissions('employee:create')
+    @Permissions(PERMISSIONS.EMPLOYEE.CREATE)
     createEmployee(@User() user: UserContext, @Scope() scope: DataScope) {
         return {
             message: 'Employee creation endpoint',
@@ -71,7 +72,7 @@ export class ProtectedController {
     }
 
     @Get('branch-manager-only')
-    @Permissions('employee:read:all', 'branch:update:managed')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL, PERMISSIONS.BRANCH.UPDATE_MANAGED)
     getBranchManagerData(@User() user: UserContext, @Scope() scope: DataScope) {
         return {
             message: 'This requires multiple permissions typically held by branch managers',

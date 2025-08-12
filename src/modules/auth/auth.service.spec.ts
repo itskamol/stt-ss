@@ -334,7 +334,9 @@ describe('AuthService', () => {
         it('should return correct permissions for EMPLOYEE', () => {
             const permissions = (service as any).getPermissionsForRole(Role.EMPLOYEE);
 
-            expect(permissions).toEqual(['employee:read:self']);
+            expect(permissions).toContain('employee:read:self');
+            expect(permissions).toContain('attendance:create');
+            expect(permissions).toHaveLength(2);
         });
     });
 });

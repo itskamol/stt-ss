@@ -102,7 +102,7 @@
         "isolatedModules": true
       }
     },
-    "moduleNameMapping": {
+    "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1",
       "^@/core/(.*)$": "<rootDir>/core/$1",
       "^@/shared/(.*)$": "<rootDir>/shared/$1",

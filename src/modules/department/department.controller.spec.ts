@@ -4,6 +4,7 @@ import { DepartmentService } from './department.service';
 import { LoggerService } from '@/core/logger/logger.service';
 import { CreateDepartmentDto, UpdateDepartmentDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('DepartmentController', () => {
     let controller: DepartmentController;
@@ -15,7 +16,7 @@ describe('DepartmentController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: ['department:create', 'department:read:all'],
+        permissions: [PERMISSIONS.DEPARTMENT.CREATE, PERMISSIONS.DEPARTMENT.MANAGE_ALL],
     };
 
     const mockDataScope: DataScope = {

@@ -6,13 +6,7 @@ import { IStorageAdapter } from '@/shared/adapters/storage.adapter';
 import { CreateReportDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 
-export interface ReportFilters {
-    type?: string;
-    status?: string;
-    createdByUserId?: string;
-    startDate?: Date;
-    endDate?: Date;
-}
+import { ReportFilters } from '@/shared/interfaces';
 
 @Injectable()
 export class ReportingService {

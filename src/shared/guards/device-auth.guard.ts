@@ -20,12 +20,12 @@ export class DeviceAuthGuard implements CanActivate {
     constructor(
         private reflector: Reflector,
         private readonly logger: LoggerService,
-        private readonly hikvisionAuthService: HikvisionAuthService,
+        private readonly hikvisionAuthService: HikvisionAuthService
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest<RequestWithDevice>();
-        
+
         // Check if route is marked as public
         const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
             context.getHandler(),
@@ -78,7 +78,8 @@ export class DeviceAuthGuard implements CanActivate {
         if (!this.isValidSignature(deviceId, signature, request.body, timestamp)) {
             this.logger.warn('Device authentication failed: Invalid signature', {
                 deviceId,
-                signature: typeof signature === 'string' ? `${signature.substring(0, 10)}...` : signature,
+                signature:
+                    typeof signature === 'string' ? `${signature.substring(0, 10)}...` : signature,
             });
             throw new UnauthorizedException('Invalid device signature');
         }

@@ -17,6 +17,7 @@ import {
     ReportResponseDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { AuditLog } from '@/shared/interceptors/audit-log.interceptor';
 
@@ -71,7 +72,7 @@ export class ReportingController {
     }
 
     @Get()
-    @Permissions('report:read:all')
+    @Permissions(PERMISSIONS.REPORT.READ_ALL)
     @ApiOperation({ summary: 'Get all reports with filters and pagination' })
     @ApiQuery({ name: 'filtersDto', type: ReportFiltersDto })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
@@ -128,7 +129,7 @@ export class ReportingController {
     }
 
     @Get('types')
-    @Permissions('report:read:all')
+    @Permissions(PERMISSIONS.REPORT.READ_ALL)
     @ApiOperation({ summary: 'Get a list of available report types' })
     @ApiResponse({ status: 200, description: 'A list of report types.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -149,7 +150,7 @@ export class ReportingController {
     }
 
     @Get(':id')
-    @Permissions('report:read:all')
+    @Permissions(PERMISSIONS.REPORT.READ_ALL)
     @ApiOperation({ summary: 'Get a specific report by ID' })
     @ApiParam({ name: 'id', description: 'ID of the report' })
     @ApiResponse({ status: 200, description: 'The report details.', type: ReportResponseDto })

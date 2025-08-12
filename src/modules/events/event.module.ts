@@ -10,7 +10,14 @@ import { DeviceModule } from '../device/device.module';
 import { HikvisionAuthModule } from '@/shared/hikvision-auth.module';
 
 @Module({
-    imports: [DatabaseModule, LoggerModule, CacheModule, QueueModule, DeviceModule, HikvisionAuthModule],
+    imports: [
+        DatabaseModule,
+        LoggerModule,
+        CacheModule,
+        QueueModule,
+        DeviceModule,
+        HikvisionAuthModule,
+    ],
     controllers: [EventController],
     providers: [EventService, EventRepository],
     exports: [EventService, EventRepository],

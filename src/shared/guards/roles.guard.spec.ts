@@ -5,6 +5,7 @@ import { RequestWithUser, RolesGuard } from './roles.guard';
 import { LoggerService } from '@/core/logger/logger.service';
 import { UserContext } from '../interfaces/data-scope.interface';
 import { Role } from '@prisma/client';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('RolesGuard', () => {
     let guard: RolesGuard;
@@ -47,7 +48,7 @@ describe('RolesGuard', () => {
             organizationId: 'org-456',
             branchIds: ['branch-1'],
             roles: [Role.ORG_ADMIN],
-            permissions: ['employee:create', 'employee:read:all'],
+            permissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL],
         };
 
         const createMockContext = (user?: UserContext): ExecutionContext => {
@@ -142,7 +143,7 @@ describe('RolesGuard', () => {
             const mockContext = createMockContext(mockUser);
             mockReflector.getAllAndOverride
                 .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce(['employee:create']) // permissions
+                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.CREATE]) // permissions
                 .mockReturnValueOnce(null); // roles
 
             const result = guard.canActivate(mockContext);
@@ -152,8 +153,8 @@ describe('RolesGuard', () => {
                 'Role/permission check passed',
                 expect.objectContaining({
                     userId: 'user-123',
-                    userPermissions: ['employee:create', 'employee:read:all'],
-                    requiredPermissions: ['employee:create'],
+                    userPermissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL],
+                    requiredPermissions: [PERMISSIONS.EMPLOYEE.CREATE],
                     module: 'roles-guard',
                 })
             );
@@ -163,7 +164,7 @@ describe('RolesGuard', () => {
             const mockContext = createMockContext(mockUser);
             mockReflector.getAllAndOverride
                 .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce(['employee:create', 'employee:read:all']) // permissions
+                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL]) // permissions
                 .mockReturnValueOnce(null); // roles
 
             const result = guard.canActivate(mockContext);
@@ -175,7 +176,7 @@ describe('RolesGuard', () => {
             const mockContext = createMockContext(mockUser);
             mockReflector.getAllAndOverride
                 .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce(['employee:create', 'employee:delete']) // permissions
+                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.DELETE]) // permissions
                 .mockReturnValueOnce(null); // roles
 
             expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
@@ -183,9 +184,9 @@ describe('RolesGuard', () => {
                 'PERMISSION_ACCESS_DENIED',
                 expect.objectContaining({
                     userId: 'user-123',
-                    userPermissions: ['employee:create', 'employee:read:all'],
-                    requiredPermissions: ['employee:create', 'employee:delete'],
-                    missingPermissions: ['employee:delete'],
+                    userPermissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL],
+                    requiredPermissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.DELETE],
+                    missingPermissions: [PERMISSIONS.EMPLOYEE.DELETE],
                 }),
                 'user-123',
                 'org-456',
@@ -197,7 +198,7 @@ describe('RolesGuard', () => {
             const mockContext = createMockContext(mockUser);
             mockReflector.getAllAndOverride
                 .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce(['employee:create']) // permissions
+                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.CREATE]) // permissions
                 .mockReturnValueOnce([Role.ORG_ADMIN]); // roles
 
             const result = guard.canActivate(mockContext);
@@ -209,7 +210,7 @@ describe('RolesGuard', () => {
             const mockContext = createMockContext(mockUser);
             mockReflector.getAllAndOverride
                 .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce(['employee:delete']) // permissions (user doesn't have this)
+                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.DELETE]) // permissions (user doesn't have this)
                 .mockReturnValueOnce([Role.ORG_ADMIN]); // roles (user has this)
 
             expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);

@@ -7,7 +7,7 @@ import { CacheService } from '@/core/cache/cache.service';
 import { QueueProducer } from '@/core/queue/queue.producer';
 import { CreateRawEventDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
-import { DeviceStatus } from '@prisma/client';
+import { DeviceStatus, EventType } from '@prisma/client';
 
 @Injectable()
 export class EventService {
@@ -50,7 +50,7 @@ export class EventService {
         // Create device event log
         const eventLog = await this.eventRepository.createDeviceEventLog({
             deviceId: device.id,
-            eventType: createRawEventDto.eventType as any,
+            eventType: createRawEventDto.eventType,
             metadata: createRawEventDto,
             timestamp: createRawEventDto.timestamp
                 ? new Date(createRawEventDto.timestamp)
@@ -132,7 +132,7 @@ export class EventService {
                 deviceIdentifier: deviceId,
             },
         });
-        
+
         // If not found, try by ID
         if (!device) {
             device = await this.prisma.device.findFirst({
@@ -141,7 +141,7 @@ export class EventService {
                 },
             });
         }
-        
+
         // If still not found, try by MAC address
         if (!device && (deviceId.includes(':') || deviceId.includes('-'))) {
             device = await this.prisma.device.findFirst({
@@ -150,13 +150,13 @@ export class EventService {
                 },
             });
         }
-        
+
         return device;
     }
 
     async getEventLogs(
         deviceId?: string,
-        eventType?: string,
+        eventType?: EventType,
         startDate?: Date,
         endDate?: Date,
         scope?: DataScope
@@ -164,7 +164,7 @@ export class EventService {
         return this.eventRepository.findEventLogs(
             {
                 deviceId,
-                eventType: eventType as any,
+                eventType: eventType,
                 startDate,
                 endDate,
             },

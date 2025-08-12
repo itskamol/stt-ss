@@ -5,6 +5,7 @@ import { LoggerService } from '@/core/logger/logger.service';
 import { CreateOrganizationDto, UpdateOrganizationDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@prisma/client';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('OrganizationController', () => {
     let controller: OrganizationController;
@@ -34,7 +35,7 @@ describe('OrganizationController', () => {
         organizationId: 'org-456',
         branchIds: [],
         roles: [Role.SUPER_ADMIN],
-        permissions: ['organization:create', 'organization:read:all'],
+        permissions: [PERMISSIONS.ORGANIZATION.CREATE, PERMISSIONS.ORGANIZATION.READ_ALL],
     };
 
     const mockScope: DataScope = {

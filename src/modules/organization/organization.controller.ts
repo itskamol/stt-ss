@@ -29,6 +29,7 @@ import {
     UpdateOrganizationDto,
 } from '@/shared/dto';
 import { NoScoping, Permissions, Roles, Scope, User } from '@/shared/decorators';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@prisma/client';
 
@@ -43,7 +44,7 @@ export class OrganizationController {
 
     @Post()
     @NoScoping()
-    @Permissions('organization:create')
+    @Permissions(PERMISSIONS.ORGANIZATION.CREATE)
     @ApiOperation({ summary: 'Create a new organization' })
     @ApiBody({ type: CreateOrganizationDto })
     @ApiResponse({
@@ -73,7 +74,7 @@ export class OrganizationController {
 
     @Get()
     @NoScoping()
-    @Permissions('organization:read:all')
+    @Permissions(PERMISSIONS.ORGANIZATION.READ_ALL)
     @ApiOperation({ summary: 'Get all organizations with pagination' })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiResponse({
@@ -106,7 +107,7 @@ export class OrganizationController {
 
     @Get('search')
     @NoScoping()
-    @Permissions('organization:read:all')
+    @Permissions(PERMISSIONS.ORGANIZATION.READ_ALL)
     @ApiOperation({ summary: 'Search for organizations' })
     @ApiQuery({ name: 'q', description: 'Search term (at least 2 characters)' })
     @ApiResponse({
@@ -133,7 +134,7 @@ export class OrganizationController {
 
     @Get('count')
     @NoScoping()
-    @Permissions('organization:read:all')
+    @Permissions(PERMISSIONS.ORGANIZATION.READ_ALL)
     @ApiOperation({ summary: 'Get the total number of organizations' })
     @ApiResponse({ status: 200, description: 'The total number of organizations.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -143,7 +144,7 @@ export class OrganizationController {
     }
 
     @Get('self')
-    @Permissions('organization:read:self')
+    @Permissions(PERMISSIONS.ORGANIZATION.READ_SELF)
     @ApiOperation({ summary: 'Get the current authenticated user’s organization' })
     @ApiResponse({
         status: 200,
@@ -171,7 +172,7 @@ export class OrganizationController {
     }
 
     @Get('self/stats')
-    @Permissions('organization:read:self')
+    @Permissions(PERMISSIONS.ORGANIZATION.READ_SELF)
     @ApiOperation({ summary: 'Get statistics for the current organization' })
     @ApiResponse({ status: 200, description: 'The organization statistics.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -182,7 +183,7 @@ export class OrganizationController {
 
     @Get(':id')
     @NoScoping()
-    @Permissions('organization:read:all')
+    @Permissions(PERMISSIONS.ORGANIZATION.READ_ALL)
     @ApiOperation({ summary: 'Get a specific organization by ID' })
     @ApiParam({ name: 'id', description: 'ID of the organization' })
     @ApiResponse({
@@ -210,7 +211,7 @@ export class OrganizationController {
 
     @Get(':id/stats')
     @NoScoping()
-    @Permissions('organization:read:all')
+    @Permissions(PERMISSIONS.ORGANIZATION.READ_ALL)
     @ApiOperation({ summary: 'Get statistics for a specific organization' })
     @ApiParam({ name: 'id', description: 'ID of the organization' })
     @ApiResponse({ status: 200, description: 'The organization statistics.' })
@@ -221,7 +222,7 @@ export class OrganizationController {
     }
 
     @Patch('self')
-    @Permissions('organization:update:self')
+    @Permissions(PERMISSIONS.ORGANIZATION.UPDATE_SELF)
     @ApiOperation({ summary: 'Update the current organization' })
     @ApiBody({ type: UpdateOrganizationDto })
     @ApiResponse({
@@ -254,7 +255,7 @@ export class OrganizationController {
 
     @Patch(':id')
     @NoScoping()
-    @Permissions('organization:read:all') // SUPER_ADMIN can update any organization
+    @Permissions(PERMISSIONS.ORGANIZATION.READ_ALL) // SUPER_ADMIN can update any organization
     @ApiOperation({ summary: 'Update a specific organization (Super Admin)' })
     @ApiParam({ name: 'id', description: 'ID of the organization to update' })
     @ApiBody({ type: UpdateOrganizationDto })

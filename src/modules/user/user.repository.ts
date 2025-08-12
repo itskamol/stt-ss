@@ -1,11 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OrganizationUser, Role, User } from '@prisma/client';
 import { PrismaService } from '@/core/database/prisma.service';
-import {
-    AssignUserToOrganizationDto,
-    CreateUserDto,
-    UpdateUserDto,
-} from '@/shared/dto/user.dto';
+import { AssignUserToOrganizationDto, CreateUserDto, UpdateUserDto } from '@/shared/dto/user.dto';
 import { DataScope } from '@/shared/interfaces/data-scope.interface';
 import { QueryBuilder } from '@/shared/utils/query-builder.util';
 
@@ -14,7 +10,7 @@ export class UserRepository {
     constructor(private readonly prisma: PrismaService) {}
 
     async create(data: CreateUserDto & { passwordHash: string }): Promise<User> {
-        const { password, ...userData } = data as any;
+        const { password, ...userData } = data;
         return this.prisma.user.create({
             data: userData,
         });

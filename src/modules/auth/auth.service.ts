@@ -6,6 +6,8 @@ import { CacheService } from '@/core/cache/cache.service';
 import { PasswordUtil } from '@/shared/utils/password.util';
 import { Role } from '@/shared/enums';
 import { LoginDto, LoginResponse, RefreshTokenDto } from '@/shared/dto';
+import { User } from '@prisma/client';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 @Injectable()
 export class AuthService {
@@ -231,7 +233,7 @@ export class AuthService {
     /**
      * Validate user by ID (used by JWT strategy)
      */
-    async validateUser(userId: string): Promise<any> {
+    async validateUser(userId: string): Promise<User | null> {
         const user = await this.userRepository.findById(userId);
         if (!user || !user.isActive) {
             return null;
@@ -275,53 +277,102 @@ export class AuthService {
     private getPermissionsForRole(role: Role): string[] {
         const permissionMatrix: Record<Role, string[]> = {
             [Role.SUPER_ADMIN]: [
-                'organization:create',
-                'organization:read:all',
-                'organization:read:self',
-                'organization:update:self',
-                'user:create:org_admin',
-                'user:manage:org',
-                'audit:read:system',
+                // Organization permissions
+                PERMISSIONS.ORGANIZATION.CREATE,
+                PERMISSIONS.ORGANIZATION.READ_ALL,
+                PERMISSIONS.ORGANIZATION.READ_SELF,
+                PERMISSIONS.ORGANIZATION.UPDATE_SELF,
+                // User management
+                PERMISSIONS.USER.CREATE_ORG_ADMIN,
+                PERMISSIONS.USER.MANAGE_ORG,
+                // System admin permissions
+                PERMISSIONS.ADMIN.QUEUE_READ,
+                PERMISSIONS.ADMIN.QUEUE_MANAGE,
+                PERMISSIONS.ADMIN.SYSTEM_MANAGE,
+                // Audit permissions
+                PERMISSIONS.AUDIT.READ_SYSTEM,
             ],
             [Role.ORG_ADMIN]: [
-                'organization:read:self',
-                'organization:update:self',
-                'user:manage:org',
-                'branch:create',
-                'branch:read:all',
-                'branch:update:managed',
-                'department:create',
-                'department:manage:all',
-                'employee:create',
-                'employee:read:all',
-                'employee:read:self',
-                'employee:update:all',
-                'employee:delete',
-                'device:create',
-                'device:manage:all',
-                'guest:create',
-                'guest:approve',
-                'report:generate:org',
-                'report:generate:branch',
-                'audit:read:org',
+                // Organization permissions
+                PERMISSIONS.ORGANIZATION.READ_SELF,
+                PERMISSIONS.ORGANIZATION.UPDATE_SELF,
+                // User management
+                PERMISSIONS.USER.MANAGE_ORG,
+                // Branch permissions
+                PERMISSIONS.BRANCH.CREATE,
+                PERMISSIONS.BRANCH.READ_ALL,
+                PERMISSIONS.BRANCH.UPDATE_MANAGED,
+                // Department permissions
+                PERMISSIONS.DEPARTMENT.CREATE,
+                PERMISSIONS.DEPARTMENT.MANAGE_ALL,
+                // Employee permissions
+                PERMISSIONS.EMPLOYEE.CREATE,
+                PERMISSIONS.EMPLOYEE.READ_ALL,
+                PERMISSIONS.EMPLOYEE.READ_SELF,
+                PERMISSIONS.EMPLOYEE.UPDATE_ALL,
+                PERMISSIONS.EMPLOYEE.DELETE,
+                // Device permissions
+                PERMISSIONS.DEVICE.CREATE,
+                PERMISSIONS.DEVICE.READ_ALL,
+                PERMISSIONS.DEVICE.MANAGE_ALL,
+                PERMISSIONS.DEVICE.UPDATE_MANAGED,
+                PERMISSIONS.DEVICE.MANAGE_MANAGED,
+                // Guest permissions
+                PERMISSIONS.GUEST.CREATE,
+                PERMISSIONS.GUEST.READ_ALL,
+                PERMISSIONS.GUEST.UPDATE_MANAGED,
+                PERMISSIONS.GUEST.MANAGE,
+                PERMISSIONS.GUEST.APPROVE,
+                // Attendance permissions
+                PERMISSIONS.ATTENDANCE.CREATE,
+                PERMISSIONS.ATTENDANCE.READ_ALL,
+                PERMISSIONS.ATTENDANCE.DELETE_MANAGED,
+                // Report permissions
+                PERMISSIONS.REPORT.GENERATE_ORG,
+                PERMISSIONS.REPORT.GENERATE_BRANCH,
+                PERMISSIONS.REPORT.READ_ALL,
+                // Audit permissions
+                PERMISSIONS.AUDIT.READ_ORG,
             ],
             [Role.BRANCH_MANAGER]: [
-                'branch:read:all',
-                'branch:update:managed',
-                'department:create',
-                'department:manage:all',
-                'employee:create',
-                'employee:read:all',
-                'employee:read:self',
-                'employee:update:all',
-                'employee:delete',
-                'device:create',
-                'device:manage:all',
-                'guest:create',
-                'guest:approve',
-                'report:generate:branch',
+                // Branch permissions
+                PERMISSIONS.BRANCH.READ_ALL,
+                PERMISSIONS.BRANCH.UPDATE_MANAGED,
+                // Department permissions
+                PERMISSIONS.DEPARTMENT.CREATE,
+                PERMISSIONS.DEPARTMENT.MANAGE_ALL,
+                // Employee permissions
+                PERMISSIONS.EMPLOYEE.CREATE,
+                PERMISSIONS.EMPLOYEE.READ_ALL,
+                PERMISSIONS.EMPLOYEE.READ_SELF,
+                PERMISSIONS.EMPLOYEE.UPDATE_ALL,
+                PERMISSIONS.EMPLOYEE.UPDATE_MANAGED,
+                PERMISSIONS.EMPLOYEE.DELETE,
+                // Device permissions
+                PERMISSIONS.DEVICE.CREATE,
+                PERMISSIONS.DEVICE.READ_ALL,
+                PERMISSIONS.DEVICE.MANAGE_ALL,
+                PERMISSIONS.DEVICE.UPDATE_MANAGED,
+                PERMISSIONS.DEVICE.MANAGE_MANAGED,
+                // Guest permissions
+                PERMISSIONS.GUEST.CREATE,
+                PERMISSIONS.GUEST.READ_ALL,
+                PERMISSIONS.GUEST.UPDATE_MANAGED,
+                PERMISSIONS.GUEST.MANAGE,
+                PERMISSIONS.GUEST.APPROVE,
+                // Attendance permissions
+                PERMISSIONS.ATTENDANCE.CREATE,
+                PERMISSIONS.ATTENDANCE.READ_ALL,
+                PERMISSIONS.ATTENDANCE.DELETE_MANAGED,
+                // Report permissions
+                PERMISSIONS.REPORT.GENERATE_BRANCH,
             ],
-            [Role.EMPLOYEE]: ['employee:read:self'],
+            [Role.EMPLOYEE]: [
+                // Employee permissions
+                PERMISSIONS.EMPLOYEE.READ_SELF,
+                // Basic attendance permissions
+                PERMISSIONS.ATTENDANCE.CREATE,
+            ],
         };
 
         return permissionMatrix[role] || [];

@@ -6,7 +6,13 @@ import { LoggerService } from '@/core/logger/logger.service';
 import { UserContext } from '@/shared/interfaces';
 import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
 import { Role } from '@/shared/enums';
-import { LoginRequestDto, LoginResponse, LogoutRequestDto, RefreshTokenRequestDto } from '@/shared/dto';
+import {
+    LoginRequestDto,
+    LoginResponse,
+    LogoutRequestDto,
+    RefreshTokenRequestDto,
+} from '@/shared/dto';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('AuthController', () => {
     let controller: AuthController;
@@ -40,7 +46,7 @@ describe('AuthController', () => {
         organizationId: 'org-456',
         branchIds: [],
         roles: [Role.ORG_ADMIN],
-        permissions: ['employee:create'],
+        permissions: [PERMISSIONS.EMPLOYEE.CREATE],
     };
 
     beforeEach(async () => {
@@ -253,7 +259,7 @@ describe('AuthController', () => {
                     email: 'test@example.com',
                     organizationId: 'org-456',
                     roles: [Role.ORG_ADMIN],
-                    permissions: ['employee:create'],
+                    permissions: [PERMISSIONS.EMPLOYEE.CREATE],
                 },
             });
         });

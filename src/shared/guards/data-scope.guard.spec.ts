@@ -5,6 +5,7 @@ import { DataScopeGuard, RequestWithScope } from './data-scope.guard';
 import { LoggerService } from '@/core/logger/logger.service';
 import { Role } from '@prisma/client';
 import { UserContext } from '../interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
 describe('DataScopeGuard', () => {
     let guard: DataScopeGuard;
@@ -51,7 +52,7 @@ describe('DataScopeGuard', () => {
             organizationId: 'org-456',
             branchIds: ['branch-1', 'branch-2'],
             roles: [Role.ORG_ADMIN],
-            permissions: ['employee:create'],
+            permissions: [PERMISSIONS.EMPLOYEE.CREATE],
         };
 
         const createMockContext = (user?: UserContext): ExecutionContext => {

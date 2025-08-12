@@ -32,7 +32,9 @@ import {
     UpdateGuestVisitDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
-import { DataScope, UserContext } from '@/shared/interfaces';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { DataScope, UserContext, GuestVisitWithCredentials } from '@/shared/interfaces';
+import { GuestStatus } from '@prisma/client';
 
 @ApiTags('Guests')
 @ApiBearerAuth()
@@ -41,7 +43,7 @@ export class GuestController {
     constructor(private readonly guestService: GuestService) {}
 
     @Post('visits')
-    @Permissions('guest:create')
+    @Permissions(PERMISSIONS.GUEST.CREATE)
     @ApiOperation({ summary: 'Create a new guest visit request' })
     @ApiBody({ type: CreateGuestVisitDto })
     @ApiResponse({
@@ -80,7 +82,7 @@ export class GuestController {
     }
 
     @Get('visits')
-    @Permissions('guest:read:all')
+    @Permissions(PERMISSIONS.GUEST.READ_ALL)
     @ApiOperation({ summary: 'Get all guest visits with filters and pagination' })
     @ApiQuery({ name: 'filtersDto', type: GuestVisitFiltersDto })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
@@ -130,7 +132,7 @@ export class GuestController {
     }
 
     @Get('visits/search')
-    @Permissions('guest:read:all')
+    @Permissions(PERMISSIONS.GUEST.READ_ALL)
     @ApiOperation({ summary: 'Search for guest visits' })
     @ApiQuery({ name: 'q', description: 'Search term (at least 2 characters)' })
     @ApiResponse({
@@ -167,7 +169,7 @@ export class GuestController {
     }
 
     @Get('visits/stats')
-    @Permissions('guest:read:all')
+    @Permissions(PERMISSIONS.GUEST.READ_ALL)
     @ApiOperation({ summary: 'Get guest visit statistics' })
     @ApiQuery({ name: 'filtersDto', type: GuestVisitFiltersDto })
     @ApiResponse({
@@ -190,7 +192,7 @@ export class GuestController {
     }
 
     @Get('visits/status/:status')
-    @Permissions('guest:read:all')
+    @Permissions(PERMISSIONS.GUEST.READ_ALL)
     @ApiOperation({ summary: 'Get guest visits by status' })
     @ApiParam({ name: 'status', description: 'Status of the guest visit' })
     @ApiResponse({
@@ -200,7 +202,7 @@ export class GuestController {
     })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
     async getGuestVisitsByStatus(
-        @Param('status') status: string,
+        @Param('status') status: GuestStatus,
         @Scope() scope: DataScope
     ): Promise<GuestVisitResponseDto[]> {
         const guestVisits = await this.guestService.getGuestVisitsByStatus(status, scope);
@@ -223,7 +225,7 @@ export class GuestController {
     }
 
     @Get('visits/:id')
-    @Permissions('guest:read:all')
+    @Permissions(PERMISSIONS.GUEST.READ_ALL)
     @ApiOperation({ summary: 'Get a specific guest visit by ID' })
     @ApiParam({ name: 'id', description: 'ID of the guest visit' })
     @ApiResponse({
@@ -261,7 +263,7 @@ export class GuestController {
     }
 
     @Patch('visits/:id')
-    @Permissions('guest:update:managed')
+    @Permissions(PERMISSIONS.GUEST.UPDATE_MANAGED)
     @ApiOperation({ summary: 'Update a guest visit' })
     @ApiParam({ name: 'id', description: 'ID of the guest visit to update' })
     @ApiBody({ type: UpdateGuestVisitDto })
@@ -304,7 +306,7 @@ export class GuestController {
     }
 
     @Post('visits/:id/approve')
-    @Permissions('guest:approve')
+    @Permissions(PERMISSIONS.GUEST.APPROVE)
     @ApiOperation({ summary: 'Approve a guest visit' })
     @ApiParam({ name: 'id', description: 'ID of the guest visit to approve' })
     @ApiBody({ type: ApproveGuestVisitDto })
@@ -339,7 +341,7 @@ export class GuestController {
             scheduledExitTime: guestVisit.scheduledExitTime,
             status: guestVisit.status,
             accessCredentialType: guestVisit.accessCredentialType,
-            accessCredentials: (guestVisit as any).accessCredentials,
+            accessCredentials: (guestVisit as GuestVisitWithCredentials).accessCredentials,
             createdByUserId: guestVisit.createdByUserId,
             createdAt: guestVisit.createdAt,
             updatedAt: guestVisit.updatedAt,
@@ -347,7 +349,7 @@ export class GuestController {
     }
 
     @Post('visits/:id/reject')
-    @Permissions('guest:approve')
+    @Permissions(PERMISSIONS.GUEST.APPROVE)
     @ApiOperation({ summary: 'Reject a guest visit' })
     @ApiParam({ name: 'id', description: 'ID of the guest visit to reject' })
     @ApiBody({ type: RejectGuestVisitDto })
@@ -389,7 +391,7 @@ export class GuestController {
     }
 
     @Post('visits/:id/activate')
-    @Permissions('guest:manage')
+    @Permissions(PERMISSIONS.GUEST.MANAGE)
     @ApiOperation({ summary: 'Activate a guest visit (check-in)' })
     @ApiParam({ name: 'id', description: 'ID of the guest visit to activate' })
     @ApiResponse({
@@ -424,7 +426,7 @@ export class GuestController {
     }
 
     @Post('visits/:id/complete')
-    @Permissions('guest:manage')
+    @Permissions(PERMISSIONS.GUEST.MANAGE)
     @ApiOperation({ summary: 'Complete a guest visit (check-out)' })
     @ApiParam({ name: 'id', description: 'ID of the guest visit to complete' })
     @ApiResponse({
@@ -459,7 +461,7 @@ export class GuestController {
     }
 
     @Post('visits/expire-overdue')
-    @Permissions('admin:system:manage')
+    @Permissions(PERMISSIONS.ADMIN.SYSTEM_MANAGE)
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Expire overdue guest visits' })
     @ApiResponse({ status: 200, description: 'The number of expired visits.' })

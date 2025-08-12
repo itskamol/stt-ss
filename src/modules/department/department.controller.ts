@@ -28,6 +28,7 @@ import {
     UpdateDepartmentDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
+import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 
 @ApiTags('Departments')
@@ -37,7 +38,7 @@ export class DepartmentController {
     constructor(private readonly departmentService: DepartmentService) {}
 
     @Post()
-    @Permissions('department:create')
+    @Permissions(PERMISSIONS.DEPARTMENT.CREATE)
     @ApiOperation({ summary: 'Create a new department' })
     @ApiBody({ type: CreateDepartmentDto })
     @ApiResponse({
@@ -69,7 +70,7 @@ export class DepartmentController {
     }
 
     @Get()
-    @Permissions('department:read:all')
+    @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get all departments with pagination' })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiResponse({
@@ -103,7 +104,7 @@ export class DepartmentController {
     }
 
     @Get('search')
-    @Permissions('department:read:all')
+    @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Search for departments' })
     @ApiQuery({ name: 'q', description: 'Search term (at least 2 characters)' })
     @ApiResponse({
@@ -136,7 +137,7 @@ export class DepartmentController {
     }
 
     @Get('count')
-    @Permissions('department:read:all')
+    @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get the total number of departments' })
     @ApiResponse({ status: 200, description: 'The total number of departments.' })
     @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -146,7 +147,7 @@ export class DepartmentController {
     }
 
     @Get('branch/:branchId')
-    @Permissions('department:read:all')
+    @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get all departments for a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiResponse({
@@ -173,7 +174,7 @@ export class DepartmentController {
     }
 
     @Get('branch/:branchId/hierarchy')
-    @Permissions('department:read:all')
+    @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get the department hierarchy for a branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiResponse({ status: 200, description: 'The department hierarchy.' })
@@ -186,7 +187,7 @@ export class DepartmentController {
     }
 
     @Get(':id')
-    @Permissions('department:read:all')
+    @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get a specific department by ID' })
     @ApiParam({ name: 'id', description: 'ID of the department' })
     @ApiResponse({
@@ -217,7 +218,7 @@ export class DepartmentController {
     }
 
     @Get(':id/stats')
-    @Permissions('department:read:all')
+    @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get a department with its statistics' })
     @ApiParam({ name: 'id', description: 'ID of the department' })
     @ApiResponse({ status: 200, description: 'The department with statistics.' })
@@ -228,7 +229,7 @@ export class DepartmentController {
     }
 
     @Patch(':id')
-    @Permissions('department:update:managed')
+    @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Update a department' })
     @ApiParam({ name: 'id', description: 'ID of the department to update' })
     @ApiBody({ type: UpdateDepartmentDto })
@@ -264,7 +265,7 @@ export class DepartmentController {
     }
 
     @Delete(':id')
-    @Permissions('department:update:managed')
+    @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({ summary: 'Delete a department' })
     @ApiParam({ name: 'id', description: 'ID of the department to delete' })
