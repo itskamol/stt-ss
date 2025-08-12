@@ -4,15 +4,23 @@ import { AppModule } from './app/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from './core/config/config.service';
 import { LoggerService } from './core/logger/logger.service';
+import { MinimalLoggerService } from './core/logger/minimal-logger.service';
+import { CustomValidationException } from './shared/exceptions/validation.exception';
 
 async function bootstrap() {
+    // Create app with minimal logging during startup
     const app = await NestFactory.create(AppModule, {
         bufferLogs: true,
+        logger: false, // Disable default logger during creation
     });
 
     // Get services
     const configService = app.get(ConfigService);
     const logger = app.get(LoggerService);
+    
+    // Create minimal logger for NestJS internal use
+    const minimalLogger = new MinimalLoggerService(configService);
+    app.useLogger(minimalLogger);
 
     // Validate environment configuration
     try {
@@ -29,17 +37,15 @@ async function bootstrap() {
         process.exit(1);
     }
 
-    // Use custom logger
-    app.useLogger(logger);
-
     const port = configService.port;
 
-    // Global validation pipe
+    // Global validation pipe with better error formatting
     app.useGlobalPipes(
         new ValidationPipe({
             whitelist: true,
             forbidNonWhitelisted: true,
             transform: true,
+            exceptionFactory: (errors) => new CustomValidationException(errors)
         })
     );
 

@@ -40,22 +40,31 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             }
         }
 
-        // Log the exception
+        // Log the exception with better formatting
         const userContext = request.user as any;
+        const errorContext = {
+            method: request.method,
+            url: request.url,
+            statusCode: status,
+            userId: userContext?.sub,
+            organizationId: userContext?.organizationId,
+            correlationId: request.correlationId,
+            module: 'exception-filter',
+            userAgent: request.headers['user-agent'],
+            ip: request.ip,
+            ...(details && { details }),
+        };
+
+        // Format error message for better readability
+        let errorMessage = `HTTP ${status} - ${message}`;
+        if (request.method && request.url) {
+            errorMessage = `${request.method} ${request.url} - ${errorMessage}`;
+        }
+
         this.logger.error(
-            `Exception occurred: ${message}`,
+            errorMessage,
             exception instanceof Error ? exception.stack : String(exception),
-            {
-                method: request.method,
-                url: request.url,
-                statusCode: status,
-                userId: userContext?.sub,
-                organizationId: userContext?.organizationId,
-                correlationId: request.correlationId,
-                module: 'exception-filter',
-                userAgent: request.headers['user-agent'],
-                ip: request.ip,
-            }
+            errorContext
         );
 
         // Prepare error response

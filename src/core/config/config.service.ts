@@ -83,6 +83,18 @@ export class ConfigService {
         return this.configService.get<string>('LOG_LEVEL', 'info');
     }
 
+    get enableFileLogging(): boolean {
+        return this.configService.get<string>('ENABLE_FILE_LOGGING', 'false') === 'true';
+    }
+
+    get logFormat(): 'json' | 'pretty' {
+        return this.configService.get<string>('LOG_FORMAT', 'pretty') as 'json' | 'pretty';
+    }
+
+    get suppressNestLogs(): boolean {
+        return this.configService.get<string>('SUPPRESS_NEST_LOGS', 'false') === 'true';
+    }
+
     get isDevelopment(): boolean {
         return this.nodeEnv === 'development';
     }
