@@ -1,7 +1,7 @@
 import { transports, format } from 'winston';
 import { WinstonModuleOptions } from 'nest-winston';
 
-const { combine, timestamp, json, prettyPrint, colorize, label, printf } = format;
+const { combine, timestamp, json, colorize, label, printf } = format;
 
 const isProduction = process.env.NODE_ENV === 'production';
 
