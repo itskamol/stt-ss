@@ -3,10 +3,13 @@ import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserRepository } from '../user/user.repository';
 import { JwtService as CustomJwtService } from './jwt.service';
-import { LoggerService } from '@/core/logger';
+import { CacheService } from '@/core/cache/cache.service';
+import { LoginDto, Role } from '@/shared/dto';
 import { PasswordUtil } from '@/shared/utils/password.util';
-import { Role } from '@/shared/enums';
-import { LoginDto } from '@/shared/dto';
+import { MockLoggerProvider, mockLoggerService } from '@/testing/mocks/logger.mock';
+import { UserRepository } from '../user/user.repository';
+import { AuthService } from './auth.service';
+import { JwtService as CustomJwtService } from './jwt.service';
 
 // Mock PasswordUtil
 jest.mock('@/shared/utils/password.util');
@@ -25,10 +28,11 @@ describe('AuthService', () => {
         verifyRefreshToken: jest.fn(),
     };
 
-    const mockLogger = {
-        logSecurityEvent: jest.fn(),
-        logUserAction: jest.fn(),
-        error: jest.fn(),
+    const mockCacheService = {
+        set: jest.fn(),
+        get: jest.fn(),
+        del: jest.fn(),
+        getCachedData: jest.fn(),
     };
 
     beforeEach(async () => {
@@ -44,9 +48,10 @@ describe('AuthService', () => {
                     useValue: mockJwtService,
                 },
                 {
-                    provide: LoggerService,
-                    useValue: mockLogger,
+                    provide: CacheService,
+                    useValue: mockCacheService,
                 },
+                MockLoggerProvider,
             ],
         }).compile();
 
@@ -120,7 +125,7 @@ describe('AuthService', () => {
                     roles: [Role.ORG_ADMIN],
                 },
             });
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
+            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
                 'user-123',
                 'LOGIN_SUCCESS',
                 expect.any(Object),
@@ -135,7 +140,7 @@ describe('AuthService', () => {
             await expect(service.login(loginDto, 'correlation-123')).rejects.toThrow(
                 UnauthorizedException
             );
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
                 'LOGIN_FAILED_USER_NOT_FOUND',
                 { email: 'test@example.com' },
                 undefined,
@@ -151,7 +156,7 @@ describe('AuthService', () => {
             await expect(service.login(loginDto, 'correlation-123')).rejects.toThrow(
                 UnauthorizedException
             );
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
                 'LOGIN_FAILED_USER_INACTIVE',
                 { email: 'test@example.com', userId: 'user-123' },
                 'user-123',

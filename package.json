@@ -51,6 +51,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "js2xmlparser": "^5.0.0",
+    "nest-winston": "^1.10.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
@@ -59,6 +60,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "uuid": "^11.1.0",
+    "winston": "^3.17.0",
     "ws": "^8.18.3",
     "xml2js": "^0.6.2"
   },
@@ -95,34 +97,5 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node",
-    "globals": {
-      "ts-jest": {
-        "tsconfig": "tsconfig.spec.json",
-        "isolatedModules": true
-      }
-    },
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1",
-      "^@/core/(.*)$": "<rootDir>/core/$1",
-      "^@/shared/(.*)$": "<rootDir>/shared/$1",
-      "^@/modules/(.*)$": "<rootDir>/modules/$1"
-    }
   }
 }

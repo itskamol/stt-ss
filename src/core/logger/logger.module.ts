@@ -1,33 +1,18 @@
 import { Global, Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
-
-// Services
+import { WinstonModule } from 'nest-winston';
+import { winstonConfig } from '@/core/logger/winston.config';
 import { LoggerService } from './services/main-logger.service';
-import { FileLoggerService } from './services/file-logger.service';
-import { MinimalLoggerService } from './services/minimal-logger.service';
-
-// Tasks
-import { LogCleanupTask } from './tasks/log-cleanup.task';
-
-// Config
-import { ConfigModule } from '../config/config.module';
 
 @Global()
 @Module({
     imports: [
-        ConfigModule,
-        ScheduleModule.forRoot()
+        WinstonModule.forRoot(winstonConfig)
     ],
     providers: [
-        LoggerService,
-        FileLoggerService,
-        MinimalLoggerService,
-        LogCleanupTask
+        LoggerService
     ],
     exports: [
-        LoggerService,
-        FileLoggerService,
-        MinimalLoggerService
+        LoggerService
     ],
 })
 export class LoggerModule {}

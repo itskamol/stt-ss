@@ -1,119 +1,54 @@
-import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
-import { ConfigService } from '../../config/config.service';
-import { FileLoggerService } from './file-logger.service';
-import { LogFormatter } from '../utils/log-formatter.util';
-import { LogContext, LogLevel, LogEntry } from '../interfaces/log-entry.interface';
+import { Injectable, Inject, LoggerService as NestLoggerService } from '@nestjs/common';
+import { Logger } from 'winston';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { LogContext, LogLevel } from '../interfaces/log-entry.interface';
 
 @Injectable()
 export class LoggerService implements NestLoggerService {
     constructor(
-        private readonly configService: ConfigService,
-        private readonly fileLogger: FileLoggerService
+        @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     ) {}
 
-    private async writeToFile(level: LogLevel, message: string, context?: LogContext): Promise<void> {
-        const logEntry: LogEntry = {
-            timestamp: LogFormatter.formatTimestamp(),
-            level,
-            message,
-            context,
-            correlationId: context?.correlationId,
-            userId: context?.userId,
-            organizationId: context?.organizationId,
-            module: context?.module
-        };
-
-        await this.fileLogger.writeLog(logEntry);
-    }
-
-    private formatConsoleMessage(level: LogLevel, message: string, context?: LogContext): string {
-        if (this.configService.logFormat === 'json') {
-            return LogFormatter.formatToJson(level, message, context);
+    private getContext(context?: string | LogContext): LogContext {
+        if (typeof context === 'string') {
+            return { module: context };
         }
-
-        return LogFormatter.formatPretty(level, message, context, {
-            colorize: process.env.NODE_ENV !== 'production',
-            includeContext: true
-        });
+        return context;
     }
 
     log(message: any, context?: string | LogContext): void {
-        const logContext = typeof context === 'string' ? { module: context } : context;
-        const formattedMessage = this.formatConsoleMessage('info', message, logContext);
-        
-        console.log(formattedMessage);
-        this.writeToFile('info', message, logContext);
+        this.logger.info(message, { context: this.getContext(context) });
     }
 
     error(message: any, trace?: string, context?: string | LogContext): void {
-        const logContext = typeof context === 'string' ? { module: context } : context;
+        const logContext = this.getContext(context);
         const errorContext = { ...logContext, trace };
-        
-        const formattedMessage = this.formatConsoleMessage('error', message, errorContext);
-        
-        console.error(formattedMessage);
-        if (trace) {
-            console.error(trace);
-        }
-        
-        this.writeToFile('error', message, errorContext);
+        this.logger.error(message, { context: errorContext });
     }
 
     warn(message: any, context?: string | LogContext): void {
-        const logContext = typeof context === 'string' ? { module: context } : context;
-        const formattedMessage = this.formatConsoleMessage('warn', message, logContext);
-        
-        console.warn(formattedMessage);
-        this.writeToFile('warn', message, logContext);
+        this.logger.warn(message, { context: this.getContext(context) });
     }
 
     debug(message: any, context?: string | LogContext): void {
-        if (this.configService.logLevel === 'debug' || this.configService.logLevel === 'verbose') {
-            const logContext = typeof context === 'string' ? { module: context } : context;
-            const formattedMessage = this.formatConsoleMessage('debug', message, logContext);
-            
-            console.debug(formattedMessage);
-            this.writeToFile('debug', message, logContext);
-        }
+        this.logger.debug(message, { context: this.getContext(context) });
     }
 
     verbose(message: any, context?: string | LogContext): void {
-        if (this.configService.logLevel === 'verbose') {
-            const logContext = typeof context === 'string' ? { module: context } : context;
-            const formattedMessage = this.formatConsoleMessage('verbose', message, logContext);
-            
-            console.log(formattedMessage);
-            this.writeToFile('verbose', message, logContext);
-        }
+        this.logger.verbose(message, { context: this.getContext(context) });
     }
 
     // Additional utility methods
     logWithCorrelationId(correlationId: string, level: LogLevel, message: string, context?: Omit<LogContext, 'correlationId'>): void {
         const logContext: LogContext = { ...context, correlationId };
-        
-        switch (level) {
-            case 'error':
-                this.error(message, undefined, logContext);
-                break;
-            case 'warn':
-                this.warn(message, logContext);
-                break;
-            case 'debug':
-                this.debug(message, logContext);
-                break;
-            case 'verbose':
-                this.verbose(message, logContext);
-                break;
-            default:
-                this.log(message, logContext);
-        }
+        this.logger[level](message, { context: logContext });
     }
 
     logUserAction(userId: string, action: string, details?: any): void {
         this.log(`User action: ${action}`, {
             userId,
             module: 'user-action',
-            ...details
+            ...details,
         });
     }
 
@@ -121,7 +56,7 @@ export class LoggerService implements NestLoggerService {
         this.log(`${method} ${url}`, {
             module: 'api',
             userId,
-            responseTime
+            responseTime,
         });
     }
 }

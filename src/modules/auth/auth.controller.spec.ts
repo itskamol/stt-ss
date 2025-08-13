@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { LoggerService } from '@/core/logger';
 import { UserContext } from '@/shared/interfaces';
 import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
 import { Role } from '@/shared/enums';
@@ -13,6 +12,7 @@ import {
     RefreshTokenRequestDto,
 } from '@/shared/dto';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { MockLoggerProvider, mockLoggerService } from '@/testing/mocks/logger.mock';
 
 describe('AuthController', () => {
     let controller: AuthController;
@@ -21,13 +21,6 @@ describe('AuthController', () => {
         login: jest.fn(),
         refreshToken: jest.fn(),
         logout: jest.fn(),
-    };
-
-    const mockLogger = {
-        log: jest.fn(),
-        logSecurityEvent: jest.fn(),
-        logUserAction: jest.fn(),
-        debug: jest.fn(),
     };
 
     const mockRequest: Partial<RequestWithCorrelation> = {
@@ -55,10 +48,7 @@ describe('AuthController', () => {
                     provide: AuthService,
                     useValue: mockAuthService,
                 },
-                {
-                    provide: LoggerService,
-                    useValue: mockLogger,
-                },
+                MockLoggerProvider,
             ],
         }).compile();
 
@@ -93,7 +83,7 @@ describe('AuthController', () => {
             const result = await controller.login(loginDto, mockRequest as RequestWithCorrelation);
 
             expect(mockAuthService.login).toHaveBeenCalledWith(loginDto, 'test-correlation-id');
-            expect(mockLogger.log).toHaveBeenCalledWith(
+            expect(mockLoggerService.log).toHaveBeenCalledWith(
                 'Login successful',
                 expect.objectContaining({
                     email: 'test@example.com',
@@ -115,7 +105,7 @@ describe('AuthController', () => {
                 controller.login(loginDto, mockRequest as RequestWithCorrelation)
             ).rejects.toThrow(UnauthorizedException);
 
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
                 'LOGIN_ATTEMPT_FAILED',
                 expect.objectContaining({
                     email: 'test@example.com',
@@ -152,7 +142,7 @@ describe('AuthController', () => {
                 refreshTokenDto,
                 'test-correlation-id'
             );
-            expect(mockLogger.log).toHaveBeenCalledWith(
+            expect(mockLoggerService.log).toHaveBeenCalledWith(
                 'Token refresh successful',
                 expect.objectContaining({
                     correlationId: 'test-correlation-id',
@@ -170,7 +160,7 @@ describe('AuthController', () => {
                 controller.refreshToken(refreshTokenDto, mockRequest as RequestWithCorrelation)
             ).rejects.toThrow(UnauthorizedException);
 
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
                 'TOKEN_REFRESH_FAILED',
                 expect.objectContaining({
                     error: 'Invalid refresh token',
@@ -198,7 +188,7 @@ describe('AuthController', () => {
                 'refresh-token-to-logout',
                 'test-correlation-id'
             );
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
+            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
                 'user-123',
                 'LOGOUT_SUCCESS',
                 {},
@@ -215,7 +205,7 @@ describe('AuthController', () => {
                 controller.logout(logoutDto, mockUser, mockRequest as RequestWithCorrelation)
             ).rejects.toThrow(Error);
 
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
                 'LOGOUT_FAILED',
                 expect.objectContaining({
                     userId: 'user-123',
@@ -237,7 +227,7 @@ describe('AuthController', () => {
                 mockRequest as RequestWithCorrelation
             );
 
-            expect(mockLogger.debug).toHaveBeenCalledWith(
+            expect(mockLoggerService.debug).toHaveBeenCalledWith(
                 'Token validation successful',
                 expect.objectContaining({
                     userId: 'user-123',

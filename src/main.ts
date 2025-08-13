@@ -7,13 +7,16 @@ import { CustomValidationException } from './shared/exceptions/validation.except
 import { LoggerService } from './core/logger';
 
 async function bootstrap() {
-    // Create app with minimal logging during startup
-    const app = await NestFactory.create(AppModule);
+    // Create app with our custom logger
+    const app = await NestFactory.create(AppModule, {
+        bufferLogs: true, // Buffer logs until a logger is attached
+    });
+
+    const logger = app.get(LoggerService);
+    app.useLogger(logger);
 
     // Get services
     const configService = app.get(ConfigService);
-    const logger = app.get(LoggerService);
-
     const port = configService.port;
 
     // Global validation pipe with better error formatting
@@ -54,6 +57,8 @@ async function bootstrap() {
 }
 
 bootstrap().catch(error => {
+    // Use a basic console.error for bootstrap failures
+    // as the full logger may not be initialized.
     console.error('Failed to start application:', error);
     process.exit(1);
 });

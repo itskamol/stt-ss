@@ -19,6 +19,13 @@ import {
     InternalServerErrorException,
 } from '@nestjs/common';
 import { CacheService } from '@/core/cache/cache.service';
+import { LoggerService } from '@/core/logger';
+import { HikvisionSessionService } from '@/shared/services/hikvision-session.service';
+import { HikvisionUserManagementService } from '@/shared/services/hikvision-user-management.service';
+import { HikvisionDeviceControlService } from '@/shared/services/hikvision-device-control.service';
+import { HikvisionDiscoveryService } from '@/shared/services/hikvision-discovery.service';
+import { HikvisionEventMonitoringService } from '@/shared/services/hikvision-event-monitoring.service';
+import { HikvisionMaintenanceService } from '@/shared/services/hikvision-maintenance.service';
 
 describe('HikvisionApiAdapter', () => {
     let adapter: HikvisionApiAdapter;
@@ -26,6 +33,13 @@ describe('HikvisionApiAdapter', () => {
     let prismaService: any;
     let encryptionService: jest.Mocked<EncryptionService>;
     let cacheService: jest.Mocked<CacheService>;
+    let loggerService: jest.Mocked<LoggerService>;
+    let sessionService: jest.Mocked<HikvisionSessionService>;
+    let userManagementService: jest.Mocked<HikvisionUserManagementService>;
+    let deviceControlService: jest.Mocked<HikvisionDeviceControlService>;
+    let discoveryService: jest.Mocked<HikvisionDiscoveryService>;
+    let eventMonitoringService: jest.Mocked<HikvisionEventMonitoringService>;
+    let maintenanceService: jest.Mocked<HikvisionMaintenanceService>;
 
     const mockDevice = {
         id: 'test-device-1',
@@ -67,6 +81,17 @@ describe('HikvisionApiAdapter', () => {
             del: jest.fn(),
         };
 
+        const mockLoggerService = {
+            log: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            verbose: jest.fn(),
+            setContext: jest.fn(),
+            logUserAction: jest.fn(),
+            logSecurityEvent: jest.fn(),
+          };
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 HikvisionApiAdapter,
@@ -74,6 +99,13 @@ describe('HikvisionApiAdapter', () => {
                 { provide: PrismaService, useValue: mockPrismaService },
                 { provide: EncryptionService, useValue: mockEncryptionService },
                 { provide: CacheService, useValue: mockCacheManager },
+                { provide: LoggerService, useValue: mockLoggerService },
+                { provide: HikvisionSessionService, useValue: { getSecureSession: jest.fn() } },
+                { provide: HikvisionUserManagementService, useValue: { addUser: jest.fn(), updateUser: jest.fn(), deleteUser: jest.fn(), findUserByEmployeeNo: jest.fn(), syncUsers: jest.fn() } },
+                { provide: HikvisionDeviceControlService, useValue: { sendCommand: jest.fn() } },
+                { provide: HikvisionDiscoveryService, useValue: { getDeviceInfo: jest.fn() } },
+                { provide: HikvisionEventMonitoringService, useValue: { getFaceData: jest.fn() } },
+                { provide: HikvisionMaintenanceService, useValue: {} },
             ],
         }).compile();
 
@@ -82,6 +114,13 @@ describe('HikvisionApiAdapter', () => {
         prismaService = module.get(PrismaService);
         encryptionService = module.get(EncryptionService);
         cacheService = module.get(CacheService);
+        loggerService = module.get(LoggerService);
+        sessionService = module.get(HikvisionSessionService);
+        userManagementService = module.get(HikvisionUserManagementService);
+        deviceControlService = module.get(HikvisionDeviceControlService);
+        discoveryService = module.get(HikvisionDiscoveryService);
+        eventMonitoringService = module.get(HikvisionEventMonitoringService);
+        maintenanceService = module.get(HikvisionMaintenanceService);
 
         // Setup default mocks
         prismaService.device.findUnique.mockResolvedValue(mockDevice);
