@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { DataScope, UserContext } from '../interfaces/data-scope.interface';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 import { Role } from '@prisma/client';
@@ -45,17 +45,17 @@ export class DataScopeGuard implements CanActivate {
         if (noScoping) {
             // Only SUPER_ADMIN can access no-scoping routes
             if (!user.roles.includes(Role.SUPER_ADMIN)) {
-                this.logger.logSecurityEvent(
+                this.logger.logUserAction(
+                    user.sub,
                     'DATA_SCOPE_VIOLATION_NO_SCOPING',
                     {
                         userId: user.sub,
                         roles: user.roles,
                         url: request.url,
                         method: request.method,
+                        organizationId: user.organizationId,
+                        correlationId: request.correlationId
                     },
-                    user.sub,
-                    user.organizationId,
-                    request.correlationId
                 );
                 throw new ForbiddenException('Insufficient privileges for system-wide access');
             }
@@ -64,17 +64,15 @@ export class DataScopeGuard implements CanActivate {
 
         // For all other routes, enforce organization-level scoping
         if (!user.organizationId) {
-            this.logger.logSecurityEvent(
+            this.logger.logUserAction(
+                user.sub,
                 'DATA_SCOPE_VIOLATION_NO_ORGANIZATION',
                 {
                     userId: user.sub,
                     roles: user.roles,
                     url: request.url,
                     method: request.method,
-                },
-                user.sub,
-                undefined,
-                request.correlationId
+                }
             );
             throw new ForbiddenException('No organization context available');
         }

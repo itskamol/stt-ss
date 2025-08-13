@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
 import { QueueService } from './queue.service';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../logger';
 
 describe('QueueService', () => {
     let service: QueueService;

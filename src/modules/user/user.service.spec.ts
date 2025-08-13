@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserRepository } from './user.repository';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { ChangePasswordDto, CreateUserDto, UpdateUserDto } from '@/shared/dto';
 import { DatabaseUtil, PasswordUtil } from '@/shared/utils';
 import { Role } from '@/shared/enums';

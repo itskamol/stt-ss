@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StubStorageAdapter } from './stub-storage.adapter';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 
 describe('StubStorageAdapter', () => {
     let adapter: StubStorageAdapter;

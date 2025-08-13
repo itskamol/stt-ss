@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StubNotificationAdapter } from './stub-notification.adapter';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { EmailOptions, PushNotificationOptions, SmsOptions } from '../notification.adapter';
 
 describe('StubNotificationAdapter', () => {

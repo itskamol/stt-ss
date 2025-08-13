@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DeviceConfiguration, DeviceTemplate } from '@prisma/client';
 import { PrismaService } from '@/core/database/prisma.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import {
     CreateDeviceConfigurationDto,
     CreateDeviceTemplateDto,
@@ -65,17 +65,13 @@ export class DeviceConfigurationService {
                 },
             });
 
-            this.logger.logUserAction(
-                createdByUserId,
-                'DEVICE_CONFIGURATION_CREATED',
-                {
-                    deviceId,
-                    configurationId: configuration.id,
-                    settings: data,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(createdByUserId, 'DEVICE_CONFIGURATION_CREATED', {
+                deviceId,
+                configurationId: configuration.id,
+                settings: data,
+                correlationId,
+                organizationId: scope.organizationId,
+            });
 
             return configuration;
         } catch (error) {
@@ -147,17 +143,13 @@ export class DeviceConfigurationService {
             data: updateData,
         });
 
-        this.logger.logUserAction(
-            updatedByUserId,
-            'DEVICE_CONFIGURATION_UPDATED',
-            {
-                deviceId,
-                configurationId: existingConfig.id,
-                changes: data,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(updatedByUserId, 'DEVICE_CONFIGURATION_UPDATED', {
+            deviceId,
+            configurationId: existingConfig.id,
+            changes: data,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
 
         return updatedConfiguration;
     }
@@ -195,16 +187,12 @@ export class DeviceConfigurationService {
             where: { id: configuration.id },
         });
 
-        this.logger.logUserAction(
-            deletedByUserId,
-            'DEVICE_CONFIGURATION_DELETED',
-            {
-                deviceId,
-                configurationId: configuration.id,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(deletedByUserId, 'DEVICE_CONFIGURATION_DELETED', {
+            deviceId,
+            configurationId: configuration.id,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
     }
 
     /**
@@ -231,18 +219,14 @@ export class DeviceConfigurationService {
                 },
             });
 
-            this.logger.logUserAction(
-                createdByUserId,
-                'DEVICE_TEMPLATE_CREATED',
-                {
-                    templateId: template.id,
-                    name: data.name,
-                    manufacturer: data.manufacturer,
-                    model: data.model,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(createdByUserId, 'DEVICE_TEMPLATE_CREATED', {
+                templateId: template.id,
+                name: data.name,
+                manufacturer: data.manufacturer,
+                model: data.model,
+                correlationId,
+                organizationId: scope.organizationId,
+            });
 
             return template;
         } catch (error) {
@@ -313,16 +297,12 @@ export class DeviceConfigurationService {
             data: updateData,
         });
 
-        this.logger.logUserAction(
-            updatedByUserId,
-            'DEVICE_TEMPLATE_UPDATED',
-            {
-                templateId: id,
-                changes: data,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(updatedByUserId, 'DEVICE_TEMPLATE_UPDATED', {
+            templateId: id,
+            changes: data,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
 
         return updatedTemplate;
     }
@@ -351,16 +331,12 @@ export class DeviceConfigurationService {
             where: { id },
         });
 
-        this.logger.logUserAction(
-            deletedByUserId,
-            'DEVICE_TEMPLATE_DELETED',
-            {
-                templateId: id,
-                name: template.name,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(deletedByUserId, 'DEVICE_TEMPLATE_DELETED', {
+            templateId: id,
+            name: template.name,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
     }
 
     /**

@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { UserRepository } from './user.repository';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { DatabaseUtil, PasswordUtil } from '@/shared/utils';
 import {
     AssignUserToOrganizationDto,
@@ -40,13 +40,10 @@ export class UserService {
                 passwordHash,
             });
 
-            this.logger.logUserAction(
-                user.id,
-                'USER_CREATED',
-                { email: user.email },
-                undefined,
-                correlationId
-            );
+            this.logger.logUserAction(user.id, 'USER_CREATED', {
+                email: user.email,
+                correlationId,
+            });
 
             return user;
         } catch (error) {
@@ -88,13 +85,10 @@ export class UserService {
 
             const updatedUser = await this.userRepository.update(id, updateUserDto);
 
-            this.logger.logUserAction(
-                id,
-                'USER_UPDATED',
-                { changes: updateUserDto },
-                undefined,
-                correlationId
-            );
+            this.logger.logUserAction(id, 'USER_UPDATED', {
+                changes: updateUserDto,
+                correlationId,
+            });
 
             return updatedUser;
         } catch (error) {
@@ -125,13 +119,9 @@ export class UserService {
             user.passwordHash
         );
         if (!isCurrentPasswordValid) {
-            this.logger.logSecurityEvent(
-                'PASSWORD_CHANGE_FAILED_INVALID_CURRENT',
-                { userId },
-                userId,
-                undefined,
-                correlationId
-            );
+            this.logger.logUserAction(userId, 'PASSWORD_CHANGE_FAILED_INVALID_CURRENT', {
+                correlationId,
+            });
             throw new ConflictException('Current password is incorrect');
         }
 
@@ -149,7 +139,7 @@ export class UserService {
         // Update password
         await this.userRepository.updatePassword(userId, newPasswordHash);
 
-        this.logger.logUserAction(userId, 'PASSWORD_CHANGED', {}, undefined, correlationId);
+        this.logger.logUserAction(userId, 'PASSWORD_CHANGED', { correlationId });
     }
 
     /**
@@ -159,17 +149,12 @@ export class UserService {
         try {
             const orgUser = await this.userRepository.assignToOrganization(assignDto);
 
-            this.logger.logUserAction(
-                assignDto.userId,
-                'USER_ASSIGNED_TO_ORGANIZATION',
-                {
-                    organizationId: assignDto.organizationId,
-                    role: assignDto.role,
-                    branchIds: assignDto.branchIds,
-                },
-                assignDto.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(assignDto.userId, 'USER_ASSIGNED_TO_ORGANIZATION', {
+                organizationId: assignDto.organizationId,
+                role: assignDto.role,
+                branchIds: assignDto.branchIds,
+                correlationId,
+            });
 
             return orgUser;
         } catch (error) {
@@ -190,13 +175,10 @@ export class UserService {
     ): Promise<void> {
         await this.userRepository.removeFromOrganization(userId, organizationId);
 
-        this.logger.logUserAction(
-            userId,
-            'USER_REMOVED_FROM_ORGANIZATION',
-            { organizationId },
+        this.logger.logUserAction(userId, 'USER_REMOVED_FROM_ORGANIZATION', {
             organizationId,
-            correlationId
-        );
+            correlationId,
+        });
     }
 
     /**
@@ -219,7 +201,7 @@ export class UserService {
     async deactivateUser(id: string, correlationId?: string): Promise<User> {
         const user = await this.updateUser(id, { isActive: false }, correlationId);
 
-        this.logger.logUserAction(id, 'USER_DEACTIVATED', {}, undefined, correlationId);
+        this.logger.logUserAction(id, 'USER_DEACTIVATED', { correlationId });
 
         return user;
     }
@@ -230,7 +212,7 @@ export class UserService {
     async activateUser(id: string, correlationId?: string): Promise<User> {
         const user = await this.updateUser(id, { isActive: true }, correlationId);
 
-        this.logger.logUserAction(id, 'USER_ACTIVATED', {}, undefined, correlationId);
+        this.logger.logUserAction(id, 'USER_ACTIVATED', { correlationId });
 
         return user;
     }

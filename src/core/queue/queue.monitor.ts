@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../logger';
 import { QueueService } from './queue.service';
 
 @Injectable()

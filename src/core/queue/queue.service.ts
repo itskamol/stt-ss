@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Job, JobsOptions, Queue } from 'bullmq';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../logger';
 
 export interface QueueJobData {
     [key: string]: any;

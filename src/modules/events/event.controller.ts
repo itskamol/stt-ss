@@ -11,14 +11,14 @@ import {
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EventService } from './event.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { CreateRawEventDto } from '@/shared/dto';
 import { Public } from '@/shared/decorators';
 import { DeviceAuthGuard } from '@/shared/guards/device-auth.guard';
 import { UseGuards } from '@nestjs/common';
 
 @ApiTags('Events')
-@Controller('api/v1/events')
+@Controller('events')
 @UseGuards(DeviceAuthGuard)
 export class EventController {
     constructor(

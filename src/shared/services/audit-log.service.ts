@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { AuditLogRepository } from './audit-log.repository';
-import { LoggerService } from '@/core/logger/logger.service';
 import { DataScope } from '../interfaces';
-
 import { CreateAuditLogData } from '@/shared/interfaces';
+import { LoggerService } from '@/core/logger';
 
 @Injectable()
 export class AuditLogService {

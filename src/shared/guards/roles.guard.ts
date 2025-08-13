@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { UserContext } from '../interfaces/data-scope.interface';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 
@@ -55,7 +55,8 @@ export class RolesGuard implements CanActivate {
         if (requiredRoles && requiredRoles.length > 0) {
             const hasRole = requiredRoles.some(role => user.roles.includes(role));
             if (!hasRole) {
-                this.logger.logSecurityEvent(
+                this.logger.logUserAction(
+                    user.sub,
                     'ROLE_ACCESS_DENIED',
                     {
                         userId: user.sub,
@@ -64,9 +65,6 @@ export class RolesGuard implements CanActivate {
                         url: request.url,
                         method: request.method,
                     },
-                    user.sub,
-                    user.organizationId,
-                    request.correlationId
                 );
                 throw new ForbiddenException('Insufficient role privileges');
             }
@@ -83,7 +81,8 @@ export class RolesGuard implements CanActivate {
                     permission => !user.permissions.includes(permission)
                 );
 
-                this.logger.logSecurityEvent(
+                this.logger.logUserAction(
+                    user.sub,
                     'PERMISSION_ACCESS_DENIED',
                     {
                         userId: user.sub,
@@ -93,9 +92,6 @@ export class RolesGuard implements CanActivate {
                         url: request.url,
                         method: request.method,
                     },
-                    user.sub,
-                    user.organizationId,
-                    request.correlationId
                 );
 
                 throw new ForbiddenException('Insufficient permissions');

@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Device, DeviceStatus, DeviceType, EventType } from '@prisma/client';
@@ -43,12 +43,13 @@ import {
     HikvisionBadRequestException,
 } from '@/shared/exceptions/hikvision.exceptions';
 import { CacheService } from '@/core/cache/cache.service';
+import { LoggerService } from '@/core/logger';
 
 @Injectable()
 export class HikvisionApiAdapter implements IDeviceAdapter {
-    private readonly logger = new Logger(HikvisionApiAdapter.name);
-
+    
     constructor(
+        private readonly logger: LoggerService,
         private readonly cacheManager: CacheService,
         private readonly httpService: HttpService,
         private readonly prisma: PrismaService,
@@ -105,7 +106,7 @@ export class HikvisionApiAdapter implements IDeviceAdapter {
             return deviceInfos;
 
         } catch (error) {
-            this.logger.error('Device discovery failed', { error: error.message });
+            this.logger.error('Device discovery failed', null, { error: error.message });
             
             // Fallback to database devices
             const devices = await this.prisma.device.findMany({
@@ -244,7 +245,7 @@ export class HikvisionApiAdapter implements IDeviceAdapter {
 
         } catch (error) {
             const exception = HikvisionExceptionFactory.fromHttpError(error, context);
-            this.logger.error('User sync failed', { deviceId, error: exception.message });
+            this.logger.error('User sync failed', null, { deviceId, error: exception.message });
             throw exception.toNestException();
         }
     }
@@ -421,7 +422,7 @@ export class HikvisionApiAdapter implements IDeviceAdapter {
             }
             
             const exception = HikvisionExceptionFactory.fromHttpError(error, context);
-            this.logger.error('Failed to get face data', { deviceId, employeeNo, error: exception.message });
+            this.logger.error('Failed to get face data', null, { deviceId, employeeNo, error: exception.message });
             throw exception.toNestException();
         }
     }

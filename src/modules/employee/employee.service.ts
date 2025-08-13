@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Employee } from '@prisma/client';
 import { EmployeeRepository } from './employee.repository';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
@@ -45,19 +45,15 @@ export class EmployeeService {
 
             const employee = await this.employeeRepository.create(createEmployeeDto, scope);
 
-            this.logger.logUserAction(
-                createdByUserId,
-                'EMPLOYEE_CREATED',
-                {
-                    employeeId: employee.id,
-                    employeeCode: employee.employeeCode,
-                    fullName: `${employee.firstName} ${employee.lastName}`,
-                    branchId: employee.branchId,
-                    departmentId: employee.departmentId,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(createdByUserId, 'EMPLOYEE_CREATED', {
+                employeeId: employee.id,
+                employeeCode: employee.employeeCode,
+                fullName: `${employee.firstName} ${employee.lastName}`,
+                branchId: employee.branchId,
+                departmentId: employee.departmentId,
+                correlationId,
+                organizationId: scope.organizationId,
+            });
 
             return employee;
         } catch (error) {
@@ -159,20 +155,16 @@ export class EmployeeService {
                 scope
             );
 
-            this.logger.logUserAction(
-                updatedByUserId,
-                'EMPLOYEE_UPDATED',
-                {
-                    employeeId: id,
-                    changes: updateEmployeeDto,
-                    oldEmployeeCode: existingEmployee.employeeCode,
-                    newEmployeeCode: updatedEmployee.employeeCode,
-                    oldFullName: `${existingEmployee.firstName} ${existingEmployee.lastName}`,
-                    newFullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(updatedByUserId, 'EMPLOYEE_UPDATED', {
+                employeeId: id,
+                changes: updateEmployeeDto,
+                oldEmployeeCode: existingEmployee.employeeCode,
+                newEmployeeCode: updatedEmployee.employeeCode,
+                oldFullName: `${existingEmployee.firstName} ${existingEmployee.lastName}`,
+                newFullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`,
+                correlationId,
+                organizationId: scope.organizationId,
+            });
 
             return updatedEmployee;
         } catch (error) {
@@ -202,18 +194,14 @@ export class EmployeeService {
 
         await this.employeeRepository.delete(id, scope);
 
-        this.logger.logUserAction(
-            deletedByUserId,
-            'EMPLOYEE_DELETED',
-            {
-                employeeId: id,
-                employeeCode: existingEmployee.employeeCode,
-                fullName: `${existingEmployee.firstName} ${existingEmployee.lastName}`,
-                branchId: existingEmployee.branchId,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(deletedByUserId, 'EMPLOYEE_DELETED', {
+            employeeId: id,
+            employeeCode: existingEmployee.employeeCode,
+            fullName: `${existingEmployee.firstName} ${existingEmployee.lastName}`,
+            branchId: existingEmployee.branchId,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
     }
 
     /**
@@ -279,9 +267,9 @@ export class EmployeeService {
                 fullName: `${existingEmployee.firstName} ${existingEmployee.lastName}`,
                 previousStatus: existingEmployee.isActive,
                 newStatus: isActive,
-            },
-            scope.organizationId,
-            correlationId
+                correlationId,
+                organizationId: scope.organizationId,
+            }
         );
 
         return updatedEmployee;

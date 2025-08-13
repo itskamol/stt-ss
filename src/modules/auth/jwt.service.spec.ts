@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { JwtService as CustomJwtService, JwtPayload } from './jwt.service';
 import { ConfigService } from '@/core/config/config.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { Role } from '@prisma/client';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 

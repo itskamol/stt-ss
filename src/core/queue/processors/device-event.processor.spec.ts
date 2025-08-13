@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bullmq';
 import { DeviceEventProcessor } from './device-event.processor';
-import { LoggerService } from '../../logger/logger.service';
+import { LoggerService } from '../../logger';
 import { EmployeeRepository } from '../../../modules/employee/employee.repository';
 import { AttendanceService } from '../../../modules/attendance/attendance.service';
 import { IMatchingAdapter } from '../../../shared/adapters/matching.adapter';

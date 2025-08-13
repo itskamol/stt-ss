@@ -1,5 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
 import { validate, ValidationError } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 
@@ -11,6 +10,8 @@ import {
     getConfigFromEnv,
     generateEncryptionKeys,
 } from '../config/hikvision-adapter.config';
+import { ConfigService } from '@/core/config/config.service';
+import { LoggerService } from '@/core/logger';
 
 export interface ConfigValidationResult {
     valid: boolean;
@@ -54,9 +55,11 @@ export interface ConfigHealthCheck {
 
 @Injectable()
 export class HikvisionConfigValidationService {
-    private readonly logger = new Logger(HikvisionConfigValidationService.name);
-
-    constructor(private readonly configService: ConfigService) {}
+    
+    constructor(
+        private readonly logger: LoggerService,
+        private readonly configService: ConfigService
+    ) {}
 
     /**
      * Validate complete Hikvision adapter configuration
@@ -114,7 +117,7 @@ export class HikvisionConfigValidationService {
         } catch (error) {
             result.valid = false;
             result.errors.push(`Configuration validation failed: ${error.message}`);
-            this.logger.error('Configuration validation error', { error: error.message });
+            this.logger.error('Configuration validation error', error?.trace, { error: error.message });
         }
 
         return result;
@@ -229,14 +232,14 @@ export class HikvisionConfigValidationService {
         }
 
         // Check adapter type
-        const adapterType = this.configService.get<string>('DEVICE_ADAPTER_TYPE', 'auto');
-        if (adapterType === 'stub') {
-            issues.push('Using stub adapter in production is not recommended');
-        }
+        // const adapterType = 'auto';
+        // if (adapterType === 'stub') {
+        //     issues.push('Using stub adapter in production is not recommended');
+        // }
 
         // Check encryption keys
-        const encryptionKey = this.configService.get<string>('SECRET_ENCRYPTION_KEY');
-        const encryptionIv = this.configService.get<string>('SECRET_ENCRYPTION_IV');
+        const encryptionKey = this.configService.encryptionSecretKey
+        const encryptionIv = this.configService.encryptionIv
 
         if (!encryptionKey || encryptionKey.length < 64) {
             issues.push('Encryption key is missing or too short (should be 64 hex characters)');
@@ -247,7 +250,7 @@ export class HikvisionConfigValidationService {
         }
 
         // Check log level
-        const logLevel = this.configService.get<string>('LOG_LEVEL', 'info');
+        const logLevel = this.configService.logLevel;
         if (logLevel === 'debug') {
             issues.push('Debug log level should not be used in production');
         }

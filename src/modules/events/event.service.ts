@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { EventRepository } from './event.repository';
 import { DeviceRepository } from '../device/device.repository';
 import { PrismaService } from '@/core/database/prisma.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { CacheService } from '@/core/cache/cache.service';
 import { QueueProducer } from '@/core/queue/queue.producer';
 import { CreateRawEventDto } from '@/shared/dto';

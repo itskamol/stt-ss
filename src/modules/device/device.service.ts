@@ -9,7 +9,7 @@ import { Device } from '@prisma/client';
 import { DeviceRepository } from './device.repository';
 import { DeviceConfigurationService } from './device-configuration.service';
 import { EmployeeSyncService } from './employee-sync.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
 import {
     CreateDeviceConfigurationDto,
@@ -63,19 +63,15 @@ export class DeviceService {
 
             const device = await this.deviceRepository.create(createDeviceDto, scope);
 
-            this.logger.logUserAction(
-                createdByUserId,
-                'DEVICE_CREATED',
-                {
-                    deviceId: device.id,
-                    deviceName: device.name,
-                    deviceType: device.type,
-                    branchId: device.branchId,
-                    macAddress: device.macAddress,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(createdByUserId, 'DEVICE_CREATED', {
+                deviceId: device.id,
+                deviceName: device.name,
+                deviceType: device.type,
+                branchId: device.branchId,
+                macAddress: device.macAddress,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
 
             return device;
         } catch (error) {
@@ -169,20 +165,16 @@ export class DeviceService {
 
             const updatedDevice = await this.deviceRepository.update(id, updateDeviceDto, scope);
 
-            this.logger.logUserAction(
-                updatedByUserId,
-                'DEVICE_UPDATED',
-                {
-                    deviceId: id,
-                    changes: updateDeviceDto,
-                    oldName: existingDevice.name,
-                    newName: updatedDevice.name,
-                    oldMacAddress: existingDevice.macAddress,
-                    newMacAddress: updatedDevice.macAddress,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(updatedByUserId, 'DEVICE_UPDATED', {
+                deviceId: id,
+                changes: updateDeviceDto,
+                oldName: existingDevice.name,
+                newName: updatedDevice.name,
+                oldMacAddress: existingDevice.macAddress,
+                newMacAddress: updatedDevice.macAddress,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
 
             return updatedDevice;
         } catch (error) {
@@ -210,18 +202,14 @@ export class DeviceService {
 
         await this.deviceRepository.delete(id, scope);
 
-        this.logger.logUserAction(
-            deletedByUserId,
-            'DEVICE_DELETED',
-            {
-                deviceId: id,
-                deviceName: existingDevice.name,
-                macAddress: existingDevice.macAddress,
-                branchId: existingDevice.branchId,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(deletedByUserId, 'DEVICE_DELETED', {
+            deviceId: id,
+            deviceName: existingDevice.name,
+            macAddress: existingDevice.macAddress,
+            branchId: existingDevice.branchId,
+            organizationId: scope.organizationId,
+            correlationId,
+        });
     }
 
     /**
@@ -280,9 +268,9 @@ export class DeviceService {
                 deviceIdentifier: existingDevice.deviceIdentifier,
                 previousStatus: existingDevice.isActive,
                 newStatus: isActive,
-            },
-            scope.organizationId,
-            correlationId
+                organizationId: scope.organizationId,
+                correlationId,
+            }
         );
 
         return updatedDevice;
@@ -337,34 +325,26 @@ export class DeviceService {
         try {
             const result = await this.deviceAdapter.sendCommand(device.deviceIdentifier, command);
 
-            this.logger.logUserAction(
-                commandByUserId,
-                'DEVICE_COMMAND_SENT',
-                {
-                    deviceId: id,
-                    deviceName: device.name,
-                    command: command.command,
-                    success: result.success,
-                    message: result.message,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(commandByUserId, 'DEVICE_COMMAND_SENT', {
+                deviceId: id,
+                deviceName: device.name,
+                command: command.command,
+                success: result.success,
+                message: result.message,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
 
             return result;
         } catch (error) {
-            this.logger.logUserAction(
-                commandByUserId,
-                'DEVICE_COMMAND_FAILED',
-                {
-                    deviceId: id,
-                    deviceName: device.name,
-                    command: command.command,
-                    error: error.message,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(commandByUserId, 'DEVICE_COMMAND_FAILED', {
+                deviceId: id,
+                deviceName: device.name,
+                command: command.command,
+                error: error.message,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
 
             throw error;
         }
@@ -494,35 +474,27 @@ export class DeviceService {
                 timeout: controlDto.timeout,
             });
 
-            this.logger.logUserAction(
-                controlledByUserId,
-                'DEVICE_CONTROL_ACTION',
-                {
-                    deviceId: id,
-                    deviceName: device.name,
-                    action: controlDto.action,
-                    parameters: controlDto.parameters,
-                    success: result.success,
-                    message: result.message,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(controlledByUserId, 'DEVICE_CONTROL_ACTION', {
+                deviceId: id,
+                deviceName: device.name,
+                action: controlDto.action,
+                parameters: controlDto.parameters,
+                success: result.success,
+                message: result.message,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
 
             return result;
         } catch (error) {
-            this.logger.logUserAction(
-                controlledByUserId,
-                'DEVICE_CONTROL_FAILED',
-                {
-                    deviceId: id,
-                    deviceName: device.name,
-                    action: controlDto.action,
-                    error: error.message,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(controlledByUserId, 'DEVICE_CONTROL_FAILED', {
+                deviceId: id,
+                deviceName: device.name,
+                action: controlDto.action,
+                error: error.message,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
 
             throw error;
         }

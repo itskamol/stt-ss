@@ -20,7 +20,7 @@ import {
     ApiTags,
 } from '@nestjs/swagger';
 import { OrganizationService } from './organization.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import {
     CreateOrganizationDto,
     OrganizationResponseDto,

@@ -3,7 +3,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserRepository } from '../user/user.repository';
 import { JwtService as CustomJwtService } from './jwt.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { PasswordUtil } from '@/shared/utils/password.util';
 import { Role } from '@/shared/enums';
 import { LoginDto } from '@/shared/dto';

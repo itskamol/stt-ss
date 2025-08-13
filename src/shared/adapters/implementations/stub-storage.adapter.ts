@@ -7,7 +7,7 @@ import {
     StorageObject,
     UploadResult,
 } from '../storage.adapter';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 
 @Injectable()
 export class StubStorageAdapter implements IStorageAdapter {

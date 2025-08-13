@@ -3,39 +3,16 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from './core/config/config.service';
-import { LoggerService } from './core/logger/logger.service';
-import { SimpleLoggerService } from './core/logger/simple-logger.service';
 import { CustomValidationException } from './shared/exceptions/validation.exception';
+import { LoggerService } from './core/logger';
 
 async function bootstrap() {
     // Create app with minimal logging during startup
-    const app = await NestFactory.create(AppModule, {
-
-        logger: ['log', 'error', 'warn', 'debug', 'verbose'],
-    });
+    const app = await NestFactory.create(AppModule);
 
     // Get services
     const configService = app.get(ConfigService);
     const logger = app.get(LoggerService);
-    
-    // Create minimal logger for NestJS internal use
-    const simpleLogger = new SimpleLoggerService();
-    app.useLogger(simpleLogger);
-
-    // Validate environment configuration
-    try {
-        configService.validateConfig();
-        logger.log('Environment configuration validated successfully', {
-            environment: configService.nodeEnv,
-            module: 'bootstrap',
-        });
-    } catch (error) {
-        logger.error('Environment configuration validation failed', {
-            error: error.message,
-            module: 'bootstrap',
-        });
-        process.exit(1);
-    }
 
     const port = configService.port;
 
@@ -45,7 +22,7 @@ async function bootstrap() {
             whitelist: true,
             forbidNonWhitelisted: true,
             transform: true,
-            exceptionFactory: (errors) => new CustomValidationException(errors)
+            exceptionFactory: errors => new CustomValidationException(errors),
         })
     );
 
@@ -73,7 +50,7 @@ async function bootstrap() {
         module: 'bootstrap',
     });
 
-    console.log(`Application is running on: http://localhost:${port}/api/v1`);
+    logger.log(`Application is running on: http://localhost:${port}/api/v1`);
 }
 
 bootstrap().catch(error => {

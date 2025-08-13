@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserRepository } from '../user/user.repository';
 import { CustomJwtService, JwtPayload } from './jwt.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { CacheService } from '@/core/cache/cache.service';
 import { PasswordUtil } from '@/shared/utils/password.util';
 import { Role } from '@/shared/enums';
@@ -28,38 +28,31 @@ export class AuthService {
             // Find user by email
             const user = await this.userRepository.findByEmail(email);
             if (!user) {
-                this.logger.logSecurityEvent(
-                    'LOGIN_FAILED_USER_NOT_FOUND',
-                    { email },
-                    undefined,
-                    undefined,
-                    correlationId
-                );
+                this.logger.logUserAction(undefined, 'LOGIN_FAILED_USER_NOT_FOUND', {
+                    email,
+                    correlationId,
+                });
                 throw new UnauthorizedException('Invalid credentials');
             }
 
             // Check if user is active
             if (!user.isActive) {
-                this.logger.logSecurityEvent(
-                    'LOGIN_FAILED_USER_INACTIVE',
-                    { email, userId: user.id },
-                    user.id,
-                    undefined,
-                    correlationId
-                );
+                this.logger.logUserAction(user.id, 'LOGIN_FAILED_USER_INACTIVE', {
+                    email,
+                    userId: user.id,
+                    correlationId,
+                });
                 throw new UnauthorizedException('Account is inactive');
             }
 
             // Verify password
             const isPasswordValid = await PasswordUtil.compare(password, user.passwordHash);
             if (!isPasswordValid) {
-                this.logger.logSecurityEvent(
-                    'LOGIN_FAILED_INVALID_PASSWORD',
-                    { email, userId: user.id },
-                    user.id,
-                    undefined,
-                    correlationId
-                );
+                this.logger.logUserAction(user.id, 'LOGIN_FAILED_INVALID_PASSWORD', {
+                    email,
+                    userId: user.id,
+                    correlationId,
+                });
                 throw new UnauthorizedException('Invalid credentials');
             }
 
@@ -100,13 +93,12 @@ export class AuthService {
             // Generate tokens
             const tokens = this.jwtService.generateTokenPair(jwtPayload);
 
-            this.logger.logUserAction(
-                user.id,
-                'LOGIN_SUCCESS',
-                { email, organizationId, roles },
+            this.logger.logUserAction(user.id, 'LOGIN_SUCCESS', {
+                email,
+                roles,
                 organizationId,
-                correlationId
-            );
+                correlationId,
+            });
 
             return {
                 ...tokens,
@@ -149,26 +141,21 @@ export class AuthService {
             const tokenId = `${payload.sub}:${payload.tokenVersion}`;
             const isDenied = await this.cacheService.isRefreshTokenDenied(tokenId);
             if (isDenied) {
-                this.logger.logSecurityEvent(
-                    'REFRESH_TOKEN_DENIED',
-                    { userId: payload.sub, tokenVersion: payload.tokenVersion },
-                    payload.sub,
-                    undefined,
-                    correlationId
-                );
+                this.logger.logUserAction(payload.sub, 'REFRESH_TOKEN_DENIED', {
+                    userId: payload.sub,
+                    tokenVersion: payload.tokenVersion,
+                    correlationId,
+                });
                 throw new UnauthorizedException('Refresh token has been revoked');
             }
 
             // Find user
             const user = await this.userRepository.findById(payload.sub);
             if (!user || !user.isActive) {
-                this.logger.logSecurityEvent(
-                    'REFRESH_TOKEN_FAILED_USER_INVALID',
-                    { userId: payload.sub },
-                    payload.sub,
-                    undefined,
-                    correlationId
-                );
+                this.logger.logUserAction(payload.sub, 'REFRESH_TOKEN_FAILED_USER_INVALID', {
+                    userId: payload.sub,
+                    correlationId,
+                });
                 throw new UnauthorizedException('Invalid refresh token');
             }
 
@@ -209,23 +196,17 @@ export class AuthService {
                 payload.tokenVersion + 1
             );
 
-            this.logger.logUserAction(
-                user.id,
-                'TOKEN_REFRESH_SUCCESS',
-                { organizationId },
+            this.logger.logUserAction(user.id, 'TOKEN_REFRESH_SUCCESS', {
                 organizationId,
-                correlationId
-            );
+                correlationId,
+            });
 
             return newTokens;
         } catch (error) {
-            this.logger.logSecurityEvent(
-                'REFRESH_TOKEN_FAILED',
-                { error: error.message },
-                undefined,
-                undefined,
-                correlationId
-            );
+            this.logger.logUserAction(undefined, 'REFRESH_TOKEN_FAILED', {
+                error: error.message,
+                correlationId,
+            });
             throw new UnauthorizedException('Invalid refresh token');
         }
     }
@@ -253,13 +234,10 @@ export class AuthService {
             const tokenId = `${payload.sub}:${payload.tokenVersion}`;
             await this.cacheService.denyRefreshToken(tokenId, payload.exp || 0);
 
-            this.logger.logUserAction(
-                payload.sub,
-                'LOGOUT_TOKEN_DENIED',
-                { tokenVersion: payload.tokenVersion },
-                undefined,
-                correlationId
-            );
+            this.logger.logUserAction(payload.sub, 'LOGOUT_TOKEN_DENIED', {
+                tokenVersion: payload.tokenVersion,
+                correlationId,
+            });
         } catch (error) {
             // Even if token verification fails, we don't throw an error for logout
             // This prevents issues with already expired tokens

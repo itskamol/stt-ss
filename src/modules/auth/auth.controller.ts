@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { Public, User } from '@/shared/decorators';
 import { UserContext } from '@/shared/interfaces';
 import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
@@ -51,19 +51,14 @@ export class AuthController {
             return result;
         } catch (error) {
             const responseTime = Date.now() - startTime;
-            this.logger.logSecurityEvent(
-                'LOGIN_ATTEMPT_FAILED',
-                {
-                    email: loginDto.email,
-                    error: error.message,
-                    responseTime,
-                    userAgent: request.headers['user-agent'],
-                    ip: request.ip,
-                },
-                undefined,
-                undefined,
-                request.correlationId
-            );
+            this.logger.logUserAction(undefined, 'LOGIN_ATTEMPT_FAILED', {
+                email: loginDto.email,
+                error: error.message,
+                responseTime,
+                userAgent: request.headers['user-agent'],
+                ip: request.ip,
+                correlationId: request.correlationId,
+            });
             throw error;
         }
     }
@@ -106,18 +101,13 @@ export class AuthController {
             return result;
         } catch (error) {
             const responseTime = Date.now() - startTime;
-            this.logger.logSecurityEvent(
-                'TOKEN_REFRESH_FAILED',
-                {
-                    error: error.message,
-                    responseTime,
-                    userAgent: request.headers['user-agent'],
-                    ip: request.ip,
-                },
-                undefined,
-                undefined,
-                request.correlationId
-            );
+            this.logger.logUserAction(undefined, 'TOKEN_REFRESH_FAILED', {
+                error: error.message,
+                responseTime,
+                userAgent: request.headers['user-agent'],
+                ip: request.ip,
+                correlationId: request.correlationId,
+            });
             throw error;
         }
     }
@@ -137,26 +127,19 @@ export class AuthController {
         try {
             await this.authService.logout(logoutDto.refreshToken, request.correlationId);
 
-            this.logger.logUserAction(
-                user.sub,
-                'LOGOUT_SUCCESS',
-                {},
-                user.organizationId,
-                request.correlationId
-            );
+            this.logger.logUserAction(user.sub, 'LOGOUT_SUCCESS', {
+                organizationId: user.organizationId,
+                correlationId: request.correlationId,
+            });
         } catch (error) {
-            this.logger.logSecurityEvent(
-                'LOGOUT_FAILED',
-                {
-                    userId: user.sub,
-                    error: error.message,
-                    userAgent: request.headers['user-agent'],
-                    ip: request.ip,
-                },
-                user.sub,
-                user.organizationId,
-                request.correlationId
-            );
+            this.logger.logUserAction(user.sub, 'LOGOUT_FAILED', {
+                userId: user.sub,
+                error: error.message,
+                userAgent: request.headers['user-agent'],
+                ip: request.ip,
+                organizationId: user.organizationId,
+                correlationId: request.correlationId,
+            });
             throw error;
         }
     }

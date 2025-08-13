@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { LoggerService } from './logger.service';
+import { LoggerService } from './services/main-logger.service';
 
 describe('LoggerService', () => {
     let service: LoggerService;
@@ -104,7 +104,11 @@ describe('LoggerService', () => {
 
     describe('logUserAction', () => {
         it('should log user action with proper context', () => {
-            service.logUserAction('user-123', 'LOGIN', { ip: '127.0.0.1' }, 'org-456', 'corr-789');
+            service.logUserAction('user-123', 'LOGIN', {
+                ip: '127.0.0.1',
+                correlationId: 'org-456',
+                organizationId: 'corr-789',
+            });
 
             expect(console.log).toHaveBeenCalledWith(
                 expect.stringContaining('"message":"User action: LOGIN"')
@@ -126,14 +130,12 @@ describe('LoggerService', () => {
 
     describe('logDatabaseOperation', () => {
         it('should log database operation with proper context', () => {
-            service.logDatabaseOperation(
-                'CREATE',
-                'Employee',
-                'emp-123',
-                'user-456',
-                'org-789',
-                'corr-abc'
-            );
+            service.logUserAction('user-456', 'CREATE', {
+                module: 'Employee',
+                employeeId: 'emp-123',
+                correlationId: 'org-456',
+                organizationId: 'corr-789',
+            });
 
             expect(console.log).toHaveBeenCalledWith(
                 expect.stringContaining('"message":"Database operation: CREATE on Employee"')
@@ -152,7 +154,7 @@ describe('LoggerService', () => {
 
     describe('logSecurityEvent', () => {
         it('should log security event as warning', () => {
-            service.logSecurityEvent('UNAUTHORIZED_ACCESS', { ip: '127.0.0.1' }, 'user-123');
+            service.logUserAction('user-123', 'UNAUTHORIZED_ACCESS', { ip: '127.0.0.1' });
 
             expect(console.warn).toHaveBeenCalledWith(
                 expect.stringContaining('"message":"Security event: UNAUTHORIZED_ACCESS"')
@@ -165,14 +167,12 @@ describe('LoggerService', () => {
 
     describe('logQueueJob', () => {
         it('should log successful job completion', () => {
-            service.logQueueJob(
-                'ProcessEvent',
-                'job-123',
-                'completed',
-                1500,
-                undefined,
-                'corr-456'
-            );
+            service.log('ProcessEvent', {
+                jobId: 'job-123',
+                status: 'completed',
+                time: 1500,
+                correlationId: 'corr-456',
+            });
 
             expect(console.log).toHaveBeenCalledWith(
                 expect.stringContaining('"message":"Queue job ProcessEvent (job-123) completed"')
@@ -181,14 +181,13 @@ describe('LoggerService', () => {
         });
 
         it('should log failed job as error', () => {
-            service.logQueueJob(
-                'ProcessEvent',
-                'job-123',
-                'failed',
-                500,
-                'Connection timeout',
-                'corr-456'
-            );
+            service.log('ProcessEvent', {
+                jobId: 'job-123',
+                status: 'filed',
+                time: 1500,
+                reason: 'Timeout',
+                correlationId: 'corr-456',
+            });
 
             expect(console.error).toHaveBeenCalledWith(
                 expect.stringContaining('"message":"Queue job ProcessEvent (job-123) failed"')

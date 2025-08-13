@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { OrganizationService } from './organization.service';
 import { OrganizationRepository } from './organization.repository';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { CreateOrganizationDto, UpdateOrganizationDto } from '@/shared/dto';
 import { DatabaseUtil } from '@/shared/utils';
 

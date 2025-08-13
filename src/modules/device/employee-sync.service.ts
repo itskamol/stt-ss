@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/core/database/prisma.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { DeviceRepository } from '../device/device.repository';
 import { DataScope } from '@/shared/interfaces';
 import { DeviceSyncEmployeesDto } from '@/shared/dto';
@@ -85,22 +85,17 @@ export class EmployeeSyncService {
             });
 
             // Log the sync operation
-            this.logger.logUserAction(
-                syncedByUserId,
-                'DEVICE_EMPLOYEE_SYNC_COMPLETED',
-                {
-                    deviceId,
-                    deviceName: device.name,
-                    totalEmployees: employeesToSync.length,
-                    added: results.added,
-                    updated: results.updated,
-                    removed: results.removed,
-                    failed: results.failed,
-                    forceSync: syncDto.forceSync,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(syncedByUserId, 'DEVICE_EMPLOYEE_SYNC_COMPLETED', {
+                deviceId,
+                deviceName: device.name,
+                totalEmployees: employeesToSync.length,
+                added: results.added,
+                updated: results.updated,
+                removed: results.removed,
+                failed: results.failed,
+                forceSync: syncDto.forceSync,
+                organizationId: scope.organizationId,
+            });
 
             return {
                 deviceId,
@@ -395,15 +390,12 @@ export class EmployeeSyncService {
         }
 
         // Log the retry operation
-        this.logger.logUserAction(
-            retriedByUserId,
-            'DEVICE_EMPLOYEE_SYNC_RETRY',
-            {
-                deviceId,
-                ...retryResults,
-            },
-            scope.organizationId
-        );
+        this.logger.logUserAction(retriedByUserId, 'DEVICE_EMPLOYEE_SYNC_RETRY', {
+            deviceId,
+            ...retryResults,
+
+            organizationId: scope.organizationId,
+        });
 
         return retryResults;
     }

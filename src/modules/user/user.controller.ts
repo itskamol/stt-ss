@@ -20,7 +20,7 @@ import {
     ApiTags,
 } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import {
     AssignUserToOrganizationDto,
     ChangePasswordDto,

@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Organization } from '@prisma/client';
 import { OrganizationRepository } from './organization.repository';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
 import { CreateOrganizationDto, UpdateOrganizationDto } from '@/shared/dto';
 
@@ -29,9 +29,8 @@ export class OrganizationService {
                 {
                     organizationId: organization.id,
                     organizationName: organization.name,
-                },
-                organization.id,
-                correlationId
+                    correlationId
+                }
             );
 
             return organization;
@@ -95,9 +94,8 @@ export class OrganizationService {
                     changes: updateOrganizationDto,
                     oldName: existingOrganization.name,
                     newName: updatedOrganization.name,
-                },
-                id,
-                correlationId
+                    correlationId
+                }
             );
 
             return updatedOrganization;
@@ -133,9 +131,8 @@ export class OrganizationService {
             {
                 organizationId: id,
                 organizationName: existingOrganization.name,
-            },
-            id,
-            correlationId
+                correlationId
+            }
         );
     }
 

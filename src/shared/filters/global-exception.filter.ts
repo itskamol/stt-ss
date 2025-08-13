@@ -1,6 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 import { DatabaseUtil } from '../utils/database.util';
 

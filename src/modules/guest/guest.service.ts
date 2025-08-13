@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { GuestStatus, GuestVisit } from '@prisma/client';
 import { GuestRepository } from './guest.repository';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { QueueProducer } from '@/core/queue/queue.producer';
 import { ApproveGuestVisitDto, CreateGuestVisitDto, UpdateGuestVisitDto } from '@/shared/dto';
 import { DataScope, GuestVisitWithCredentials } from '@/shared/interfaces';
@@ -48,19 +48,15 @@ export class GuestService {
                 createdByUserId
             );
 
-            this.logger.logUserAction(
-                createdByUserId,
-                'GUEST_VISIT_CREATED',
-                {
-                    guestVisitId: guestVisit.id,
-                    guestName: guestVisit.guestName,
-                    branchId: guestVisit.branchId,
-                    scheduledEntryTime: guestVisit.scheduledEntryTime,
-                    scheduledExitTime: guestVisit.scheduledExitTime,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(createdByUserId, 'GUEST_VISIT_CREATED', {
+                guestVisitId: guestVisit.id,
+                guestName: guestVisit.guestName,
+                branchId: guestVisit.branchId,
+                scheduledEntryTime: guestVisit.scheduledEntryTime,
+                scheduledExitTime: guestVisit.scheduledExitTime,
+                correlationId,
+                organizationId: scope.organizationId,
+            });
 
             return guestVisit;
         } catch (error) {
@@ -139,9 +135,9 @@ export class GuestService {
                 changes: updateGuestVisitDto,
                 oldStatus: existingVisit.status,
                 newStatus: updatedVisit.status,
-            },
-            scope.organizationId,
-            correlationId
+                correlationId,
+                organizationId: scope.organizationId,
+            }
         );
 
         return updatedVisit;
@@ -185,19 +181,15 @@ export class GuestService {
         // Schedule visit expiration
         await this.scheduleVisitExpiration(updatedVisit);
 
-        this.logger.logUserAction(
-            approvedByUserId,
-            'GUEST_VISIT_APPROVED',
-            {
-                guestVisitId: id,
-                guestName: existingVisit.guestName,
-                accessCredentialType: approveDto.accessCredentialType,
-                scheduledEntryTime: existingVisit.scheduledEntryTime,
-                scheduledExitTime: existingVisit.scheduledExitTime,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(approvedByUserId, 'GUEST_VISIT_APPROVED', {
+            guestVisitId: id,
+            guestName: existingVisit.guestName,
+            accessCredentialType: approveDto.accessCredentialType,
+            scheduledEntryTime: existingVisit.scheduledEntryTime,
+            scheduledExitTime: existingVisit.scheduledExitTime,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
 
         return {
             ...updatedVisit,
@@ -232,17 +224,13 @@ export class GuestService {
             scope
         );
 
-        this.logger.logUserAction(
-            rejectedByUserId,
-            'GUEST_VISIT_REJECTED',
-            {
-                guestVisitId: id,
-                guestName: existingVisit.guestName,
-                reason,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(rejectedByUserId, 'GUEST_VISIT_REJECTED', {
+            guestVisitId: id,
+            guestName: existingVisit.guestName,
+            reason,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
 
         return updatedVisit;
     }
@@ -283,17 +271,13 @@ export class GuestService {
             scope
         );
 
-        this.logger.logUserAction(
-            activatedByUserId || 'SYSTEM',
-            'GUEST_VISIT_ACTIVATED',
-            {
-                guestVisitId: id,
-                guestName: existingVisit.guestName,
-                activatedAt: now,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(activatedByUserId || 'SYSTEM', 'GUEST_VISIT_ACTIVATED', {
+            guestVisitId: id,
+            guestName: existingVisit.guestName,
+            activatedAt: now,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
 
         return updatedVisit;
     }
@@ -324,17 +308,12 @@ export class GuestService {
             scope
         );
 
-        this.logger.logUserAction(
-            completedByUserId || 'SYSTEM',
-            'GUEST_VISIT_COMPLETED',
-            {
-                guestVisitId: id,
-                guestName: existingVisit.guestName,
-                completedAt: new Date(),
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(completedByUserId || 'SYSTEM', 'GUEST_VISIT_COMPLETED', {
+            guestVisitId: id,
+            guestName: existingVisit.guestName,
+            completedAt: new Date(),
+            correlationId,
+        });
 
         return updatedVisit;
     }

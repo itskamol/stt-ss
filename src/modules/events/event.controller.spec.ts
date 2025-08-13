@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { EventController } from './event.controller';
 import { EventService } from './event.service';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { CreateRawEventDto } from '@/shared/dto';
 import { EventType } from '@prisma/client';
 

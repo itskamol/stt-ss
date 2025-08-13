@@ -60,28 +60,28 @@ export class ConfigService {
     }
 
     get encryptionSecretKey(): string {
-        const secretKey = this.configService.get<string>('ENCRYPTION_SECRET_KEY');
+        const secretKey = this.configService.get<string>('SECRET_ENCRYPTION_KEY');
 
         if (!secretKey) {
-            throw new Error('ENCRYPTION_SECRET_KEY environment variable is not set');
+            throw new Error('SECRET_ENCRYPTION_KEY environment variable is not set');
         }
 
         if (secretKey.length < 32) {
-            throw new Error('ENCRYPTION_SECRET_KEY must be at least 32 characters long');
+            throw new Error('SECRET_ENCRYPTION_KEY must be at least 32 characters long');
         }
 
         return secretKey
     }
 
-    get encryptionAlgoritm(): string {
-        const secretKey = this.configService.get<string>('ENCRYPTION_SECRET_KEY');
+    get encryptionIv(): string {
+        const secretKey = this.configService.get<string>('SECRET_ENCRYPTION_IV');
 
         if (!secretKey) {
-            throw new Error('ENCRYPTION_SECRET_KEY environment variable is not set');
+            throw new Error('SECRET_ENCRYPTION_IV environment variable is not set');
         }
 
         if (secretKey.length < 32) {
-            throw new Error('ENCRYPTION_SECRET_KEY must be at least 32 characters long');
+            throw new Error('SECRET_ENCRYPTION_IV must be at least 32 characters long');
         }
 
         return secretKey

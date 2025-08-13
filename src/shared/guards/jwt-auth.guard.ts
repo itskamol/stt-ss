@@ -2,7 +2,7 @@ import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/com
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 
 @Injectable()
@@ -34,7 +34,8 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         if (err || !user) {
             const errorMessage = err?.message || info?.message || 'Authentication failed';
 
-            this.logger.logSecurityEvent(
+            this.logger.logUserAction(
+                undefined,
                 'JWT_AUTH_FAILED',
                 {
                     error: errorMessage,
@@ -43,9 +44,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
                     userAgent: request.headers['user-agent'],
                     ip: request.ip,
                 },
-                undefined,
-                undefined,
-                request.correlationId
             );
 
             throw err || new UnauthorizedException(errorMessage);

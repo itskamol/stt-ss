@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { IDeviceAdapter } from './device.adapter';
 import { HikvisionApiAdapter } from './implementations/hikvision-api.adapter';
 import { StubDeviceAdapter } from './implementations/stub-device.adapter';
+import { LoggerService } from '@/core/logger';
 
 export type AdapterType = 'hikvision' | 'stub' | 'zkteco' | 'dahua';
 
@@ -17,10 +18,11 @@ export interface AdapterHealthStatus {
 
 @Injectable()
 export class DeviceAdapterFactory {
-    private readonly logger = new Logger(DeviceAdapterFactory.name);
     private readonly adapterHealthStatus = new Map<AdapterType, AdapterHealthStatus>();
-
+    
     constructor(
+        
+        private readonly logger: LoggerService,
         private readonly configService: ConfigService,
         private readonly hikvisionAdapter: HikvisionApiAdapter,
         private readonly stubAdapter: StubDeviceAdapter,

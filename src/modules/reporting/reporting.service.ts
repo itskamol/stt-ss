@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ReportRepository } from './report.repository';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { QueueProducer } from '@/core/queue/queue.producer';
 import { IStorageAdapter } from '@/shared/adapters/storage.adapter';
 import { CreateReportDto } from '@/shared/dto';

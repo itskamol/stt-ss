@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Branch } from '@prisma/client';
 import { BranchRepository } from './branch.repository';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
 import { AssignBranchManagerDto, CreateBranchDto, UpdateBranchDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
@@ -25,17 +25,12 @@ export class BranchService {
         try {
             const branch = await this.branchRepository.create(createBranchDto, scope);
 
-            this.logger.logUserAction(
-                createdByUserId,
-                'BRANCH_CREATED',
-                {
-                    branchId: branch.id,
-                    branchName: branch.name,
-                    organizationId: scope.organizationId,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(createdByUserId, 'BRANCH_CREATED', {
+                branchId: branch.id,
+                branchName: branch.name,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
 
             return branch;
         } catch (error) {
@@ -81,18 +76,14 @@ export class BranchService {
 
             const updatedBranch = await this.branchRepository.update(id, updateBranchDto, scope);
 
-            this.logger.logUserAction(
-                updatedByUserId,
-                'BRANCH_UPDATED',
-                {
-                    branchId: id,
-                    changes: updateBranchDto,
-                    oldName: existingBranch.name,
-                    newName: updatedBranch.name,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(updatedByUserId, 'BRANCH_UPDATED', {
+                branchId: id,
+                changes: updateBranchDto,
+                oldName: existingBranch.name,
+                newName: updatedBranch.name,
+                correlationId,
+                organizationId: scope.organizationId,
+            });
 
             return updatedBranch;
         } catch (error) {
@@ -122,16 +113,12 @@ export class BranchService {
 
         await this.branchRepository.delete(id, scope);
 
-        this.logger.logUserAction(
-            deletedByUserId,
-            'BRANCH_DELETED',
-            {
-                branchId: id,
-                branchName: existingBranch.name,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(deletedByUserId, 'BRANCH_DELETED', {
+            branchId: id,
+            branchName: existingBranch.name,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
     }
 
     /**
@@ -174,16 +161,11 @@ export class BranchService {
                 assignDto.branchId
             );
 
-            this.logger.logUserAction(
-                assignedByUserId,
-                'BRANCH_MANAGER_ASSIGNED',
-                {
-                    managerId: assignDto.managerId,
-                    branchId: assignDto.branchId,
-                },
-                undefined,
-                correlationId
-            );
+            this.logger.logUserAction(assignedByUserId, 'BRANCH_MANAGER_ASSIGNED', {
+                managerId: assignDto.managerId,
+                branchId: assignDto.branchId,
+                correlationId,
+            });
 
             return managedBranch;
         } catch (error) {
@@ -205,16 +187,11 @@ export class BranchService {
     ): Promise<void> {
         await this.branchRepository.removeManager(managerId, branchId);
 
-        this.logger.logUserAction(
-            removedByUserId,
-            'BRANCH_MANAGER_REMOVED',
-            {
-                managerId,
-                branchId,
-            },
-            undefined,
-            correlationId
-        );
+        this.logger.logUserAction(removedByUserId, 'BRANCH_MANAGER_REMOVED', {
+            managerId,
+            branchId,
+            correlationId,
+        });
     }
 
     /**

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Department } from '@prisma/client';
 import { DepartmentRepository } from './department.repository';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
 import { CreateDepartmentDto, UpdateDepartmentDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
@@ -45,18 +45,14 @@ export class DepartmentService {
 
             const department = await this.departmentRepository.create(createDepartmentDto);
 
-            this.logger.logUserAction(
-                createdByUserId,
-                'DEPARTMENT_CREATED',
-                {
-                    departmentId: department.id,
-                    departmentName: department.name,
-                    branchId: department.branchId,
-                    parentId: department.parentId,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(createdByUserId, 'DEPARTMENT_CREATED', {
+                departmentId: department.id,
+                departmentName: department.name,
+                branchId: department.branchId,
+                parentId: department.parentId,
+                correlationId,
+                organizationId: scope.organizationId,
+            });
 
             return department;
         } catch (error) {
@@ -148,20 +144,16 @@ export class DepartmentService {
                 scope
             );
 
-            this.logger.logUserAction(
-                updatedByUserId,
-                'DEPARTMENT_UPDATED',
-                {
-                    departmentId: id,
-                    changes: updateDepartmentDto,
-                    oldName: existingDepartment.name,
-                    newName: updatedDepartment.name,
-                    oldParentId: existingDepartment.parentId,
-                    newParentId: updatedDepartment.parentId,
-                },
-                scope.organizationId,
-                correlationId
-            );
+            this.logger.logUserAction(updatedByUserId, 'DEPARTMENT_UPDATED', {
+                departmentId: id,
+                changes: updateDepartmentDto,
+                oldName: existingDepartment.name,
+                newName: updatedDepartment.name,
+                oldParentId: existingDepartment.parentId,
+                newParentId: updatedDepartment.parentId,
+                correlationId,
+                organizationId: scope.organizationId,
+            });
 
             return updatedDepartment;
         } catch (error) {
@@ -199,17 +191,13 @@ export class DepartmentService {
 
         await this.departmentRepository.delete(id, scope);
 
-        this.logger.logUserAction(
-            deletedByUserId,
-            'DEPARTMENT_DELETED',
-            {
-                departmentId: id,
-                departmentName: existingDepartment.name,
-                branchId: existingDepartment.branchId,
-            },
-            scope.organizationId,
-            correlationId
-        );
+        this.logger.logUserAction(deletedByUserId, 'DEPARTMENT_DELETED', {
+            departmentId: id,
+            departmentName: existingDepartment.name,
+            branchId: existingDepartment.branchId,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
     }
 
     /**

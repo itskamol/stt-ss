@@ -1,6 +1,6 @@
 import { Job } from 'bullmq';
 import { WorkerHost } from '@nestjs/bullmq';
-import { LoggerService } from '../../logger/logger.service';
+import { LoggerService } from '../../logger';
 import { BaseJobData, JobProcessor, JobResult } from '../interfaces/job.interface';
 
 export abstract class BaseJobProcessor<T extends BaseJobData = BaseJobData>

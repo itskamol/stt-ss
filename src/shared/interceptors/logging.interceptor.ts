@@ -1,7 +1,7 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { LoggerService } from '@/core/logger/logger.service';
+import { LoggerService } from '@/core/logger';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 
 @Injectable()
@@ -23,11 +23,8 @@ export class LoggingInterceptor implements NestInterceptor {
                     this.logger.logApiRequest(
                         method,
                         url,
-                        response.statusCode,
+                        userContext?.id,
                         responseTime,
-                        userContext?.sub,
-                        userContext?.organizationId,
-                        correlationId
                     );
                 },
                 error: error => {
