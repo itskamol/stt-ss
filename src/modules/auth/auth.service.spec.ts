@@ -1,13 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { UserRepository } from '../user/user.repository';
 import { JwtService as CustomJwtService } from './jwt.service';
 import { CacheService } from '@/core/cache/cache.service';
-import { LoginDto } from '@/shared/dto';
+import { LoginDto, Role } from '@/shared/dto';
 import { PasswordUtil } from '@/shared/utils/password.util';
 import { MockLoggerProvider, mockLoggerService } from '@/testing/mocks/logger.mock';
 import { UserRepository } from '../user/user.repository';
 import { AuthService } from './auth.service';
-import { Role } from '@prisma/client';
+import { JwtService as CustomJwtService } from './jwt.service';
 
 // Mock PasswordUtil
 jest.mock('@/shared/utils/password.util');
@@ -170,7 +172,7 @@ describe('AuthService', () => {
             await expect(service.login(loginDto, 'correlation-123')).rejects.toThrow(
                 UnauthorizedException
             );
-            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
                 'LOGIN_FAILED_INVALID_PASSWORD',
                 { email: 'test@example.com', userId: 'user-123' },
                 'user-123',
@@ -273,7 +275,7 @@ describe('AuthService', () => {
             await expect(service.refreshToken(refreshTokenDto, 'correlation-123')).rejects.toThrow(
                 UnauthorizedException
             );
-            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
                 'REFRESH_TOKEN_FAILED',
                 { error: 'Invalid token' },
                 undefined,
@@ -290,7 +292,7 @@ describe('AuthService', () => {
             await expect(service.refreshToken(refreshTokenDto, 'correlation-123')).rejects.toThrow(
                 UnauthorizedException
             );
-            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
                 'REFRESH_TOKEN_FAILED_USER_INVALID',
                 { userId: 'user-123' },
                 'user-123',

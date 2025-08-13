@@ -14,36 +14,18 @@ export class QueryBuilder {
      * Builds branch-scoped where clause for branch managers
      */
     static buildBranchScope(scope: DataScope): any {
+        const baseScope = this.buildOrganizationScope(scope);
+
         if (scope.branchIds && scope.branchIds.length > 0) {
             return {
-                organizationId: scope.organizationId,
-                id: {
+                ...baseScope,
+                branchId: {
                     in: scope.branchIds,
                 },
             };
         }
 
-        return {
-            organizationId: scope.organizationId,
-        };
-    }
-
-    /**
-     * Builds branch-scoped where clause for entities that have branch relation
-     */
-    static buildBranchRelationScope(scope: DataScope): any {
-        if (scope.branchIds && scope.branchIds.length > 0) {
-            return {
-                organizationId: scope.organizationId,
-                id: {
-                    in: scope.branchIds,
-                },
-            };
-        }
-
-        return {
-            organizationId: scope.organizationId,
-        };
+        return baseScope;
     }
 
     /**

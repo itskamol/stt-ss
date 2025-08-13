@@ -1,4 +1,3 @@
-import { LoggerService } from '@/core/logger';
 import { BadRequestException } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
 
@@ -10,15 +9,12 @@ export interface FormattedValidationError {
 }
 
 export class CustomValidationException extends BadRequestException {
-    constructor(
-        errors: ValidationError[],
-        private readonly logger?: LoggerService
-    ) {
+    constructor(errors: ValidationError[]) {
         const formattedErrors: FormattedValidationError[] = errors.map(error => ({
             field: error.property,
             value: error.value,
             constraints: error.constraints || {},
-            message: Object.values(error.constraints || {}).join(', '),
+            message: Object.values(error.constraints || {}).join(', ')
         }));
 
         const message = formattedErrors.map(err => `${err.field}: ${err.message}`).join('; ');
@@ -26,10 +22,7 @@ export class CustomValidationException extends BadRequestException {
         super({
             message: 'Validation failed',
             errors: formattedErrors,
-            statusCode: 400,
+            statusCode: 400
         });
-
-        // Logger ishlatish
-        this.logger.error(message)
     }
 }

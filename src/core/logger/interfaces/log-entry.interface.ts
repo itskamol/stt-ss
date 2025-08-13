@@ -19,3 +19,9 @@ export interface LogContext {
 }
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose';
+
+export interface LogFormatterOptions {
+    colorize?: boolean;
+    includeTimestamp?: boolean;
+    includeContext?: boolean;
+}

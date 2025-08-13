@@ -25,7 +25,7 @@ async function bootstrap() {
             whitelist: true,
             forbidNonWhitelisted: true,
             transform: true,
-            exceptionFactory: errors => new CustomValidationException(errors, logger),
+            exceptionFactory: errors => new CustomValidationException(errors),
         })
     );
 
