@@ -9,6 +9,7 @@ import { Device } from '@prisma/client';
 import { DeviceRepository } from './device.repository';
 import { DeviceConfigurationService } from './device-configuration.service';
 import { EmployeeSyncService } from './employee-sync.service';
+import { DeviceAdapterStrategy } from './device-adapter.strategy';
 import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
 import {
@@ -22,7 +23,8 @@ import {
     UpdateDeviceTemplateDto,
 } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
-import { DeviceCommand, IDeviceAdapter } from '@/shared/adapters/device.adapter';
+import { EncryptionService } from '@/shared/services/encryption.service';
+import { DeviceCommand } from '@/shared/adapters';
 
 @Injectable()
 export class DeviceService {
@@ -30,9 +32,32 @@ export class DeviceService {
         private readonly deviceRepository: DeviceRepository,
         private readonly deviceConfigurationService: DeviceConfigurationService,
         private readonly employeeSyncService: EmployeeSyncService,
+        private readonly deviceAdapterStrategy: DeviceAdapterStrategy,
         private readonly logger: LoggerService,
-        @Inject('IDeviceAdapter') private readonly deviceAdapter: IDeviceAdapter
+        private readonly encryptionService: EncryptionService
     ) {}
+
+    /**
+     * Create device connection config from device entity
+     */
+    private createDeviceConfig(device: Device) {
+        return {
+            type: device.type,
+            protocol: device.protocol,
+            host: device.ipAddress,
+            port: device.port,
+            username: device.username,
+            password: device.password,
+            brand: device.model?.toLowerCase().includes('hikvision')
+                ? 'hikvision'
+                : device.model?.toLowerCase().includes('zkteco')
+                  ? 'zkteco'
+                  : device.model?.toLowerCase().includes('dahua')
+                    ? 'dahua'
+                    : 'unknown',
+            model: device.model,
+        };
+    }
 
     /**
      * Create a new device
@@ -60,6 +85,8 @@ export class DeviceService {
                     throw new ConflictException('Device with this MAC address already exists');
                 }
             }
+
+            createDeviceDto.password = this.encryptionService.encrypt(createDeviceDto.password);
 
             const device = await this.deviceRepository.create(createDeviceDto, scope);
 
@@ -161,6 +188,10 @@ export class DeviceService {
                 if (existingByMacAddress && existingByMacAddress.id !== id) {
                     throw new ConflictException('Device with this MAC address already exists');
                 }
+            }
+
+            if (updateDeviceDto.password) {
+                updateDeviceDto.password = this.encryptionService.encrypt(updateDeviceDto.password);
             }
 
             const updatedDevice = await this.deviceRepository.update(id, updateDeviceDto, scope);
@@ -323,7 +354,12 @@ export class DeviceService {
         }
 
         try {
-            const result = await this.deviceAdapter.sendCommand(device.deviceIdentifier, command);
+            const deviceConfig = this.createDeviceConfig(device);
+            const result = await this.deviceAdapterStrategy.executeCommand(
+                device.deviceIdentifier,
+                deviceConfig,
+                command
+            );
 
             this.logger.logUserAction(commandByUserId, 'DEVICE_COMMAND_SENT', {
                 deviceId: id,
@@ -355,12 +391,18 @@ export class DeviceService {
      */
     async getDeviceHealth(id: string, scope: DataScope) {
         const device = await this.deviceRepository.findById(id, scope);
+
         if (!device) {
             throw new NotFoundException('Device not found');
         }
 
         try {
-            const health = await this.deviceAdapter.getDeviceHealth(device.deviceIdentifier);
+            const deviceConfig = this.createDeviceConfig(device);
+
+            const health = await this.deviceAdapterStrategy.getDeviceHealth(
+                device.id,
+                deviceConfig
+            );
             return health;
         } catch (error) {
             this.logger.error(`Failed to get device health for ${device.name}`, error, {
@@ -388,7 +430,11 @@ export class DeviceService {
         }
 
         try {
-            const isConnected = await this.deviceAdapter.testConnection(device.deviceIdentifier);
+            const deviceConfig = this.createDeviceConfig(device);
+            const isConnected = await this.deviceAdapterStrategy.testConnection(
+                device.deviceIdentifier,
+                deviceConfig
+            );
 
             // Update last seen if connection is successful
             if (isConnected) {
@@ -422,7 +468,7 @@ export class DeviceService {
      */
     async discoverDevices(scope: DataScope) {
         try {
-            const discoveredDevices = await this.deviceAdapter.discoverDevices();
+            const discoveredDevices = await this.deviceAdapterStrategy.discoverDevices();
 
             // Filter out devices that are already registered
             const existingIdentifiers = await this.deviceRepository.getAllIdentifiers(scope);
@@ -468,11 +514,16 @@ export class DeviceService {
         }
 
         try {
-            const result = await this.deviceAdapter.sendCommand(device.deviceIdentifier, {
-                command: controlDto.action as any,
-                parameters: controlDto.parameters,
-                timeout: controlDto.timeout,
-            });
+            const deviceConfig = this.createDeviceConfig(device);
+            const result = await this.deviceAdapterStrategy.executeCommand(
+                device.deviceIdentifier,
+                deviceConfig,
+                {
+                    command: controlDto.action as any,
+                    parameters: controlDto.parameters,
+                    timeout: controlDto.timeout,
+                }
+            );
 
             this.logger.logUserAction(controlledByUserId, 'DEVICE_CONTROL_ACTION', {
                 deviceId: id,

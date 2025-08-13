@@ -4,14 +4,37 @@ import { DeviceService } from './device.service';
 import { DeviceRepository } from './device.repository';
 import { DeviceConfigurationService } from './device-configuration.service';
 import { EmployeeSyncService } from './employee-sync.service';
+import { DeviceAdapterStrategy } from './device-adapter.strategy';
 import { DatabaseModule } from '@/core/database/database.module';
 import { LoggerModule } from '@/core/logger/logger.module';
-import { HikvisionAdapterModule } from '@/shared/adapters/hikvision-adapter.module';
+import { AdapterModule } from '@/shared/adapters/adapter.module';
+import { HttpModule } from '@nestjs/axios';
+import { EncryptionService } from '@/shared/services/encryption.service';
+import { XmlJsonService } from '@/shared/services/xml-json.service';
+import { DeviceAdapterFactory } from '@/shared/adapters/factories/device-adapter.factory';
+import { StubDeviceAdapter } from '@/shared/adapters/implementations/device/stub-device.adapter';
+import { HikvisionAdapter } from '@/shared/adapters';
 
 @Module({
-    imports: [DatabaseModule, LoggerModule, HikvisionAdapterModule.forRoot({ useStubAdapter: true })],
+    imports: [DatabaseModule, LoggerModule, HttpModule, AdapterModule],
     controllers: [DeviceController],
-    providers: [DeviceService, DeviceRepository, DeviceConfigurationService, EmployeeSyncService],
-    exports: [DeviceService, DeviceRepository, DeviceConfigurationService, EmployeeSyncService],
+    providers: [
+        DeviceService, 
+        DeviceRepository, 
+        DeviceConfigurationService, 
+        EmployeeSyncService,
+        DeviceAdapterStrategy,
+        DeviceAdapterFactory,
+        StubDeviceAdapter,
+        EncryptionService,
+        XmlJsonService,
+        HikvisionAdapter
+    ],
+    exports: [
+        DeviceService, 
+        DeviceRepository, 
+        DeviceConfigurationService, 
+        EmployeeSyncService
+    ],
 })
 export class DeviceModule {}

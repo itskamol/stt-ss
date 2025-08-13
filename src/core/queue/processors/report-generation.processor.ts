@@ -10,9 +10,8 @@ import { EmployeeService } from '../../../modules/employee/employee.service';
 import { DeviceService } from '../../../modules/device/device.service';
 import { GuestService } from '../../../modules/guest/guest.service';
 import { AuditLogService } from '../../../shared/services/audit-log.service';
-import { IStorageAdapter } from '../../../shared/adapters/storage.adapter';
-import { INotificationAdapter } from '../../../shared/adapters/notification.adapter';
 import { DataScope } from '../../../shared/interfaces';
+import { INotificationAdapter, IStorageAdapter } from '@/shared/adapters';
 
 @Injectable()
 @Processor('exports')

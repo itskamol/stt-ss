@@ -1,23 +1,16 @@
 import { Module, DynamicModule } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-
+import { HttpModule } from '@nestjs/axios';
 import { LoggerModule } from '@/core/logger/logger.module';
-import { StubStorageAdapter } from './implementations/stub-storage.adapter';
-import { StubNotificationAdapter } from './implementations/stub-notification.adapter';
-import { StubMatchingAdapter } from './implementations/stub-matching.adapter';
-import { HikvisionAdapterModule } from './hikvision-adapter.module';
+import { DatabaseModule } from '@/core/database/database.module';
+import { EncryptionService } from '../services/encryption.service';
+import { XmlJsonService } from '../services/xml-json.service';
+import { HikvisionAdapter, StubDeviceAdapter, StubMatchingAdapter, StubNotificationAdapter, StubStorageAdapter } from './implementations';
+import { DeviceAdapterFactory } from './factories';
+import { ConfigModule } from '@nestjs/config';
 
 export interface AdapterModuleOptions {
     useStubAdapters?: boolean;
     deviceAdapterType?: 'hikvision' | 'stub' | 'auto';
-    hikvisionConfig?: {
-        httpTimeout?: number;
-        maxRetries?: number;
-        cacheConfig?: {
-            ttl?: number;
-            max?: number;
-        };
-    };
 }
 
 @Module({})
@@ -26,7 +19,6 @@ export class AdapterModule {
         const {
             useStubAdapters = false,
             deviceAdapterType = 'auto',
-            hikvisionConfig = {},
         } = options;
 
         return {
@@ -34,13 +26,17 @@ export class AdapterModule {
             imports: [
                 LoggerModule,
                 ConfigModule,
-                HikvisionAdapterModule.forRoot({
-                    useStubAdapter: useStubAdapters,
-                    adapterType: deviceAdapterType,
-                    ...hikvisionConfig,
-                }),
+                DatabaseModule,
+                HttpModule
             ],
             providers: [
+                // Device adapters
+                HikvisionAdapter,
+                StubDeviceAdapter,
+                DeviceAdapterFactory,
+                EncryptionService,
+                XmlJsonService,
+
                 // Storage adapter
                 {
                     provide: 'IStorageAdapter',
@@ -60,10 +56,12 @@ export class AdapterModule {
                 },
             ],
             exports: [
+                HikvisionAdapter,
+                StubDeviceAdapter,
+                DeviceAdapterFactory,
                 'IStorageAdapter',
                 'INotificationAdapter',
                 'IMatchingAdapter',
-                HikvisionAdapterModule,
             ],
         };
     }
@@ -78,21 +76,16 @@ export class AdapterModule {
             imports: [
                 LoggerModule,
                 ConfigModule,
-                HikvisionAdapterModule.forRootAsync({
-                    useFactory: async (...args: any[]) => {
-                        const moduleOptions = await options.useFactory(...args);
-                        return {
-                            useStubAdapter: moduleOptions.useStubAdapters,
-                            adapterType: moduleOptions.deviceAdapterType,
-                            ...moduleOptions.hikvisionConfig,
-                        };
-                    },
-                    inject: options.inject,
-                    imports: options.imports,
-                }),
+                DatabaseModule,
+                HttpModule,
                 ...(options.imports || []),
             ],
             providers: [
+                // Device adapters
+                HikvisionAdapter,
+                StubDeviceAdapter,
+                DeviceAdapterFactory,
+
                 // Storage adapter
                 {
                     provide: 'IStorageAdapter',
@@ -110,12 +103,22 @@ export class AdapterModule {
                     provide: 'IMatchingAdapter',
                     useClass: StubMatchingAdapter,
                 },
+
+                // Options provider
+                {
+                    provide: 'ADAPTER_MODULE_OPTIONS',
+                    useFactory: options.useFactory,
+                    inject: options.inject || [],
+                },
             ],
             exports: [
+                HikvisionAdapter,
+                StubDeviceAdapter,
+                DeviceAdapterFactory,
                 'IStorageAdapter',
                 'INotificationAdapter',
                 'IMatchingAdapter',
-                HikvisionAdapterModule,
+                'ADAPTER_MODULE_OPTIONS',
             ],
         };
     }

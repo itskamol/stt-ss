@@ -16,7 +16,8 @@ export class DeviceRepository {
                 type: data.type,
                 branchId: data.branchId,
                 ipAddress: data.ipAddress,
-                macAddress: data.macAddress,
+                username: data.username,
+                password: data.password,
                 model: data.model,
                 organizationId: scope.organizationId,
             },
@@ -84,19 +85,9 @@ export class DeviceRepository {
     }
 
     async update(id: string, data: UpdateDeviceDto, scope: DataScope): Promise<Device> {
-        const updateData: any = {};
-
-        if (data.name !== undefined) updateData.name = data.name;
-        if (data.type !== undefined) updateData.type = data.type;
-        if (data.ipAddress !== undefined) updateData.ipAddress = data.ipAddress;
-        if (data.macAddress !== undefined) updateData.macAddress = data.macAddress;
-        if (data.model !== undefined) updateData.model = data.model;
-        if (data.status !== undefined) updateData.status = data.status;
-        if (data.lastSeen !== undefined) updateData.lastSeen = data.lastSeen;
-
         return this.prisma.device.update({
             where: { id },
-            data: updateData,
+            data
         });
     }
 

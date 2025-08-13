@@ -4,8 +4,8 @@ import { DeviceEventProcessor } from './device-event.processor';
 import { LoggerService } from '../../logger';
 import { EmployeeRepository } from '../../../modules/employee/employee.repository';
 import { AttendanceService } from '../../../modules/attendance/attendance.service';
-import { IMatchingAdapter } from '../../../shared/adapters/matching.adapter';
 import { DeviceEventData } from '../queue.producer';
+import { IMatchingAdapter } from '@/shared/adapters';
 
 describe('DeviceEventProcessor', () => {
     let processor: DeviceEventProcessor;

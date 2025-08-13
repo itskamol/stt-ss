@@ -6,8 +6,8 @@ import { BaseJobProcessor } from './base.processor';
 import { DeviceEventData } from '../queue.producer';
 import { EmployeeRepository } from '../../../modules/employee/employee.repository';
 import { AttendanceService } from '../../../modules/attendance/attendance.service';
-import { IMatchingAdapter } from '../../../shared/adapters/matching.adapter';
 import { DataScope } from '../../../shared/interfaces';
+import { IMatchingAdapter } from '@/shared/adapters';
 
 export interface ProcessedEventResult {
     eventId: string;
