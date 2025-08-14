@@ -34,17 +34,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         if (err || !user) {
             const errorMessage = err?.message || info?.message || 'Authentication failed';
 
-            this.logger.logUserAction(
-                undefined,
-                'JWT_AUTH_FAILED',
-                {
-                    error: errorMessage,
-                    url: request.url,
-                    method: request.method,
-                    userAgent: request.headers['user-agent'],
-                    ip: request.ip,
-                },
-            );
+            this.logger.logUserAction(undefined, 'JWT_AUTH_FAILED', {
+                error: errorMessage,
+                url: request.url,
+                method: request.method,
+                userAgent: request.headers['user-agent'],
+                ip: request.ip,
+            });
 
             throw err || new UnauthorizedException(errorMessage);
         }

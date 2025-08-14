@@ -25,8 +25,8 @@ export interface AddCardRequest {
 export class HikvisionCardManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
-        private readonly logger: LoggerService,
-    ) { }
+        private readonly logger: LoggerService
+    ) {}
 
     /**
      * Add card to device
@@ -53,7 +53,9 @@ export class HikvisionCardManager {
                         Valid: {
                             enable: true,
                             beginTime: request.validFrom?.toISOString() || new Date().toISOString(),
-                            endTime: request.validTo?.toISOString() || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                            endTime:
+                                request.validTo?.toISOString() ||
+                                new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
                             timeType: 'local',
                         },
                     },
@@ -126,15 +128,17 @@ export class HikvisionCardManager {
                 },
             });
 
-            return response.data.CardInfoSearch?.CardInfo?.map((card: any) => ({
-                id: card.employeeNo,
-                cardNo: card.cardNo,
-                userId: card.employeeNo,
-                cardType: card.cardType,
-                validFrom: new Date(card.Valid.beginTime),
-                validTo: new Date(card.Valid.endTime),
-                isActive: card.Valid.enable,
-            })) || [];
+            return (
+                response.data.CardInfoSearch?.CardInfo?.map((card: any) => ({
+                    id: card.employeeNo,
+                    cardNo: card.cardNo,
+                    userId: card.employeeNo,
+                    cardType: card.cardType,
+                    validFrom: new Date(card.Valid.beginTime),
+                    validTo: new Date(card.Valid.endTime),
+                    isActive: card.Valid.enable,
+                })) || []
+            );
         } catch (error) {
             this.logger.error('Failed to get cards', error.message, {
                 deviceId: device.id,
@@ -148,7 +152,11 @@ export class HikvisionCardManager {
     /**
      * Update card information
      */
-    async updateCard(device: any, cardNo: string, updates: Partial<AddCardRequest>): Promise<CardInfo> {
+    async updateCard(
+        device: any,
+        cardNo: string,
+        updates: Partial<AddCardRequest>
+    ): Promise<CardInfo> {
         try {
             // Get existing card info first
             const existingCards = await this.getCards(device);

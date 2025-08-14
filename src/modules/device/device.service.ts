@@ -34,43 +34,22 @@ export class DeviceService {
         private readonly deviceAdapterStrategy: DeviceAdapterStrategy,
         private readonly logger: LoggerService,
         private readonly encryptionService: EncryptionService
-    ) { }
-
-    /**
-     * Create device connection config from device entity
-     */
-    private createDeviceConfig(device: Device) {
-        return {
-            type: device.type,
-            protocol: device.protocol,
-            host: device.ipAddress,
-            port: device.port,
-            username: device.username,
-            password: device.password,
-            brand: device.model?.toLowerCase().includes('hikvision')
-                ? 'hikvision'
-                : device.model?.toLowerCase().includes('zkteco')
-                    ? 'zkteco'
-                    : device.model?.toLowerCase().includes('dahua')
-                        ? 'dahua'
-                        : 'unknown',
-            model: device.model,
-        };
-    }
+    ) {}
 
     /**
      * Auto-discover device information from connection details
      */
     async discoverDeviceInfo(connectionDetails: {
-        ipAddress: string;
+        host: string;
         port: number;
         username: string;
         password: string;
+        brand: string;
         protocol?: DeviceProtocol;
     }) {
         try {
             this.logger.debug('Starting device auto-discovery', {
-                ipAddress: connectionDetails.ipAddress,
+                host: connectionDetails.host,
                 port: connectionDetails.port,
             });
 
@@ -78,19 +57,16 @@ export class DeviceService {
             const tempDeviceConfig = {
                 type: 'ACCESS_CONTROL' as any,
                 protocol: connectionDetails.protocol || 'HTTP',
-                host: connectionDetails.ipAddress,
+                host: connectionDetails.host,
                 port: connectionDetails.port,
                 username: connectionDetails.username,
                 password: connectionDetails.password,
-                brand: 'unknown',
-                model: 'unknown',
+                brand: connectionDetails.brand,
             };
 
             // Try to get device information using adapter
-            const deviceInfo = await this.deviceAdapterStrategy.getDeviceInfo(
-                `temp_${connectionDetails.ipAddress}`,
-                tempDeviceConfig
-            );
+            const deviceInfo =
+                await this.deviceAdapterStrategy.getDeviceInfoByConfig(tempDeviceConfig);
 
             // Extract device details
             const discoveredInfo = {
@@ -98,20 +74,20 @@ export class DeviceService {
                 model: deviceInfo.name || 'Unknown Model',
                 firmware: deviceInfo.firmwareVersion || 'Unknown',
                 macAddress: this.extractMacAddress(deviceInfo),
-                deviceIdentifier: deviceInfo.id || `${connectionDetails.ipAddress}_${Date.now()}`,
+                deviceIdentifier: deviceInfo.id || `${connectionDetails.host}_${Date.now()}`,
                 capabilities: deviceInfo.capabilities || [],
                 status: deviceInfo.status || 'UNKNOWN',
             };
 
             this.logger.debug('Device auto-discovery completed', {
-                ipAddress: connectionDetails.ipAddress,
+                host: connectionDetails.host,
                 discoveredInfo,
             });
 
             return discoveredInfo;
         } catch (error) {
             this.logger.warn('Device auto-discovery failed, using defaults', {
-                ipAddress: connectionDetails.ipAddress,
+                host: connectionDetails.host,
                 error: error.message,
             });
 
@@ -121,7 +97,7 @@ export class DeviceService {
                 model: 'Unknown Model',
                 firmware: 'Unknown',
                 macAddress: null,
-                deviceIdentifier: `${connectionDetails.ipAddress}_${Date.now()}`,
+                deviceIdentifier: `${connectionDetails.host}_${Date.now()}`,
                 capabilities: [],
                 status: 'UNKNOWN',
             };
@@ -192,16 +168,17 @@ export class DeviceService {
 
             if (!deviceData.manufacturer || !deviceData.model || !deviceData.firmware) {
                 this.logger.debug('Auto-discovering device information', {
-                    ipAddress: deviceData.ipAddress,
+                    host: deviceData.host,
                     port: deviceData.port,
                 });
 
                 const discoveredInfo = await this.discoverDeviceInfo({
-                    ipAddress: deviceData.ipAddress,
+                    host: deviceData.host,
                     port: deviceData.port,
                     username: deviceData.username,
                     password: deviceData.password,
                     protocol: deviceData.protocol,
+                    brand:deviceData.manufacturer
                 });
 
                 // Fill in missing information with discovered data
@@ -211,7 +188,8 @@ export class DeviceService {
                     model: deviceData.model || discoveredInfo.model,
                     firmware: deviceData.firmware || discoveredInfo.firmware,
                     macAddress: deviceData.macAddress || discoveredInfo.macAddress,
-                    deviceIdentifier: deviceData.deviceIdentifier || discoveredInfo.deviceIdentifier,
+                    deviceIdentifier:
+                        deviceData.deviceIdentifier || discoveredInfo.deviceIdentifier,
                 };
 
                 this.logger.debug('Device information auto-filled', {
@@ -241,7 +219,7 @@ export class DeviceService {
 
                 if (existingByIdentifier) {
                     // Generate a unique identifier if the discovered one already exists
-                    deviceData.deviceIdentifier = `${deviceData.ipAddress}_${Date.now()}`;
+                    deviceData.deviceIdentifier = `${deviceData.host}_${Date.now()}`;
                 }
             }
 
@@ -278,7 +256,7 @@ export class DeviceService {
     async createDeviceWithAutoDiscovery(
         basicInfo: {
             name: string;
-            ipAddress: string;
+            host: string;
             port: number;
             username: string;
             password: string;
@@ -294,17 +272,18 @@ export class DeviceService {
     ): Promise<Device> {
         this.logger.debug('Creating device with auto-discovery', {
             name: basicInfo.name,
-            ipAddress: basicInfo.ipAddress,
+            host: basicInfo.host,
             port: basicInfo.port,
         });
 
         // Discover device information
         const discoveredInfo = await this.discoverDeviceInfo({
-            ipAddress: basicInfo.ipAddress,
+            host: basicInfo.host,
             port: basicInfo.port,
             username: basicInfo.username,
             password: basicInfo.password,
             protocol: basicInfo.protocol as DeviceProtocol,
+            brand: 'unknown'
         });
 
         // Create full device DTO with discovered information
@@ -312,7 +291,7 @@ export class DeviceService {
             name: basicInfo.name,
             type: 'ACCESS_CONTROL' as any,
             deviceIdentifier: discoveredInfo.deviceIdentifier,
-            ipAddress: basicInfo.ipAddress,
+            host: basicInfo.host,
             username: basicInfo.username,
             password: basicInfo.password,
             port: basicInfo.port,
@@ -321,7 +300,8 @@ export class DeviceService {
             manufacturer: discoveredInfo.manufacturer,
             model: discoveredInfo.model,
             firmware: discoveredInfo.firmware,
-            description: basicInfo.description || `Auto-discovered ${discoveredInfo.manufacturer} device`,
+            description:
+                basicInfo.description || `Auto-discovered ${discoveredInfo.manufacturer} device`,
             branchId: basicInfo.branchId,
             isActive: true,
             timeout: 5000,
@@ -545,7 +525,7 @@ export class DeviceService {
             name: deviceWithStats.name,
             type: deviceWithStats.type,
             deviceIdentifier: deviceWithStats.deviceIdentifier,
-            ipAddress: deviceWithStats.ipAddress,
+            host: deviceWithStats.host,
             isActive: deviceWithStats.isActive,
             lastSeen: deviceWithStats.lastSeen,
             createdAt: deviceWithStats.createdAt,
@@ -576,12 +556,7 @@ export class DeviceService {
         }
 
         try {
-            const deviceConfig = this.createDeviceConfig(device);
-            const result = await this.deviceAdapterStrategy.executeCommand(
-                device.deviceIdentifier,
-                deviceConfig,
-                command
-            );
+            const result = await this.deviceAdapterStrategy.executeCommand(device, command);
 
             this.logger.logUserAction(commandByUserId, 'DEVICE_COMMAND_SENT', {
                 deviceId: id,
@@ -619,12 +594,7 @@ export class DeviceService {
         }
 
         try {
-            const deviceConfig = this.createDeviceConfig(device);
-
-            const health = await this.deviceAdapterStrategy.getDeviceHealth(
-                device.id,
-                deviceConfig
-            );
+            const health = await this.deviceAdapterStrategy.getDeviceHealth(device);
             return health;
         } catch (error) {
             this.logger.error(`Failed to get device health for ${device.name}`, error, {
@@ -652,11 +622,7 @@ export class DeviceService {
         }
 
         try {
-            const deviceConfig = this.createDeviceConfig(device);
-            const isConnected = await this.deviceAdapterStrategy.testConnection(
-                device.deviceIdentifier,
-                deviceConfig
-            );
+            const isConnected = await this.deviceAdapterStrategy.testConnection(device);
 
             // Update last seen if connection is successful
             if (isConnected) {
@@ -664,10 +630,8 @@ export class DeviceService {
             }
 
             return {
-                deviceId: id,
-                deviceName: device.name,
-                connected: isConnected,
-                testedAt: new Date(),
+                success: isConnected,
+                message: "Connected",
             };
         } catch (error) {
             this.logger.error(`Device connection test failed for ${device.name}`, error, {
@@ -676,11 +640,8 @@ export class DeviceService {
             });
 
             return {
-                deviceId: id,
-                deviceName: device.name,
-                connected: false,
-                testedAt: new Date(),
-                error: error.message,
+                success: false,
+                message: error.message
             };
         }
     }
@@ -706,7 +667,7 @@ export class DeviceService {
                     identifier: device.id,
                     name: device.name,
                     type: device.type,
-                    ipAddress: device.ipAddress,
+                    host: device.host,
                     status: device.status,
                 })),
             };
@@ -736,16 +697,11 @@ export class DeviceService {
         }
 
         try {
-            const deviceConfig = this.createDeviceConfig(device);
-            const result = await this.deviceAdapterStrategy.executeCommand(
-                device.deviceIdentifier,
-                deviceConfig,
-                {
-                    command: controlDto.action as any,
-                    parameters: controlDto.parameters,
-                    timeout: controlDto.timeout,
-                }
-            );
+            const result = await this.deviceAdapterStrategy.executeCommand(device, {
+                command: controlDto.action as any,
+                parameters: controlDto.parameters,
+                timeout: controlDto.timeout,
+            });
 
             this.logger.logUserAction(controlledByUserId, 'DEVICE_CONTROL_ACTION', {
                 deviceId: id,

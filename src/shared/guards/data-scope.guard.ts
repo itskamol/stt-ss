@@ -45,18 +45,14 @@ export class DataScopeGuard implements CanActivate {
         if (noScoping) {
             // Only SUPER_ADMIN can access no-scoping routes
             if (!user.roles.includes(Role.SUPER_ADMIN)) {
-                this.logger.logUserAction(
-                    user.sub,
-                    'DATA_SCOPE_VIOLATION_NO_SCOPING',
-                    {
-                        userId: user.sub,
-                        roles: user.roles,
-                        url: request.url,
-                        method: request.method,
-                        organizationId: user.organizationId,
-                        correlationId: request.correlationId
-                    },
-                );
+                this.logger.logUserAction(user.sub, 'DATA_SCOPE_VIOLATION_NO_SCOPING', {
+                    userId: user.sub,
+                    roles: user.roles,
+                    url: request.url,
+                    method: request.method,
+                    organizationId: user.organizationId,
+                    correlationId: request.correlationId,
+                });
                 throw new ForbiddenException('Insufficient privileges for system-wide access');
             }
             return true;
@@ -64,16 +60,12 @@ export class DataScopeGuard implements CanActivate {
 
         // For all other routes, enforce organization-level scoping
         if (!user.organizationId) {
-            this.logger.logUserAction(
-                user.sub,
-                'DATA_SCOPE_VIOLATION_NO_ORGANIZATION',
-                {
-                    userId: user.sub,
-                    roles: user.roles,
-                    url: request.url,
-                    method: request.method,
-                }
-            );
+            this.logger.logUserAction(user.sub, 'DATA_SCOPE_VIOLATION_NO_ORGANIZATION', {
+                userId: user.sub,
+                roles: user.roles,
+                url: request.url,
+                method: request.method,
+            });
             throw new ForbiddenException('No organization context available');
         }
 

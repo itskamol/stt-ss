@@ -132,7 +132,7 @@ async function main() {
             type: 'CAMERA',
             status: 'ONLINE',
             macAddress: '00:11:22:33:44:55',
-            ipAddress: '192.168.1.100',
+            host: '192.168.1.100',
             model: 'DS-2CD2143G0-I',
             description: 'Hikvision test camera for event processing',
         },

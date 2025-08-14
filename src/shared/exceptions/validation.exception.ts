@@ -14,15 +14,15 @@ export class CustomValidationException extends BadRequestException {
             field: error.property,
             value: error.value,
             constraints: error.constraints || {},
-            message: Object.values(error.constraints || {}).join(', ')
+            message: Object.values(error.constraints || {}).join(', '),
         }));
 
         const message = formattedErrors.map(err => `${err.field}: ${err.message}`).join('; ');
 
         super({
-            message: 'Validation failed',
+            message: `Validation failed: ${message}`,
             errors: formattedErrors,
-            statusCode: 400
+            statusCode: 400,
         });
     }
 }

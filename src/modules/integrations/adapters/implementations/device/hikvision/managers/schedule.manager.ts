@@ -5,15 +5,15 @@ import {
     AttendanceWeekPlan,
     AttendancePlanTemplate,
     HolidayPlanCfg,
-    ISAPIResponse
+    ISAPIResponse,
 } from '../types';
 
 @Injectable()
 export class HikvisionScheduleManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
-        private readonly logger: LoggerService,
-    ) { }
+        private readonly logger: LoggerService
+    ) {}
 
     // ==================== Week Plan Management ====================
 
@@ -81,7 +81,9 @@ export class HikvisionScheduleManager {
         try {
             this.logger.debug('Getting week plan', { deviceId: device.id, planNo });
 
-            const response = await this.httpClient.request<{ AttendanceWeekPlan: AttendanceWeekPlan }>(device, {
+            const response = await this.httpClient.request<{
+                AttendanceWeekPlan: AttendanceWeekPlan;
+            }>(device, {
                 method: 'GET',
                 url: `/ISAPI/AccessControl/Attendance/weekPlan/${planNo}?format=json`,
             });
@@ -131,7 +133,9 @@ export class HikvisionScheduleManager {
         try {
             this.logger.debug('Getting all plan templates', { deviceId: device.id });
 
-            const response = await this.httpClient.request<{ AttendancePlanTemplateList: AttendancePlanTemplate[] }>(device, {
+            const response = await this.httpClient.request<{
+                AttendancePlanTemplateList: AttendancePlanTemplate[];
+            }>(device, {
                 method: 'GET',
                 url: '/ISAPI/AccessControl/Attendance/planTemplate?format=json',
             });
@@ -193,7 +197,9 @@ export class HikvisionScheduleManager {
         try {
             this.logger.debug('Getting plan template', { deviceId: device.id, templateNo });
 
-            const response = await this.httpClient.request<{ AttendancePlanTemplate: AttendancePlanTemplate }>(device, {
+            const response = await this.httpClient.request<{
+                AttendancePlanTemplate: AttendancePlanTemplate;
+            }>(device, {
                 method: 'GET',
                 url: `/ISAPI/AccessControl/Attendance/planTemplate/${templateNo}?format=json`,
             });
@@ -279,7 +285,9 @@ export class HikvisionScheduleManager {
         try {
             this.logger.debug('Getting holiday plan', { deviceId: device.id, holidayPlanID });
 
-            const response = await this.httpClient.request<{ VerifyHolidayPlanCfg: HolidayPlanCfg }>(device, {
+            const response = await this.httpClient.request<{
+                VerifyHolidayPlanCfg: HolidayPlanCfg;
+            }>(device, {
                 method: 'GET',
                 url: `/ISAPI/AccessControl/VerifyHolidayPlanCfg/${holidayPlanID}?format=json`,
             });
@@ -334,7 +342,10 @@ export class HikvisionScheduleManager {
         }
     ): Promise<ISAPIResponse> {
         try {
-            this.logger.debug('Setting attendance mode', { deviceId: device.id, mode: attendanceMode.mode });
+            this.logger.debug('Setting attendance mode', {
+                deviceId: device.id,
+                mode: attendanceMode.mode,
+            });
 
             const response = await this.httpClient.request<ISAPIResponse>(device, {
                 method: 'PUT',
@@ -428,7 +439,13 @@ export class HikvisionScheduleManager {
         keyID: number,
         attendance: {
             enable: boolean;
-            attendanceStatus: 'checkIn' | 'checkOut' | 'breakOut' | 'breakIn' | 'overtimeIn' | 'overtimeOut';
+            attendanceStatus:
+                | 'checkIn'
+                | 'checkOut'
+                | 'breakOut'
+                | 'breakIn'
+                | 'overtimeIn'
+                | 'overtimeOut';
             label: string;
         }
     ): Promise<ISAPIResponse> {
@@ -463,7 +480,10 @@ export class HikvisionScheduleManager {
     /**
      * Get key attendance parameters
      */
-    async getKeyAttendance(device: any, keyID: number): Promise<{
+    async getKeyAttendance(
+        device: any,
+        keyID: number
+    ): Promise<{
         enable: boolean;
         attendanceStatus: string;
         label: string;
@@ -504,7 +524,14 @@ export class HikvisionScheduleManager {
      */
     createBasicWeekPlan(
         timeSegments: Array<{
-            week: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+            week:
+                | 'Monday'
+                | 'Tuesday'
+                | 'Wednesday'
+                | 'Thursday'
+                | 'Friday'
+                | 'Saturday'
+                | 'Sunday';
             beginTime: string;
             endTime: string;
             enabled?: boolean;

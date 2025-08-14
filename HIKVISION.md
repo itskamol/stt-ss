@@ -28,7 +28,7 @@ Adapter "Adapter" dizayn patterni asosida quriladi. Uning vazifasi Hikvision ISA
 
 Adapter ishlashi uchun zarur bo'lgan barcha qurilmaga oid ma'lumotlar `Device` jadvalida saqlanadi. Jadvalda quyidagi maydonlar bo'lishi shart:
 
-  `ipAddress: string`
+  `host: string`
   `username: string`
   `encryptedSecret: string` (AES-256 bilan shifrlangan parol)
 
@@ -147,7 +147,7 @@ export class HikvisionApiAdapter implements IHikvisionAdapter {
 
     // 2. Agar keshda bo'lmasa, qurilmadan yangi sessiya kalitini olish
     const password = this.encryptionService.decrypt(device.encryptedSecret);
-    const endpoint = `http://${device.ipAddress}/ISAPI/System/Security/identityKey`;
+    const endpoint = `http://${device.host}/ISAPI/System/Security/identityKey`;
 
     try {
       const response = await firstValueFrom(
@@ -180,7 +180,7 @@ Ushbu metod yuqoridagi `getSecureSession` yordamchi metodidan foydalanadi.
 public async getFaceData(deviceId: string, employeeNo: string): Promise<Buffer | null> {
   // 1. Qurilma ma'lumotlarini bazadan olish
   const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
-  if (!device || !device.ipAddress) {
+  if (!device || !device.host) {
     throw new NotFoundException('Device not found or IP address is not configured.');
   }
 
@@ -188,7 +188,7 @@ public async getFaceData(deviceId: string, employeeNo: string): Promise<Buffer |
   const session = await this.getSecureSession(device);
 
   // 3. Olingan kalitlar bilan asosiy so'rovni yuborish
-  const endpoint = `http://${device.ipAddress}/ISAPI/Intelligent/FDLib?format=json&employeeNo=${employeeNo}`;
+  const endpoint = `http://${device.host}/ISAPI/Intelligent/FDLib?format=json&employeeNo=${employeeNo}`;
   const queryParams = {
     security: session.security,
     // iv: ... (agar kerak bo'lsa)

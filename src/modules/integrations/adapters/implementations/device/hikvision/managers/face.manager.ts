@@ -26,7 +26,7 @@ export interface FaceSearchResult {
 export class HikvisionFaceManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
-        private readonly logger: LoggerService,
+        private readonly logger: LoggerService
     ) {}
 
     /**
@@ -98,7 +98,7 @@ export class HikvisionFaceManager {
      */
     async getFaces(device: any, userId?: string): Promise<FaceTemplate[]> {
         try {
-            const url = userId 
+            const url = userId
                 ? `/ISAPI/Intelligent/FDLib/FaceDataRecord?FDID=${userId}`
                 : '/ISAPI/Intelligent/FDLib/FaceDataRecord';
 
@@ -107,13 +107,15 @@ export class HikvisionFaceManager {
                 url,
             });
 
-            return response.data.FaceDataRecord?.map((face: any) => ({
-                id: face.FDID,
-                userId: face.FDID,
-                faceData: face.faceURL,
-                quality: face.faceQuality || 0,
-                createdAt: new Date(face.addTime),
-            })) || [];
+            return (
+                response.data.FaceDataRecord?.map((face: any) => ({
+                    id: face.FDID,
+                    userId: face.FDID,
+                    faceData: face.faceURL,
+                    quality: face.faceQuality || 0,
+                    createdAt: new Date(face.addTime),
+                })) || []
+            );
         } catch (error) {
             this.logger.error('Failed to get face templates', error.message, {
                 deviceId: device.id,
@@ -127,7 +129,11 @@ export class HikvisionFaceManager {
     /**
      * Search face in device database
      */
-    async searchFace(device: any, faceData: string, threshold: number = 80): Promise<FaceSearchResult[]> {
+    async searchFace(
+        device: any,
+        faceData: string,
+        threshold: number = 80
+    ): Promise<FaceSearchResult[]> {
         try {
             const response = await this.httpClient.request<any>(device, {
                 method: 'POST',
@@ -142,11 +148,13 @@ export class HikvisionFaceManager {
                 },
             });
 
-            return response.data.MatchList?.map((match: any) => ({
-                userId: match.FDID,
-                similarity: match.similarity,
-                faceId: match.FDID,
-            })) || [];
+            return (
+                response.data.MatchList?.map((match: any) => ({
+                    userId: match.FDID,
+                    similarity: match.similarity,
+                    faceId: match.FDID,
+                })) || []
+            );
         } catch (error) {
             this.logger.error('Failed to search face', error.message, {
                 deviceId: device.id,
@@ -164,7 +172,7 @@ export class HikvisionFaceManager {
         try {
             // First delete old face
             await this.deleteFace(device, faceId);
-            
+
             // Then add new face with same ID
             return await this.addFace(device, {
                 userId: faceId,

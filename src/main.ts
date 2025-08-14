@@ -8,9 +8,7 @@ import { LoggerService } from './core/logger';
 
 async function bootstrap() {
     // Create app with our custom logger
-    const app = await NestFactory.create(AppModule, {
-        bufferLogs: true, // Buffer logs until a logger is attached
-    });
+    const app = await NestFactory.create(AppModule);
 
     const logger = app.get(LoggerService);
     app.useLogger(logger);

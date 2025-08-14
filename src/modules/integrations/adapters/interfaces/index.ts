@@ -1,7 +1,7 @@
 // Device Adapters
 export * from './device.adapter';
 
-// Biometric/Matching Adapters  
+// Biometric/Matching Adapters
 export * from './matching.adapter';
 
 // Storage Adapters

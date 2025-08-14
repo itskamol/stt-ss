@@ -9,6 +9,7 @@ import {
     DeviceInfo,
     IDeviceAdapter,
 } from '../../interfaces';
+import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
 import { DeviceStatus, DeviceType } from '@prisma/client';
 
 @Injectable()
@@ -30,23 +31,31 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         return Array.from(this.devices.values());
     }
 
-    async getDeviceInfo(deviceId: string): Promise<DeviceInfo> {
+    async getDeviceInfo(context: DeviceOperationContext): Promise<DeviceInfo> {
+        const deviceId = context.device.id;
         this.logger.log('Getting device info (stub)', { deviceId });
 
         const device = this.devices.get(deviceId);
         if (!device) {
-            throw new Error(`Device not found: ${deviceId}`);
+            // For stub adapter, return mock device info based on context
+            return {
+                id: context.device.id,
+                name: context.device.name,
+                type: context.device.type,
+                status: context.device.status,
+                host: context.config.host,
+                capabilities: [
+                    { type: context.device.type, enabled: true },
+                ],
+            };
         }
 
         return device;
     }
 
-    async getDeviceConfiguration(deviceId: string): Promise<DeviceConfiguration> {
+    async getDeviceConfiguration(context: DeviceOperationContext): Promise<DeviceConfiguration> {
+        const deviceId = context.device.id;
         this.logger.log('Getting device configuration (stub)', { deviceId });
-
-        if (!this.devices.has(deviceId)) {
-            throw new Error(`Device not found: ${deviceId}`);
-        }
 
         return (
             this.configurations.get(deviceId) || {
@@ -59,14 +68,11 @@ export class StubDeviceAdapter implements IDeviceAdapter {
     }
 
     async updateDeviceConfiguration(
-        deviceId: string,
+        context: DeviceOperationContext,
         configuration: Partial<DeviceConfiguration>
     ): Promise<void> {
+        const deviceId = context.device.id;
         this.logger.log('Updating device configuration (stub)', { deviceId, configuration });
-
-        if (!this.devices.has(deviceId)) {
-            throw new Error(`Device not found: ${deviceId}`);
-        }
 
         const existingConfig = this.configurations.get(deviceId) || {
             deviceId,
@@ -84,7 +90,8 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    async sendCommand(deviceId: string, command: DeviceCommand): Promise<DeviceCommandResult> {
+    async sendCommand(context: DeviceOperationContext, command: DeviceCommand): Promise<DeviceCommandResult> {
+        const deviceId = context.device.id;
         this.logger.log('Sending command to device (stub)', { deviceId, command: command.command });
 
         if (!deviceId) {
@@ -107,11 +114,10 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         };
     }
 
-    async getDeviceHealth(deviceId: string): Promise<DeviceHealth> {
+    async getDeviceHealth(context: DeviceOperationContext): Promise<DeviceHealth> {
+        const deviceId = context.device.id;
         this.logger.log('Getting device health (stub)', { deviceId });
 
-        // For stub adapter, we don't require device to be in devices Map
-        // This allows testing with any device ID
         if (!deviceId) {
             throw new Error('Device ID is required');
         }
@@ -153,14 +159,11 @@ export class StubDeviceAdapter implements IDeviceAdapter {
     }
 
     async subscribeToEvents(
-        deviceId: string,
+        context: DeviceOperationContext,
         callback: (event: DeviceEvent) => void
     ): Promise<void> {
+        const deviceId = context.device.id;
         this.logger.log('Subscribing to device events (stub)', { deviceId });
-
-        if (!this.devices.has(deviceId)) {
-            throw new Error(`Device not found: ${deviceId}`);
-        }
 
         this.eventSubscriptions.set(deviceId, callback);
 
@@ -168,14 +171,15 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         this.simulateDeviceEvents(deviceId);
     }
 
-    async unsubscribeFromEvents(deviceId: string): Promise<void> {
+    async unsubscribeFromEvents(context: DeviceOperationContext): Promise<void> {
+        const deviceId = context.device.id;
         this.logger.log('Unsubscribing from device events (stub)', { deviceId });
 
         this.eventSubscriptions.delete(deviceId);
     }
 
     async syncUsers(
-        deviceId: string,
+        context: DeviceOperationContext,
         users: Array<{
             userId: string;
             cardId?: string;
@@ -183,28 +187,23 @@ export class StubDeviceAdapter implements IDeviceAdapter {
             accessLevel: number;
         }>
     ): Promise<void> {
+        const deviceId = context.device.id;
         this.logger.log('Syncing users to device (stub)', { deviceId, userCount: users.length });
-
-        if (!this.devices.has(deviceId)) {
-            throw new Error(`Device not found: ${deviceId}`);
-        }
 
         // Simulate sync delay
         await new Promise(resolve => setTimeout(resolve, users.length * 100));
     }
 
-    async removeUser(deviceId: string, userId: string): Promise<void> {
+    async removeUser(context: DeviceOperationContext, userId: string): Promise<void> {
+        const deviceId = context.device.id;
         this.logger.log('Removing user from device (stub)', { deviceId, userId });
-
-        if (!this.devices.has(deviceId)) {
-            throw new Error(`Device not found: ${deviceId}`);
-        }
 
         // Simulate removal delay
         await new Promise(resolve => setTimeout(resolve, 200));
     }
 
-    async testConnection(deviceId: string): Promise<boolean> {
+    async testConnection(context: DeviceOperationContext): Promise<boolean> {
+        const deviceId = context.device.id;
         this.logger.log('Testing device connection (stub)', { deviceId });
 
         if (!deviceId) {
@@ -218,31 +217,27 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         return Math.random() > 0.1;
     }
 
-    async rebootDevice(deviceId: string): Promise<void> {
+    async rebootDevice(context: DeviceOperationContext): Promise<void> {
+        const deviceId = context.device.id;
         this.logger.log('Rebooting device (stub)', { deviceId });
-
-        if (!this.devices.has(deviceId)) {
-            throw new Error(`Device not found: ${deviceId}`);
-        }
 
         // Simulate reboot delay
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Update device status
-        const device = this.devices.get(deviceId)!;
-        device.status = DeviceStatus.ONLINE;
-        device.lastSeen = new Date();
+        const device = this.devices.get(deviceId);
+        if (device) {
+            device.status = DeviceStatus.ONLINE;
+            device.lastSeen = new Date();
+        }
     }
 
     async updateFirmware(
-        deviceId: string,
+        context: DeviceOperationContext,
         firmwareUrl: string
     ): Promise<{ success: boolean; message: string }> {
+        const deviceId = context.device.id;
         this.logger.log('Updating device firmware (stub)', { deviceId, firmwareUrl });
-
-        if (!this.devices.has(deviceId)) {
-            throw new Error(`Device not found: ${deviceId}`);
-        }
 
         // Simulate firmware update delay
         await new Promise(resolve => setTimeout(resolve, 5000));
@@ -251,8 +246,10 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         const success = Math.random() > 0.15;
 
         if (success) {
-            const device = this.devices.get(deviceId)!;
-            device.firmwareVersion = `v${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}`;
+            const device = this.devices.get(deviceId);
+            if (device) {
+                device.firmwareVersion = `v${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}`;
+            }
         }
 
         return {
@@ -261,12 +258,9 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         };
     }
 
-    async getDeviceLogs(deviceId: string, startDate?: Date, endDate?: Date): Promise<string[]> {
+    async getDeviceLogs(context: DeviceOperationContext, startDate?: Date, endDate?: Date): Promise<string[]> {
+        const deviceId = context.device.id;
         this.logger.log('Getting device logs (stub)', { deviceId, startDate, endDate });
-
-        if (!this.devices.has(deviceId)) {
-            throw new Error(`Device not found: ${deviceId}`);
-        }
 
         // Generate mock logs
         const logs = [
@@ -280,12 +274,9 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         return logs;
     }
 
-    async clearDeviceLogs(deviceId: string): Promise<void> {
+    async clearDeviceLogs(context: DeviceOperationContext): Promise<void> {
+        const deviceId = context.device.id;
         this.logger.log('Clearing device logs (stub)', { deviceId });
-
-        if (!this.devices.has(deviceId)) {
-            throw new Error(`Device not found: ${deviceId}`);
-        }
 
         // Simulate log clearing delay
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -298,7 +289,7 @@ export class StubDeviceAdapter implements IDeviceAdapter {
                 name: 'Main Entrance Card Reader',
                 type: DeviceType.CARD_READER,
                 status: DeviceStatus.ONLINE,
-                ipAddress: '192.168.1.100',
+                host: '192.168.1.100',
                 macAddress: '00:11:22:33:44:55',
                 firmwareVersion: 'v2.1.3',
                 lastSeen: new Date(),
@@ -312,7 +303,7 @@ export class StubDeviceAdapter implements IDeviceAdapter {
                 name: 'Office Biometric Scanner',
                 type: DeviceType.FINGERPRINT,
                 status: DeviceStatus.ONLINE,
-                ipAddress: '192.168.1.101',
+                host: '192.168.1.101',
                 macAddress: '00:11:22:33:44:56',
                 firmwareVersion: 'v1.8.2',
                 lastSeen: new Date(),
@@ -326,7 +317,7 @@ export class StubDeviceAdapter implements IDeviceAdapter {
                 name: 'Visitor QR Scanner',
                 type: DeviceType.OTHER,
                 status: DeviceStatus.OFFLINE,
-                ipAddress: '192.168.1.102',
+                host: '192.168.1.102',
                 macAddress: '00:11:22:33:44:57',
                 firmwareVersion: 'v1.5.1',
                 lastSeen: new Date(Date.now() - 3600000), // 1 hour ago

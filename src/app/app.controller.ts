@@ -14,7 +14,7 @@ export class AppController {
     @Public()
     @ApiOperation({ summary: 'Get a hello message' })
     @ApiResponse({ status: 200, description: 'Returns a hello message.' })
-    getHello(): string {
+    getHello(): object {
         return this.appService.getHello();
     }
 

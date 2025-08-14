@@ -19,22 +19,17 @@ import { HikvisionAdapter } from '@/modules/integrations/adapters';
     imports: [DatabaseModule, LoggerModule, HttpModule, AdapterModule],
     controllers: [DeviceController],
     providers: [
-        DeviceService, 
-        DeviceRepository, 
-        DeviceConfigurationService, 
+        DeviceService,
+        DeviceRepository,
+        DeviceConfigurationService,
         EmployeeSyncService,
         DeviceAdapterStrategy,
         DeviceAdapterFactory,
         StubDeviceAdapter,
         EncryptionService,
         XmlJsonService,
-        HikvisionAdapter
+        HikvisionAdapter,
     ],
-    exports: [
-        DeviceService, 
-        DeviceRepository, 
-        DeviceConfigurationService, 
-        EmployeeSyncService
-    ],
+    exports: [DeviceService, DeviceRepository, DeviceConfigurationService, EmployeeSyncService],
 })
 export class DeviceModule {}

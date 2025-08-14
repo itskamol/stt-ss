@@ -50,7 +50,7 @@ The adapter follows the Adapter design pattern to completely decouple the system
 
 #### Acceptance Criteria
 
-1. WHEN connecting to device THEN the adapter SHALL read device details from Device table (ipAddress, username, encryptedSecret)
+1. WHEN connecting to device THEN the adapter SHALL read device details from Device table (host, username, encryptedSecret)
 2. WHEN device is not found THEN the adapter SHALL throw NotFoundException with clear error message
 3. WHEN device IP is not configured THEN the adapter SHALL throw NotFoundException indicating missing IP configuration
 4. WHEN storing credentials THEN the system SHALL encrypt passwords using AES-256 with keys from environment variables

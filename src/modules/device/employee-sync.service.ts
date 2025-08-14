@@ -103,7 +103,7 @@ export class EmployeeSyncService {
                 totalEmployees: employeesToSync.length,
                 ...results,
                 syncedAt: new Date(),
-                status: 'completed',
+                status: 'COMPLETED',
                 message: 'Employee sync completed successfully',
             };
         } catch (error) {

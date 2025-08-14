@@ -30,6 +30,7 @@ import {
     DeviceConfigurationResponseDto,
     DeviceControlDto,
     DeviceCountResponseDto,
+    DeviceDiscoveryResponseDto,
     DeviceDiscoveryTestDto,
     DeviceHealthResponseDto,
     DeviceResponseDto,
@@ -303,7 +304,8 @@ export class DeviceController {
         @Param('id') id: string,
         @Scope() scope: DataScope
     ): Promise<DeviceStatsResponseDto> {
-        return this.deviceService.getDeviceWithStats(id, scope);
+        const deviceWithStats = await this.deviceService.getDeviceWithStats(id, scope);
+        return plainToClass(DeviceStatsResponseDto, deviceWithStats);
     }
 
     @Get(':id/health')
@@ -499,7 +501,8 @@ export class DeviceController {
         @Param('id') id: string,
         @Scope() scope: DataScope
     ): Promise<SyncStatusResponseDto> {
-        return this.deviceService.getEmployeeSyncStatus(id, scope);
+        const stats = await this.deviceService.getEmployeeSyncStatus(id, scope);
+        return plainToClass(SyncStatusResponseDto, stats);
     }
 
     @Post(':id/retry-failed-syncs')
@@ -518,7 +521,8 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<RetrySyncResponseDto> {
-        return this.deviceService.retryFailedSyncs(id, scope, user.sub);
+        const stats = await this.deviceService.retryFailedSyncs(id, scope, user.sub);
+        return plainToClass(RetrySyncResponseDto, stats);
     }
 
     @Get(':id/configuration')

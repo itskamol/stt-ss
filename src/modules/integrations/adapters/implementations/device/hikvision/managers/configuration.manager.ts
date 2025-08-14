@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
+import { XmlJsonService } from '@/shared/services/xml-json.service';
 
 export interface DeviceConfiguration {
     deviceInfo: {
@@ -12,7 +13,7 @@ export interface DeviceConfiguration {
         hardwareVersion: string;
     };
     network: {
-        ipAddress: string;
+        host: string;
         subnetMask: string;
         gateway: string;
         dns1: string;
@@ -41,7 +42,7 @@ export interface DeviceConfiguration {
 }
 
 export interface NetworkConfig {
-    ipAddress?: string;
+    host?: string;
     subnetMask?: string;
     gateway?: string;
     dns1?: string;
@@ -69,6 +70,7 @@ export class HikvisionConfigurationManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
         private readonly logger: LoggerService,
+        private readonly xmlJsonService: XmlJsonService
     ) {}
 
     /**
@@ -109,19 +111,47 @@ export class HikvisionConfigurationManager {
      * Get device basic information
      */
     async getDeviceInfo(device: any) {
-        const response = await this.httpClient.request<any>(device, {
-            method: 'GET',
-            url: '/ISAPI/System/deviceInfo',
-        });
+        // Try different ISAPI endpoints for device info
+        const url = '/ISAPI/System/deviceInfo';
 
-        return {
-            deviceName: response.data.deviceName,
-            deviceID: response.data.deviceID,
-            model: response.data.model,
-            serialNumber: response.data.serialNumber,
-            firmwareVersion: response.data.firmwareVersion,
-            hardwareVersion: response.data.hardwareVersion,
-        };
+        try {
+            this.logger.debug(`Trying endpoint: ${url}`, {
+                deviceId: device.id,
+                module: 'hikvision-config-manager',
+            });
+
+            const response = await this.httpClient.request<any>(device, {
+                method: 'GET',
+                url,
+            });
+
+            // Convert XML response to JSON if needed
+            let data = response;
+            if (typeof data === 'string' && data.includes('<?xml')) {
+                data = await this.xmlJsonService.xmlToJson(data);
+            }
+
+            // Extract device info from XML structure
+            const deviceInfo = data.DeviceInfo || data.deviceInfo || data;
+
+            // If successful, return formatted data
+            return {
+                deviceName: deviceInfo.deviceName || deviceInfo.DeviceName || 'Unknown',
+                deviceID: deviceInfo.deviceID || deviceInfo.DeviceID || 'Unknown',
+                model: deviceInfo.model || deviceInfo.Model || 'Unknown',
+                serialNumber: deviceInfo.serialNumber || deviceInfo.SerialNumber || 'Unknown',
+                firmwareVersion:
+                    deviceInfo.firmwareVersion || deviceInfo.FirmwareVersion || 'Unknown',
+                hardwareVersion:
+                    deviceInfo.hardwareVersion || deviceInfo.HardwareVersion || 'Unknown',
+            };
+        } catch (error) {
+            this.logger.debug(`Endpoint ${url} failed: ${error.message}`, {
+                deviceId: device.id,
+                module: 'hikvision-config-manager',
+            });
+        }
+
     }
 
     /**
@@ -135,7 +165,7 @@ export class HikvisionConfigurationManager {
 
         const networkInterface = response.data.NetworkInterface;
         return {
-            ipAddress: networkInterface.IPAddress,
+            host: networkInterface.host,
             subnetMask: networkInterface.SubnetMask,
             gateway: networkInterface.DefaultGateway,
             dns1: networkInterface.PrimaryDNS,
@@ -155,7 +185,7 @@ export class HikvisionConfigurationManager {
                 data: {
                     NetworkInterface: {
                         id: 1,
-                        IPAddress: config.ipAddress,
+                        host: config.host,
                         SubnetMask: config.subnetMask,
                         DefaultGateway: config.gateway,
                         PrimaryDNS: config.dns1,
@@ -194,7 +224,7 @@ export class HikvisionConfigurationManager {
         return {
             timeZone: response.data.timeZone,
             ntpEnabled: response.data.NTPServers?.enabled === 'true',
-            ntpServer: response.data.NTPServers?.NTPServer?.[0]?.ipAddress || '',
+            ntpServer: response.data.NTPServers?.NTPServer?.[0]?.host || '',
             currentTime: new Date(response.data.localTime),
         };
     }

@@ -128,7 +128,7 @@ The adapter requires the following fields in the Device model:
 ```prisma
 model Device {
   id               String  @id @default(cuid())
-  ipAddress        String?
+  host        String?
   username         String?
   encryptedSecret  String?
   // ... other fields
@@ -230,7 +230,7 @@ private async getSecureSession(device: Device): Promise<SecureSession> {
 
 ```typescript
 // Pattern for user operations
-const endpoint = `http://${device.ipAddress}/ISAPI/AccessControl/UserInfo/Record?format=json`;
+const endpoint = `http://${device.host}/ISAPI/AccessControl/UserInfo/Record?format=json`;
 const response = await firstValueFrom(
   this.httpService.post(endpoint, payload, {
     auth: { username: device.username, password: decryptedPassword },
@@ -244,7 +244,7 @@ const response = await firstValueFrom(
 ```typescript
 // Pattern for operations requiring session keys
 const session = await this.getSecureSession(device);
-const endpoint = `http://${device.ipAddress}/ISAPI/Intelligent/FDLib`;
+const endpoint = `http://${device.host}/ISAPI/Intelligent/FDLib`;
 const response = await firstValueFrom(
   this.httpService.get(endpoint, {
     params: {
@@ -335,7 +335,7 @@ Use test database with seeded device data:
 ```typescript
 const testDevice = {
   id: 'test-device-1',
-  ipAddress: '192.168.1.100',
+  host: '192.168.1.100',
   username: 'admin',
   encryptedSecret: 'encrypted-password-data'
 };

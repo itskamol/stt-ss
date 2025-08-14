@@ -61,12 +61,12 @@ export class XmlJsonService {
                 attrkey: '@',
                 charkey: '#text',
                 explicitCharkey: false,
-                ...options
+                ...options,
             };
 
             const parser = new xml2js.Parser(defaultOptions);
             const result = await parser.parseStringPromise(xmlString);
-            
+
             return result;
         } catch (error) {
             throw new Error(`Failed to parse XML to JSON: ${error.message}`);
@@ -81,8 +81,8 @@ export class XmlJsonService {
      * @returns string - XML string
      */
     jsonToXml(
-        jsonObject: any, 
-        rootElementName: string = 'root', 
+        jsonObject: any,
+        rootElementName: string = 'root',
         options?: JsonToXmlOptions
     ): string {
         try {
@@ -90,16 +90,16 @@ export class XmlJsonService {
                 declaration: {
                     include: true,
                     encoding: 'UTF-8',
-                    version: '1.0'
+                    version: '1.0',
                 },
                 format: {
                     doubleQuotes: true,
                     indent: '  ',
                     newline: '\n',
-                    pretty: true
+                    pretty: true,
                 },
                 useCDATA: false,
-                ...options
+                ...options,
             };
 
             return js2xmlparser.parse(rootElementName, jsonObject, defaultOptions);
@@ -127,16 +127,16 @@ export class XmlJsonService {
      * @returns string - Formatted XML string
      */
     jsonToXmlPretty(
-        jsonObject: any, 
-        rootElementName: string = 'root', 
+        jsonObject: any,
+        rootElementName: string = 'root',
         pretty: boolean = true
     ): string {
         return this.jsonToXml(jsonObject, rootElementName, {
             format: {
                 pretty,
                 indent: pretty ? '  ' : '',
-                newline: pretty ? '\n' : ''
-            }
+                newline: pretty ? '\n' : '',
+            },
         });
     }
 
@@ -149,7 +149,7 @@ export class XmlJsonService {
         return this.xmlToJson(xmlString, {
             mergeAttrs: true,
             explicitArray: false,
-            ignoreAttrs: false
+            ignoreAttrs: false,
         });
     }
 
@@ -162,8 +162,8 @@ export class XmlJsonService {
     jsonToXmlNoDeclaration(jsonObject: any, rootElementName: string = 'root'): string {
         return this.jsonToXml(jsonObject, rootElementName, {
             declaration: {
-                include: false
-            }
+                include: false,
+            },
         });
     }
 
@@ -192,10 +192,10 @@ export class XmlJsonService {
             if (jsonObject === null || jsonObject === undefined) {
                 return false;
             }
-            
+
             // Check for circular references
             JSON.stringify(jsonObject);
-            
+
             // Try to convert to XML
             this.jsonToXml(jsonObject, 'test');
             return true;
@@ -212,14 +212,14 @@ export class XmlJsonService {
      * @returns Promise<any> - Parsed JSON object
      */
     async xmlToJsonCustom(
-        xmlString: string, 
-        attrPrefix: string = '@', 
+        xmlString: string,
+        attrPrefix: string = '@',
         textKey: string = '#text'
     ): Promise<any> {
         return this.xmlToJson(xmlString, {
             attrkey: attrPrefix,
             charkey: textKey,
-            explicitCharkey: false
+            explicitCharkey: false,
         });
     }
 
@@ -233,9 +233,9 @@ export class XmlJsonService {
         return this.jsonToXml(jsonObject, rootElementName, {
             format: {
                 pretty: true,
-                doubleQuotes: true
+                doubleQuotes: true,
             },
-            useCDATA: true
+            useCDATA: true,
         });
     }
 
@@ -252,11 +252,11 @@ export class XmlJsonService {
             }
             return obj;
         }
-        
+
         if (Array.isArray(obj)) {
             return obj.map(item => this.transformStringsToCDATA(item));
         }
-        
+
         if (obj !== null && typeof obj === 'object') {
             const transformed: any = {};
             for (const [key, value] of Object.entries(obj)) {
@@ -264,7 +264,7 @@ export class XmlJsonService {
             }
             return transformed;
         }
-        
+
         return obj;
     }
 
@@ -280,7 +280,7 @@ export class XmlJsonService {
             explicitRoot: false,
             trim: true,
             normalize: true,
-            explicitCharkey: false
+            explicitCharkey: false,
         });
 
         return this.cleanJsonFromXml(result);
@@ -295,23 +295,23 @@ export class XmlJsonService {
         if (Array.isArray(obj)) {
             return obj.map(item => this.cleanJsonFromXml(item));
         }
-        
+
         if (obj !== null && typeof obj === 'object') {
             const cleaned: any = {};
-            
+
             for (const [key, value] of Object.entries(obj)) {
                 // Skip empty objects and arrays
                 if (value === '' || (Array.isArray(value) && value.length === 0)) {
                     continue;
                 }
-                
+
                 // Recursively clean nested objects
                 cleaned[key] = this.cleanJsonFromXml(value);
             }
-            
+
             return cleaned;
         }
-        
+
         return obj;
     }
 

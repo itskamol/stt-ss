@@ -1,5 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
@@ -21,19 +21,10 @@ import { EventModule } from '@/modules/events/event.module';
 import { AttendanceModule } from '@/modules/attendance/attendance.module';
 import { GuestModule } from '@/modules/guest/guest.module';
 
-import { LoggingInterceptor } from '@/shared/interceptors';
 import { GlobalExceptionFilter } from '@/shared/filters';
 import { DataScopeGuard, JwtAuthGuard, RolesGuard } from '@/shared/guards';
-import { CorrelationIdMiddleware } from '@/shared/middleware';
-import { LoggerService } from '@/core/logger';
-import { AuditLogInterceptor } from '@/shared/interceptors/audit-log.interceptor';
+import { CorrelationIdMiddleware, MorganLoggerMiddleware } from '@/shared/middleware';
 import { AuditModule } from '@/modules/audit/audit.module';
-import { ReportProcessorModule } from '@/modules/reporting/report-processor.module';
-
-// import { AuditModule } from '@/modules/audit/audit.module';
-// import { ReportingModule } from '@/modules/reporting/reporting.module';
-// import { ReportProcessorModule } from '@/modules/reporting/report-processor.module';
-// import { AuditLogInterceptor } from '@/shared/interceptors/audit-log.interceptor';
 
 @Module({
     imports: [
@@ -62,14 +53,6 @@ import { ReportProcessorModule } from '@/modules/reporting/report-processor.modu
     providers: [
         AppService,
         {
-            provide: APP_INTERCEPTOR,
-            useClass: LoggingInterceptor,
-        },
-        // {
-        //   provide: APP_INTERCEPTOR,
-        //   useClass: AuditLogInterceptor,
-        // },
-        {
             provide: APP_FILTER,
             useClass: GlobalExceptionFilter,
         },
@@ -89,6 +72,12 @@ import { ReportProcessorModule } from '@/modules/reporting/report-processor.modu
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
-        consumer.apply(CorrelationIdMiddleware).forRoutes({ path: '', method: RequestMethod.ALL });
+        consumer
+            .apply(CorrelationIdMiddleware)
+            .forRoutes({ path: '', method: RequestMethod.ALL });
+        
+        consumer
+            .apply(MorganLoggerMiddleware)
+            .forRoutes({ path: '', method: RequestMethod.ALL });
     }
 }

@@ -70,7 +70,7 @@ export class ConfigService {
             throw new Error('SECRET_ENCRYPTION_KEY must be at least 32 characters long');
         }
 
-        return secretKey
+        return secretKey;
     }
 
     get encryptionIv(): string {
@@ -84,7 +84,7 @@ export class ConfigService {
             throw new Error('SECRET_ENCRYPTION_IV must be at least 32 characters long');
         }
 
-        return secretKey
+        return secretKey;
     }
 
     get refreshTokenExpirationTime(): string {

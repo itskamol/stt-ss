@@ -57,7 +57,7 @@ export class CreateDeviceDto {
     })
     @IsOptional()
     @IsIP()
-    ipAddress?: string;
+    host?: string;
 
     @ApiProperty({
         description: 'The username for device authentication.',
@@ -260,7 +260,7 @@ export class UpdateDeviceDto {
     })
     @IsOptional()
     @IsIP()
-    ipAddress?: string;
+    host?: string;
 
     @ApiProperty({
         description: 'The username for device authentication.',
@@ -458,7 +458,7 @@ export class DeviceResponseDto {
         example: '192.168.1.100',
         required: false,
     })
-    ipAddress?: string;
+    host?: string;
 
     @ApiProperty({
         description: 'The username for device authentication.',
@@ -619,7 +619,7 @@ class DiscoveredDeviceDto {
         example: '192.168.1.101',
         required: false,
     })
-    ipAddress?: string;
+    host?: string;
 
     @ApiProperty({
         description: 'The status of the discovered device.',
@@ -1205,7 +1205,8 @@ export class DeviceControlDto {
 
 export class DeviceSyncEmployeesDto {
     @ApiProperty({
-        description: 'A list of employee IDs to synchronize. If not provided, all employees will be synchronized.',
+        description:
+            'A list of employee IDs to synchronize. If not provided, all employees will be synchronized.',
         example: ['a1b2c3d4-e5f6-7890-1234-567890abcdef'],
         required: false,
         type: [String],
@@ -1259,18 +1260,42 @@ export class DeviceCountResponseDto {
     count: number;
 }
 
+class DeviceStats {
+    totalEvents: number;
+}
+
 export class DeviceStatsResponseDto extends DeviceResponseDto {
     @ApiProperty({
-        description: 'The number of employees synchronized with the device.',
-        example: 100,
+        description: 'The unique identifier for the device.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
     })
-    employeeCount: number;
+    id: string;
 
     @ApiProperty({
-        description: 'The number of events received from the device in the last 24 hours.',
-        example: 500,
+        description: 'The ID of the organization this device belongs to.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
     })
-    eventCount24h: number;
+    branchId: string;
+
+    @ApiProperty({
+        description: 'The name of the device.',
+        example: 'Main Entrance Door',
+    })
+    name: string;
+
+    @ApiProperty({
+        description: 'The IP address of the device.',
+        example: '192.168.100.111',
+    })
+    host: string;
+    
+    @ApiProperty({
+        description: 'Statistics of the device.',
+        example: {
+            totalEvents: 1000,
+        },
+    })
+    statistics: DeviceStats;
 }
 
 export class DeviceHealthResponseDto {
@@ -1329,22 +1354,46 @@ export class SyncStatusResponseDto {
     status: string;
 
     @ApiProperty({
-        description: 'The number of employees successfully synchronized.',
+        description: 'Device name',
         example: 100,
     })
-    successCount: number;
+    deviceName: string;
 
     @ApiProperty({
         description: 'The number of employees that failed to synchronize.',
         example: 0,
     })
-    failedCount: number;
+    failed: number;
+
+    @ApiProperty({
+        description: 'The number of employees that added to synchronize.',
+        example: 0,
+    })
+    added: number;
+
+    @ApiProperty({
+        description: 'The number of employees that removed to synchronize.',
+        example: 0,
+    })
+    removed: number;
+
+    @ApiProperty({
+        description: 'The number of employees that updated to synchronize.',
+        example: 0,
+    })
+    updated: number;
+
+    @ApiProperty({
+        description: 'The number of employees that totalEmployees to synchronize.',
+        example: 0,
+    })
+    totalEmployees: number;
 
     @ApiProperty({
         description: 'The last time a synchronization was attempted.',
         example: '2023-08-14T10:00:00.000Z',
     })
-    lastSync: Date;
+    syncedAt: Date;
 }
 
 export class RetrySyncResponseDto {

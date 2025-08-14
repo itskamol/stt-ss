@@ -86,7 +86,7 @@ export class AuditLogResponseDto {
         example: '127.0.0.1',
         required: false,
     })
-    ipAddress?: string;
+    host?: string;
 
     @ApiProperty({
         description: 'The request data.',
@@ -443,7 +443,7 @@ export class SecurityEventDto {
         example: '192.168.1.100',
         required: false,
     })
-    ipAddress?: string;
+    host?: string;
 
     @ApiProperty({
         description: 'The timestamp of the event.',
