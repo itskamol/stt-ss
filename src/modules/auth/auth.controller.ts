@@ -6,12 +6,15 @@ import { Public, User } from '@/shared/decorators';
 import { UserContext } from '@/shared/interfaces';
 import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
 import {
-    LoginRequestDto,
-    LoginResponse,
+    ErrorResponseDto,
+    LoginDto,
     LoginResponseDto,
-    LogoutRequestDto,
-    RefreshTokenRequestDto,
+    LogoutDto,
+    RefreshTokenDto,
+    RefreshTokenResponseDto,
+    ValidateTokenResponseDto,
 } from '@/shared/dto';
+import { plainToClass } from 'class-transformer';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -25,13 +28,13 @@ export class AuthController {
     @Public()
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Log in a user' })
-    @ApiBody({ type: LoginRequestDto })
+    @ApiBody({ type: LoginDto })
     @ApiResponse({ status: 200, description: 'Login successful', type: LoginResponseDto })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 401, description: 'Unauthorized', type: ErrorResponseDto })
     async login(
-        @Body() loginDto: LoginRequestDto,
+        @Body() loginDto: LoginDto,
         @Req() request: RequestWithCorrelation
-    ): Promise<LoginResponse> {
+    ): Promise<LoginResponseDto> {
         const startTime = Date.now();
 
         try {
@@ -48,7 +51,7 @@ export class AuthController {
                 module: 'auth-controller',
             });
 
-            return result;
+            return plainToClass(LoginResponseDto, result);
         } catch (error) {
             const responseTime = Date.now() - startTime;
             this.logger.logUserAction(undefined, 'LOGIN_ATTEMPT_FAILED', {
@@ -67,22 +70,17 @@ export class AuthController {
     @Public()
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Refresh an access token' })
-    @ApiBody({ type: RefreshTokenRequestDto })
+    @ApiBody({ type: RefreshTokenDto })
     @ApiResponse({
         status: 200,
         description: 'Token refreshed successfully',
-        schema: {
-            properties: {
-                accessToken: { type: 'string' },
-                refreshToken: { type: 'string' },
-            },
-        },
+        type: RefreshTokenResponseDto,
     })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 401, description: 'Unauthorized', type: ErrorResponseDto })
     async refreshToken(
-        @Body() refreshTokenDto: RefreshTokenRequestDto,
+        @Body() refreshTokenDto: RefreshTokenDto,
         @Req() request: RequestWithCorrelation
-    ): Promise<{ accessToken: string; refreshToken: string }> {
+    ): Promise<RefreshTokenResponseDto> {
         const startTime = Date.now();
 
         try {
@@ -98,7 +96,7 @@ export class AuthController {
                 module: 'auth-controller',
             });
 
-            return result;
+            return plainToClass(RefreshTokenResponseDto, result);
         } catch (error) {
             const responseTime = Date.now() - startTime;
             this.logger.logUserAction(undefined, 'TOKEN_REFRESH_FAILED', {
@@ -116,11 +114,11 @@ export class AuthController {
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Log out a user' })
-    @ApiBody({ type: LogoutRequestDto })
+    @ApiBody({ type: LogoutDto })
     @ApiResponse({ status: 204, description: 'Logout successful' })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 401, description: 'Unauthorized', type: ErrorResponseDto })
     async logout(
-        @Body() logoutDto: LogoutRequestDto,
+        @Body() logoutDto: LogoutDto,
         @User() user: UserContext,
         @Req() request: RequestWithCorrelation
     ): Promise<void> {
@@ -151,36 +149,13 @@ export class AuthController {
     @ApiResponse({
         status: 200,
         description: 'Token is valid',
-        schema: {
-            properties: {
-                valid: { type: 'boolean' },
-                user: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string' },
-                        email: { type: 'string' },
-                        organizationId: { type: 'string' },
-                        roles: { type: 'array', items: { type: 'string' } },
-                        permissions: { type: 'array', items: { type: 'string' } },
-                    },
-                },
-            },
-        },
+        type: ValidateTokenResponseDto,
     })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 401, description: 'Unauthorized', type: ErrorResponseDto })
     async validateToken(
         @User() user: UserContext,
         @Req() request: RequestWithCorrelation
-    ): Promise<{
-        valid: boolean;
-        user: {
-            id: string;
-            email: string;
-            organizationId?: string;
-            roles: string[];
-            permissions: string[];
-        };
-    }> {
+    ): Promise<ValidateTokenResponseDto> {
         this.logger.debug('Token validation successful', {
             userId: user.sub,
             organizationId: user.organizationId,
@@ -189,7 +164,7 @@ export class AuthController {
             module: 'auth-controller',
         });
 
-        return {
+        return plainToClass(ValidateTokenResponseDto, {
             valid: true,
             user: {
                 id: user.sub,
@@ -198,6 +173,6 @@ export class AuthController {
                 roles: user.roles,
                 permissions: user.permissions,
             },
-        };
+        });
     }
 }

@@ -25,13 +25,19 @@ import {
     AssignBranchManagerDto,
     BranchResponseDto,
     CreateBranchDto,
+    ErrorResponseDto,
+    ManagedBranchResponseDto,
     PaginationDto,
     PaginationResponseDto,
     UpdateBranchDto,
+    BranchCountResponseDto,
+    BranchStatsResponseDto,
+    BranchManagerResponseDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { plainToClass } from 'class-transformer';
 
 @ApiTags('Branches')
 @ApiBearerAuth()
@@ -48,23 +54,15 @@ export class BranchController {
         description: 'The branch has been successfully created.',
         type: BranchResponseDto,
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     async createBranch(
         @Body() createBranchDto: CreateBranchDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<BranchResponseDto> {
         const branch = await this.branchService.createBranch(createBranchDto, scope, user.sub);
-
-        return {
-            id: branch.id,
-            organizationId: branch.organizationId,
-            name: branch.name,
-            address: branch.address,
-            createdAt: branch.createdAt,
-            updatedAt: branch.updatedAt,
-        };
+        return plainToClass(BranchResponseDto, branch);
     }
 
     @Get()
@@ -74,9 +72,9 @@ export class BranchController {
     @ApiResponse({
         status: 200,
         description: 'A paginated list of branches.',
-        type: PaginationResponseDto,
+        type: PaginationResponseDto<BranchResponseDto>,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     async getBranches(
         @Scope() scope: DataScope,
         @Query() paginationDto: PaginationDto
@@ -89,14 +87,9 @@ export class BranchController {
         const endIndex = startIndex + limit;
         const paginatedBranches = branches.slice(startIndex, endIndex);
 
-        const responseBranches = paginatedBranches.map(branch => ({
-            id: branch.id,
-            organizationId: branch.organizationId,
-            name: branch.name,
-            address: branch.address,
-            createdAt: branch.createdAt,
-            updatedAt: branch.updatedAt,
-        }));
+        const responseBranches = paginatedBranches.map(branch =>
+            plainToClass(BranchResponseDto, branch)
+        );
 
         return new PaginationResponseDto(responseBranches, branches.length, page, limit);
     }
@@ -110,7 +103,7 @@ export class BranchController {
         description: 'A list of branches matching the search term.',
         type: [BranchResponseDto],
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     async searchBranches(
         @Query('q') searchTerm: string,
         @Scope() scope: DataScope
@@ -121,22 +114,19 @@ export class BranchController {
 
         const branches = await this.branchService.searchBranches(searchTerm.trim(), scope);
 
-        return branches.map(branch => ({
-            id: branch.id,
-            organizationId: branch.organizationId,
-            name: branch.name,
-            address: branch.address,
-            createdAt: branch.createdAt,
-            updatedAt: branch.updatedAt,
-        }));
+        return branches.map(branch => plainToClass(BranchResponseDto, branch));
     }
 
     @Get('count')
     @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Get the total number of branches' })
-    @ApiResponse({ status: 200, description: 'The total number of branches.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    async getBranchCount(@Scope() scope: DataScope): Promise<{ count: number }> {
+    @ApiResponse({
+        status: 200,
+        description: 'The total number of branches.',
+        type: BranchCountResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    async getBranchCount(@Scope() scope: DataScope): Promise<BranchCountResponseDto> {
         const count = await this.branchService.getBranchCount(scope);
         return { count };
     }
@@ -146,37 +136,36 @@ export class BranchController {
     @ApiOperation({ summary: 'Get a specific branch by ID' })
     @ApiParam({ name: 'id', description: 'ID of the branch' })
     @ApiResponse({ status: 200, description: 'The branch details.', type: BranchResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Branch not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
     async getBranchById(
         @Param('id') id: string,
         @Scope() scope: DataScope
     ): Promise<BranchResponseDto> {
         const branch = await this.branchService.getBranchById(id, scope);
-
         if (!branch) {
             throw new Error('Branch not found');
         }
-
-        return {
-            id: branch.id,
-            organizationId: branch.organizationId,
-            name: branch.name,
-            address: branch.address,
-            createdAt: branch.createdAt,
-            updatedAt: branch.updatedAt,
-        };
+        return plainToClass(BranchResponseDto, branch);
     }
 
     @Get(':id/stats')
     @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Get a branch with its statistics' })
     @ApiParam({ name: 'id', description: 'ID of the branch' })
-    @ApiResponse({ status: 200, description: 'The branch with statistics.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Branch not found.' })
-    async getBranchWithStats(@Param('id') id: string, @Scope() scope: DataScope) {
-        return this.branchService.getBranchWithStats(id, scope);
+    @ApiResponse({
+        status: 200,
+        description: 'The branch with statistics.',
+        type: BranchStatsResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
+    async getBranchWithStats(
+        @Param('id') id: string,
+        @Scope() scope: DataScope
+    ): Promise<BranchStatsResponseDto> {
+        const stats = await this.branchService.getBranchWithStats(id, scope);
+        return plainToClass(BranchStatsResponseDto, stats);
     }
 
     @Patch(':id')
@@ -189,9 +178,9 @@ export class BranchController {
         description: 'The branch has been successfully updated.',
         type: BranchResponseDto,
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Branch not found.' })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
     async updateBranch(
         @Param('id') id: string,
         @Body() updateBranchDto: UpdateBranchDto,
@@ -199,15 +188,7 @@ export class BranchController {
         @Scope() scope: DataScope
     ): Promise<BranchResponseDto> {
         const branch = await this.branchService.updateBranch(id, updateBranchDto, scope, user.sub);
-
-        return {
-            id: branch.id,
-            organizationId: branch.organizationId,
-            name: branch.name,
-            address: branch.address,
-            createdAt: branch.createdAt,
-            updatedAt: branch.updatedAt,
-        };
+        return plainToClass(BranchResponseDto, branch);
     }
 
     @Delete(':id')
@@ -216,8 +197,8 @@ export class BranchController {
     @ApiOperation({ summary: 'Delete a branch' })
     @ApiParam({ name: 'id', description: 'ID of the branch to delete' })
     @ApiResponse({ status: 204, description: 'The branch has been successfully deleted.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Branch not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
     async deleteBranch(
         @Param('id') id: string,
         @User() user: UserContext,
@@ -231,27 +212,29 @@ export class BranchController {
     @ApiOperation({ summary: 'Assign a manager to a branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiBody({ type: AssignBranchManagerBodyDto })
-    @ApiResponse({ status: 201, description: 'Manager assigned successfully.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Branch or user not found.' })
+    @ApiResponse({
+        status: 201,
+        description: 'Manager assigned successfully.',
+        type: ManagedBranchResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 404,
+        description: 'Branch or user not found.',
+        type: ErrorResponseDto,
+    })
     async assignBranchManager(
         @Param('branchId') branchId: string,
         @Body() assignDto: AssignBranchManagerBodyDto,
         @User() user: UserContext
-    ) {
+    ): Promise<ManagedBranchResponseDto> {
         const fullAssignDto: AssignBranchManagerDto = {
             managerId: assignDto.managerId,
             branchId,
         };
 
         const managedBranch = await this.branchService.assignBranchManager(fullAssignDto, user.sub);
-
-        return {
-            id: managedBranch.id,
-            managerId: managedBranch.managerId,
-            branchId: managedBranch.branchId,
-            assignedAt: managedBranch.assignedAt,
-        };
+        return plainToClass(ManagedBranchResponseDto, managedBranch);
     }
 
     @Delete(':branchId/managers/:managerId')
@@ -261,8 +244,8 @@ export class BranchController {
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiParam({ name: 'managerId', description: 'ID of the manager to remove' })
     @ApiResponse({ status: 204, description: 'Manager removed successfully.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Assignment not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Assignment not found.', type: ErrorResponseDto })
     async removeBranchManager(
         @Param('branchId') branchId: string,
         @Param('managerId') managerId: string,
@@ -275,23 +258,29 @@ export class BranchController {
     @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Get all managers for a branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
-    @ApiResponse({ status: 200, description: 'A list of branch managers.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Branch not found.' })
-    async getBranchManagers(@Param('branchId') branchId: string, @Scope() scope: DataScope) {
+    @ApiResponse({
+        status: 200,
+        description: 'A list of branch managers.',
+        type: [BranchManagerResponseDto],
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
+    async getBranchManagers(
+        @Param('branchId') branchId: string,
+        @Scope() scope: DataScope
+    ): Promise<BranchManagerResponseDto[]> {
         const managers = await this.branchService.getBranchManagers(branchId, scope);
 
-        return managers.map(managedBranch => ({
-            id: managedBranch.id,
-            managerId: managedBranch.managerId,
-            branchId: managedBranch.branchId,
-            assignedAt: managedBranch.assignedAt,
-            manager: {
-                id: managedBranch.manager.user.id,
-                email: managedBranch.manager.user.email,
-                fullName: managedBranch.manager.user.fullName,
-                role: managedBranch.manager.role,
-            },
-        }));
+        return managers.map(managedBranch =>
+            plainToClass(BranchManagerResponseDto, {
+                ...managedBranch,
+                manager: {
+                    id: managedBranch.manager.user.id,
+                    email: managedBranch.manager.user.email,
+                    fullName: managedBranch.manager.user.fullName,
+                    role: managedBranch.manager.role,
+                },
+            })
+        );
     }
 }

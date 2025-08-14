@@ -23,7 +23,10 @@ import { OrganizationService } from './organization.service';
 import { LoggerService } from '@/core/logger';
 import {
     CreateOrganizationDto,
+    ErrorResponseDto,
+    OrganizationCountResponseDto,
     OrganizationResponseDto,
+    OrganizationStatsResponseDto,
     PaginationDto,
     PaginationResponseDto,
     UpdateOrganizationDto,
@@ -32,6 +35,7 @@ import { NoScoping, Permissions, Roles, Scope, User } from '@/shared/decorators'
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@prisma/client';
+import { plainToClass } from 'class-transformer';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -52,8 +56,8 @@ export class OrganizationController {
         description: 'The organization has been successfully created.',
         type: OrganizationResponseDto,
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     async createOrganization(
         @Body() createOrganizationDto: CreateOrganizationDto,
         @User() user: UserContext
@@ -62,14 +66,7 @@ export class OrganizationController {
             createOrganizationDto,
             user.sub
         );
-
-        return {
-            id: organization.id,
-            name: organization.name,
-            description: organization.description,
-            createdAt: organization.createdAt,
-            updatedAt: organization.updatedAt,
-        };
+        return plainToClass(OrganizationResponseDto, organization);
     }
 
     @Get()
@@ -80,9 +77,9 @@ export class OrganizationController {
     @ApiResponse({
         status: 200,
         description: 'A paginated list of organizations.',
-        type: PaginationResponseDto,
+        type: PaginationResponseDto<OrganizationResponseDto>,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     async getAllOrganizations(
         @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<OrganizationResponseDto>> {
@@ -94,13 +91,9 @@ export class OrganizationController {
         const endIndex = startIndex + limit;
         const paginatedOrganizations = organizations.slice(startIndex, endIndex);
 
-        const responseOrganizations = paginatedOrganizations.map(org => ({
-            id: org.id,
-            name: org.name,
-            description: org.description,
-            createdAt: org.createdAt,
-            updatedAt: org.updatedAt,
-        }));
+        const responseOrganizations = paginatedOrganizations.map(org =>
+            plainToClass(OrganizationResponseDto, org)
+        );
 
         return new PaginationResponseDto(responseOrganizations, organizations.length, page, limit);
     }
@@ -115,7 +108,7 @@ export class OrganizationController {
         description: 'A list of organizations matching the search term.',
         type: [OrganizationResponseDto],
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     async searchOrganizations(@Query('q') searchTerm: string): Promise<OrganizationResponseDto[]> {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
@@ -123,22 +116,20 @@ export class OrganizationController {
 
         const organizations = await this.organizationService.searchOrganizations(searchTerm.trim());
 
-        return organizations.map(org => ({
-            id: org.id,
-            name: org.name,
-            description: org.description,
-            createdAt: org.createdAt,
-            updatedAt: org.updatedAt,
-        }));
+        return organizations.map(org => plainToClass(OrganizationResponseDto, org));
     }
 
     @Get('count')
     @NoScoping()
     @Permissions(PERMISSIONS.ORGANIZATION.READ_ALL)
     @ApiOperation({ summary: 'Get the total number of organizations' })
-    @ApiResponse({ status: 200, description: 'The total number of organizations.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    async getOrganizationCount(): Promise<{ count: number }> {
+    @ApiResponse({
+        status: 200,
+        description: 'The total number of organizations.',
+        type: OrganizationCountResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    async getOrganizationCount(): Promise<OrganizationCountResponseDto> {
         const count = await this.organizationService.getOrganizationCount();
         return { count };
     }
@@ -151,33 +142,39 @@ export class OrganizationController {
         description: 'The current organization details.',
         type: OrganizationResponseDto,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Organization not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 404,
+        description: 'Organization not found.',
+        type: ErrorResponseDto,
+    })
     async getCurrentOrganization(@Scope() scope: DataScope): Promise<OrganizationResponseDto> {
         const organization = await this.organizationService.getOrganizationById(
             scope.organizationId
         );
-
         if (!organization) {
             throw new Error('Organization not found');
         }
-
-        return {
-            id: organization.id,
-            name: organization.name,
-            description: organization.description,
-            createdAt: organization.createdAt,
-            updatedAt: organization.updatedAt,
-        };
+        return plainToClass(OrganizationResponseDto, organization);
     }
 
     @Get('self/stats')
     @Permissions(PERMISSIONS.ORGANIZATION.READ_SELF)
     @ApiOperation({ summary: 'Get statistics for the current organization' })
-    @ApiResponse({ status: 200, description: 'The organization statistics.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Organization not found.' })
-    async getCurrentOrganizationWithStats(@Scope() scope: DataScope) {
+    @ApiResponse({
+        status: 200,
+        description: 'The organization statistics.',
+        type: OrganizationStatsResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 404,
+        description: 'Organization not found.',
+        type: ErrorResponseDto,
+    })
+    async getCurrentOrganizationWithStats(
+        @Scope() scope: DataScope
+    ): Promise<OrganizationStatsResponseDto> {
         return this.organizationService.getOrganizationWithStats(scope.organizationId);
     }
 
@@ -191,22 +188,18 @@ export class OrganizationController {
         description: 'The organization details.',
         type: OrganizationResponseDto,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Organization not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 404,
+        description: 'Organization not found.',
+        type: ErrorResponseDto,
+    })
     async getOrganizationById(@Param('id') id: string): Promise<OrganizationResponseDto> {
         const organization = await this.organizationService.getOrganizationById(id);
-
         if (!organization) {
             throw new Error('Organization not found');
         }
-
-        return {
-            id: organization.id,
-            name: organization.name,
-            description: organization.description,
-            createdAt: organization.createdAt,
-            updatedAt: organization.updatedAt,
-        };
+        return plainToClass(OrganizationResponseDto, organization);
     }
 
     @Get(':id/stats')
@@ -214,10 +207,18 @@ export class OrganizationController {
     @Permissions(PERMISSIONS.ORGANIZATION.READ_ALL)
     @ApiOperation({ summary: 'Get statistics for a specific organization' })
     @ApiParam({ name: 'id', description: 'ID of the organization' })
-    @ApiResponse({ status: 200, description: 'The organization statistics.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Organization not found.' })
-    async getOrganizationWithStats(@Param('id') id: string) {
+    @ApiResponse({
+        status: 200,
+        description: 'The organization statistics.',
+        type: OrganizationStatsResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 404,
+        description: 'Organization not found.',
+        type: ErrorResponseDto,
+    })
+    async getOrganizationWithStats(@Param('id') id: string): Promise<OrganizationStatsResponseDto> {
         return this.organizationService.getOrganizationWithStats(id);
     }
 
@@ -230,9 +231,13 @@ export class OrganizationController {
         description: 'The organization has been successfully updated.',
         type: OrganizationResponseDto,
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Organization not found.' })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 404,
+        description: 'Organization not found.',
+        type: ErrorResponseDto,
+    })
     async updateCurrentOrganization(
         @Body() updateOrganizationDto: UpdateOrganizationDto,
         @User() user: UserContext,
@@ -243,14 +248,7 @@ export class OrganizationController {
             updateOrganizationDto,
             user.sub
         );
-
-        return {
-            id: organization.id,
-            name: organization.name,
-            description: organization.description,
-            createdAt: organization.createdAt,
-            updatedAt: organization.updatedAt,
-        };
+        return plainToClass(OrganizationResponseDto, organization);
     }
 
     @Patch(':id')
@@ -264,9 +262,13 @@ export class OrganizationController {
         description: 'The organization has been successfully updated.',
         type: OrganizationResponseDto,
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Organization not found.' })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 404,
+        description: 'Organization not found.',
+        type: ErrorResponseDto,
+    })
     async updateOrganization(
         @Param('id') id: string,
         @Body() updateOrganizationDto: UpdateOrganizationDto,
@@ -277,14 +279,7 @@ export class OrganizationController {
             updateOrganizationDto,
             user.sub
         );
-
-        return {
-            id: organization.id,
-            name: organization.name,
-            description: organization.description,
-            createdAt: organization.createdAt,
-            updatedAt: organization.updatedAt,
-        };
+        return plainToClass(OrganizationResponseDto, organization);
     }
 
     @Delete(':id')
@@ -297,8 +292,12 @@ export class OrganizationController {
         status: 204,
         description: 'The organization has been successfully deleted.',
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Organization not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 404,
+        description: 'Organization not found.',
+        type: ErrorResponseDto,
+    })
     async deleteOrganization(@Param('id') id: string, @User() user: UserContext): Promise<void> {
         await this.organizationService.deleteOrganization(id, user.sub);
     }

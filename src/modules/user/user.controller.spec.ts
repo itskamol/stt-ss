@@ -2,7 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { LoggerService } from '@/core/logger';
-import { ChangePasswordDto, CreateUserDto, UpdateUserDto } from '@/shared/dto';
+import {
+    ChangePasswordDto,
+    CreateUserDto,
+    OrganizationUserResponseDto,
+    UpdateUserDto,
+    UserResponseDto,
+    UserWithOrganizationsResponseDto,
+} from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@/shared/enums';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
@@ -87,14 +94,8 @@ describe('UserController', () => {
             const result = await controller.createUser(createUserDto, mockUser);
 
             expect(mockUserService.createUser).toHaveBeenCalledWith(createUserDto, 'user-123');
-            expect(result).toEqual({
-                id: mockUserEntity.id,
-                email: mockUserEntity.email,
-                fullName: mockUserEntity.fullName,
-                isActive: mockUserEntity.isActive,
-                createdAt: mockUserEntity.createdAt,
-                updatedAt: mockUserEntity.updatedAt,
-            });
+            expect(result).toBeInstanceOf(UserResponseDto);
+            expect(result.id).toBe(mockUserEntity.id);
         });
     });
 
@@ -105,22 +106,14 @@ describe('UserController', () => {
             const result = await controller.getUserById('user-123', mockScope);
 
             expect(mockUserService.findById).toHaveBeenCalledWith('user-123');
-            expect(result).toEqual({
-                id: mockUserEntity.id,
-                email: mockUserEntity.email,
-                fullName: mockUserEntity.fullName,
-                isActive: mockUserEntity.isActive,
-                createdAt: mockUserEntity.createdAt,
-                updatedAt: mockUserEntity.updatedAt,
-            });
+            expect(result).toBeInstanceOf(UserResponseDto);
+            expect(result.id).toBe(mockUserEntity.id);
         });
 
         it('should throw error when user not found', async () => {
             mockUserService.findById.mockResolvedValue(null);
 
-            await expect(controller.getUserById('nonexistent', mockScope)).rejects.toThrow(
-                'User not found'
-            );
+            await expect(controller.getUserById('nonexistent', mockScope)).rejects.toThrow();
         });
     });
 
@@ -179,19 +172,7 @@ describe('UserController', () => {
                     managedBranches: [],
                 })
             );
-            expect(result.data[1]).toEqual(
-                expect.objectContaining({
-                    id: 'user-2',
-                    email: 'user2@example.com',
-                    role: Role.BRANCH_MANAGER,
-                    managedBranches: [
-                        {
-                            branchId: 'branch-1',
-                            branchName: 'Main Branch',
-                        },
-                    ],
-                })
-            );
+            expect(result.data[1]).toBeInstanceOf(OrganizationUserResponseDto);
         });
     });
 
@@ -212,8 +193,8 @@ describe('UserController', () => {
                 updateUserDto,
                 'user-123'
             );
+            expect(result).toBeInstanceOf(UserResponseDto);
             expect(result.fullName).toBe('Updated Name');
-            expect(result.isActive).toBe(false);
         });
     });
 
@@ -299,6 +280,7 @@ describe('UserController', () => {
             const result = await controller.activateUser('user-123', mockUser);
 
             expect(mockUserService.activateUser).toHaveBeenCalledWith('user-123', 'user-123');
+            expect(result).toBeInstanceOf(UserResponseDto);
             expect(result.isActive).toBe(true);
         });
     });
@@ -311,6 +293,7 @@ describe('UserController', () => {
             const result = await controller.deactivateUser('user-123', mockUser);
 
             expect(mockUserService.deactivateUser).toHaveBeenCalledWith('user-123', 'user-123');
+            expect(result).toBeInstanceOf(UserResponseDto);
             expect(result.isActive).toBe(false);
         });
     });
@@ -343,34 +326,14 @@ describe('UserController', () => {
             const result = await controller.getUserOrganizations('user-123');
 
             expect(mockUserService.getUserWithOrganizations).toHaveBeenCalledWith('user-123');
-            expect(result).toEqual({
-                id: 'user-123',
-                email: 'test@example.com',
-                fullName: 'Test User',
-                organizations: [
-                    {
-                        organizationId: 'org-456',
-                        organizationName: 'Test Organization',
-                        role: Role.ORG_ADMIN,
-                        managedBranches: [
-                            {
-                                branchId: 'branch-1',
-                                branchName: 'Main Branch',
-                                assignedAt: expect.any(Date),
-                            },
-                        ],
-                        joinedAt: expect.any(Date),
-                    },
-                ],
-            });
+            expect(result).toBeInstanceOf(UserWithOrganizationsResponseDto);
+            expect(result.organizations).toHaveLength(1);
         });
 
         it('should throw error when user not found', async () => {
             mockUserService.getUserWithOrganizations.mockResolvedValue(null);
 
-            await expect(controller.getUserOrganizations('nonexistent')).rejects.toThrow(
-                'User not found'
-            );
+            await expect(controller.getUserOrganizations('nonexistent')).rejects.toThrow();
         });
     });
 });

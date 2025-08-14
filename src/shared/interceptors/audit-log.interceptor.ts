@@ -46,7 +46,7 @@ export class AuditLogInterceptor implements NestInterceptor {
         const scope: DataScope = request.scope;
         const method = request.method;
         const url = request.url;
-        const userAgent = request.get('User-Agent');
+        const userAgent = request.headers['user-agent'];
         const ipAddress = this.getClientIp(request);
 
         // Capture request data if needed
@@ -145,6 +145,9 @@ export class AuditLogInterceptor implements NestInterceptor {
         // Try to get ID from URL params first
         if (request.params?.id) {
             return request.params.id;
+        }
+        if (request.params?.userId) {
+            return request.params.userId;
         }
 
         // Try to get ID from response (for create operations)

@@ -3,14 +3,24 @@ import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class PaginationDto {
-    @ApiProperty({ required: false, default: 1 })
+    @ApiProperty({
+        description: 'The page number to retrieve.',
+        example: 1,
+        default: 1,
+        required: false,
+    })
     @IsOptional()
     @Transform(({ value }) => parseInt(value))
     @IsInt()
     @Min(1)
     page?: number = 1;
 
-    @ApiProperty({ required: false, default: 10 })
+    @ApiProperty({
+        description: 'The number of items to retrieve per page.',
+        example: 10,
+        default: 10,
+        required: false,
+    })
     @IsOptional()
     @Transform(({ value }) => parseInt(value))
     @IsInt()
@@ -20,15 +30,34 @@ export class PaginationDto {
 }
 
 export class PaginationResponseDto<T> {
-    @ApiProperty({ isArray: true })
+    @ApiProperty({
+        description: 'The data for the current page.',
+        isArray: true,
+    })
     data: T[];
-    @ApiProperty()
+
+    @ApiProperty({
+        description: 'The total number of items.',
+        example: 100,
+    })
     total: number;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: 'The current page number.',
+        example: 1,
+    })
     page: number;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: 'The number of items per page.',
+        example: 10,
+    })
     limit: number;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: 'The total number of pages.',
+        example: 10,
+    })
     totalPages: number;
 
     constructor(data: T[], total: number, page: number, limit: number) {

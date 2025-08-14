@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -48,7 +48,9 @@ describe('DeviceAuthGuard', () => {
                 switchToHttp: () => ({
                     getRequest: () => mockRequest,
                 }),
-            } as ExecutionContext;
+                getHandler: jest.fn().mockReturnValue(() => {}),
+                getClass: jest.fn().mockReturnValue(class {}),
+            } as unknown as ExecutionContext;
         };
 
         it('should allow access with valid device credentials', async () => {
@@ -166,29 +168,21 @@ describe('DeviceAuthGuard', () => {
         });
 
         it('should add device info to request', async () => {
-            const mockRequest = {
-                headers: {
-                    'x-device-id': 'device-123',
-                    'x-device-signature': 'dev-mock-signature',
-                    'x-timestamp': new Date().toISOString(),
-                },
-                body: {},
-                ip: '127.0.0.1',
+            const headers = {
+                'x-device-id': 'device-123',
+                'x-device-signature': 'dev-mock-signature',
+                'x-timestamp': new Date().toISOString(),
             };
-
-            const context = {
-                switchToHttp: () => ({
-                    getRequest: () => mockRequest,
-                }),
-            } as ExecutionContext;
+            const context = createMockContext(headers);
 
             await guard.canActivate(context);
 
+            const mockRequest = context.switchToHttp().getRequest();
             expect(mockRequest).toHaveProperty('device');
             expect((mockRequest as any).device).toEqual({
                 id: 'device-123',
                 signature: 'dev-mock-signature',
-                timestamp: expect.any(String),
+                timestamp: headers['x-timestamp'],
                 authenticated: true,
             });
         });

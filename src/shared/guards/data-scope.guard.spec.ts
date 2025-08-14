@@ -17,7 +17,7 @@ describe('DataScopeGuard', () => {
     };
 
     const mockLogger = {
-        logSecurityEvent: jest.fn(),
+        logUserAction: jest.fn(),
         debug: jest.fn(),
     };
 
@@ -114,15 +114,13 @@ describe('DataScopeGuard', () => {
                 .mockReturnValueOnce(true); // noScoping
 
             expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
+                'user-123',
                 'DATA_SCOPE_VIOLATION_NO_SCOPING',
                 expect.objectContaining({
                     userId: 'user-123',
                     roles: [Role.ORG_ADMIN],
-                }),
-                'user-123',
-                'org-456',
-                'test-correlation-id'
+                })
             );
         });
 
@@ -138,14 +136,12 @@ describe('DataScopeGuard', () => {
                 .mockReturnValueOnce(false); // noScoping
 
             expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
+                'user-123',
                 'DATA_SCOPE_VIOLATION_NO_ORGANIZATION',
                 expect.objectContaining({
                     userId: 'user-123',
-                }),
-                'user-123',
-                undefined,
-                'test-correlation-id'
+                })
             );
         });
 

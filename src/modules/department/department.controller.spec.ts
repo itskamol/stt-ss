@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DepartmentController } from './department.controller';
 import { DepartmentService } from './department.service';
 import { LoggerService } from '@/core/logger';
-import { CreateDepartmentDto, UpdateDepartmentDto } from '@/shared/dto';
+import {
+    CreateDepartmentDto,
+    DepartmentResponseDto,
+    UpdateDepartmentDto,
+} from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
@@ -98,14 +102,8 @@ describe('DepartmentController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toEqual({
-                id: mockDepartment.id,
-                branchId: mockDepartment.branchId,
-                name: mockDepartment.name,
-                parentId: mockDepartment.parentId,
-                createdAt: mockDepartment.createdAt,
-                updatedAt: mockDepartment.updatedAt,
-            });
+            expect(result).toBeInstanceOf(DepartmentResponseDto);
+            expect(result.id).toBe(mockDepartment.id);
         });
     });
 
@@ -167,6 +165,7 @@ describe('DepartmentController', () => {
             );
             expect(result).toHaveLength(1);
             expect(result[0].children).toHaveLength(1);
+            expect(result[0].children[0].name).toBe('Frontend Team');
         });
     });
 
@@ -192,6 +191,7 @@ describe('DepartmentController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
+            expect(result).toBeInstanceOf(DepartmentResponseDto);
             expect(result.name).toBe('Updated Engineering');
         });
     });
@@ -226,6 +226,7 @@ describe('DepartmentController', () => {
 
             expect(departmentService.searchDepartments).toHaveBeenCalledWith('eng', mockDataScope);
             expect(result).toHaveLength(1);
+            expect(result[0]).toBeInstanceOf(DepartmentResponseDto);
         });
     });
 

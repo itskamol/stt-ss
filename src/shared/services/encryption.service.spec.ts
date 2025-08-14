@@ -11,7 +11,16 @@ describe('EncryptionService', () => {
 
   beforeEach(async () => {
     const mockConfigService = {
-      get: jest.fn(),
+      get: jest.fn((key: string) => {
+        switch (key) {
+          case 'SECRET_ENCRYPTION_KEY':
+            return mockKey;
+          case 'SECRET_ENCRYPTION_IV':
+            return mockIV;
+          default:
+            return undefined;
+        }
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -26,19 +35,6 @@ describe('EncryptionService', () => {
 
     service = module.get<EncryptionService>(EncryptionService);
     configService = module.get(ConfigService);
-  });
-
-  beforeEach(() => {
-    configService.get.mockImplementation((key: string) => {
-      switch (key) {
-        case 'SECRET_ENCRYPTION_KEY':
-          return mockKey;
-        case 'SECRET_ENCRYPTION_IV':
-          return mockIV;
-        default:
-          return undefined;
-      }
-    });
   });
 
   describe('constructor', () => {

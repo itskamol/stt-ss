@@ -1,10 +1,10 @@
 import { ExecutionContext } from '@nestjs/common';
-import { User } from './user.decorator';
+import { getUserFromContext } from './user.decorator';
 import { UserContext } from '../interfaces/data-scope.interface';
 import { Role } from '@prisma/client';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
-describe('User Decorator', () => {
+describe('User Decorator Logic (getUserFromContext)', () => {
     const mockUser: UserContext = {
         sub: 'user-123',
         email: 'test@example.com',
@@ -14,10 +14,10 @@ describe('User Decorator', () => {
         permissions: [PERMISSIONS.EMPLOYEE.CREATE],
     };
 
-    const createMockContext = (user: UserContext): ExecutionContext => {
+    const createMockContext = (user: UserContext | undefined): ExecutionContext => {
         return {
-            switchToHttp: jest.fn().mockReturnValue({
-                getRequest: jest.fn().mockReturnValue({
+            switchToHttp: () => ({
+                getRequest: () => ({
                     user,
                 }),
             }),
@@ -26,78 +26,43 @@ describe('User Decorator', () => {
 
     it('should return full user context when no data parameter', () => {
         const mockContext = createMockContext(mockUser);
-        const factory = User() as any;
-
-        const result = factory(undefined, mockContext);
-
+        const result = getUserFromContext(undefined, mockContext);
         expect(result).toEqual(mockUser);
     });
 
     it('should return specific user property when data parameter provided', () => {
         const mockContext = createMockContext(mockUser);
-        const factory = User() as any;
-
-        const result = factory('sub', mockContext);
-
+        const result = getUserFromContext('sub', mockContext);
         expect(result).toBe('user-123');
     });
 
     it('should return email when email property requested', () => {
         const mockContext = createMockContext(mockUser);
-        const factory = User() as any;
-
-        const result = factory('email', mockContext);
-
+        const result = getUserFromContext('email', mockContext);
         expect(result).toBe('test@example.com');
     });
 
     it('should return organizationId when organizationId property requested', () => {
         const mockContext = createMockContext(mockUser);
-        const factory = User() as any;
-
-        const result = factory('organizationId', mockContext);
-
+        const result = getUserFromContext('organizationId', mockContext);
         expect(result).toBe('org-456');
     });
 
     it('should return roles when roles property requested', () => {
         const mockContext = createMockContext(mockUser);
-        const factory = User() as any;
-
-        const result = factory('roles', mockContext);
-
+        const result = getUserFromContext('roles', mockContext);
         expect(result).toEqual([Role.ORG_ADMIN]);
     });
 
     it('should return undefined when user is not present', () => {
-        const mockContext = {
-            switchToHttp: jest.fn().mockReturnValue({
-                getRequest: jest.fn().mockReturnValue({
-                    user: undefined,
-                }),
-            }),
-        } as unknown as ExecutionContext;
-
-        const factory = User() as any;
-
-        const result = factory(undefined, mockContext);
-
+        const mockContext = createMockContext(undefined);
+        const result = getUserFromContext(undefined, mockContext);
         expect(result).toBeUndefined();
     });
 
     it('should return undefined when accessing property of undefined user', () => {
-        const mockContext = {
-            switchToHttp: jest.fn().mockReturnValue({
-                getRequest: jest.fn().mockReturnValue({
-                    user: undefined,
-                }),
-            }),
-        } as unknown as ExecutionContext;
-
-        const factory = User() as any;
-
-        const result = factory('sub', mockContext);
-
+        const mockContext = createMockContext(undefined);
+        const result = getUserFromContext('sub', mockContext);
         expect(result).toBeUndefined();
     });
 });

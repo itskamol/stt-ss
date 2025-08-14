@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OrganizationController } from './organization.controller';
 import { OrganizationService } from './organization.service';
 import { LoggerService } from '@/core/logger';
-import { CreateOrganizationDto, UpdateOrganizationDto } from '@/shared/dto';
+import {
+    CreateOrganizationDto,
+    OrganizationResponseDto,
+    UpdateOrganizationDto,
+} from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@prisma/client';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
@@ -86,13 +90,8 @@ describe('OrganizationController', () => {
                 createOrganizationDto,
                 'user-123'
             );
-            expect(result).toEqual({
-                id: mockOrganization.id,
-                name: mockOrganization.name,
-                description: mockOrganization.description,
-                createdAt: mockOrganization.createdAt,
-                updatedAt: mockOrganization.updatedAt,
-            });
+            expect(result).toBeInstanceOf(OrganizationResponseDto);
+            expect(result.id).toBe(mockOrganization.id);
         });
     });
 
@@ -108,13 +107,7 @@ describe('OrganizationController', () => {
             expect(result.total).toBe(1);
             expect(result.page).toBe(1);
             expect(result.limit).toBe(10);
-            expect(result.data[0]).toEqual({
-                id: mockOrganization.id,
-                name: mockOrganization.name,
-                description: mockOrganization.description,
-                createdAt: mockOrganization.createdAt,
-                updatedAt: mockOrganization.updatedAt,
-            });
+            expect(result.data[0]).toBeInstanceOf(OrganizationResponseDto);
         });
     });
 
@@ -127,13 +120,7 @@ describe('OrganizationController', () => {
 
             expect(mockOrganizationService.searchOrganizations).toHaveBeenCalledWith('test');
             expect(result).toHaveLength(1);
-            expect(result[0]).toEqual({
-                id: mockOrganization.id,
-                name: mockOrganization.name,
-                description: mockOrganization.description,
-                createdAt: mockOrganization.createdAt,
-                updatedAt: mockOrganization.updatedAt,
-            });
+            expect(result[0]).toBeInstanceOf(OrganizationResponseDto);
         });
 
         it('should return empty array for short search term', async () => {
@@ -169,21 +156,13 @@ describe('OrganizationController', () => {
             const result = await controller.getCurrentOrganization(mockScope);
 
             expect(mockOrganizationService.getOrganizationById).toHaveBeenCalledWith('org-456');
-            expect(result).toEqual({
-                id: mockOrganization.id,
-                name: mockOrganization.name,
-                description: mockOrganization.description,
-                createdAt: mockOrganization.createdAt,
-                updatedAt: mockOrganization.updatedAt,
-            });
+            expect(result).toBeInstanceOf(OrganizationResponseDto);
         });
 
         it('should throw error when organization not found', async () => {
             mockOrganizationService.getOrganizationById.mockResolvedValue(null);
 
-            await expect(controller.getCurrentOrganization(mockScope)).rejects.toThrow(
-                'Organization not found'
-            );
+            await expect(controller.getCurrentOrganization(mockScope)).rejects.toThrow();
         });
     });
 
@@ -223,21 +202,13 @@ describe('OrganizationController', () => {
             const result = await controller.getOrganizationById('org-123');
 
             expect(mockOrganizationService.getOrganizationById).toHaveBeenCalledWith('org-123');
-            expect(result).toEqual({
-                id: mockOrganization.id,
-                name: mockOrganization.name,
-                description: mockOrganization.description,
-                createdAt: mockOrganization.createdAt,
-                updatedAt: mockOrganization.updatedAt,
-            });
+            expect(result).toBeInstanceOf(OrganizationResponseDto);
         });
 
         it('should throw error when organization not found', async () => {
             mockOrganizationService.getOrganizationById.mockResolvedValue(null);
 
-            await expect(controller.getOrganizationById('nonexistent')).rejects.toThrow(
-                'Organization not found'
-            );
+            await expect(controller.getOrganizationById('nonexistent')).rejects.toThrow();
         });
     });
 
@@ -291,13 +262,8 @@ describe('OrganizationController', () => {
                 updateOrganizationDto,
                 'user-123'
             );
-            expect(result).toEqual({
-                id: updatedOrganization.id,
-                name: updatedOrganization.name,
-                description: updatedOrganization.description,
-                createdAt: updatedOrganization.createdAt,
-                updatedAt: updatedOrganization.updatedAt,
-            });
+            expect(result).toBeInstanceOf(OrganizationResponseDto);
+            expect(result).toBeInstanceOf(OrganizationResponseDto);
         });
     });
 

@@ -13,7 +13,7 @@ describe('JwtAuthGuard', () => {
     };
 
     const mockLogger = {
-        logSecurityEvent: jest.fn(),
+        logUserAction: jest.fn(),
         debug: jest.fn(),
     };
 
@@ -68,11 +68,11 @@ describe('JwtAuthGuard', () => {
             mockReflector.getAllAndOverride.mockReturnValue(false);
 
             // Mock the parent class method
-            const superCanActivateSpy = jest.spyOn(
-                Object.getPrototypeOf(Object.getPrototypeOf(guard)),
-                'canActivate'
-            );
-            superCanActivateSpy.mockReturnValue(true);
+            const superCanActivateSpy = jest
+                .spyOn(Object.getPrototypeOf(Object.getPrototypeOf(guard)), 'canActivate')
+                .mockReturnValue(true);
+
+            guard.canActivate(mockContext);
 
             expect(superCanActivateSpy).toHaveBeenCalledWith(mockContext);
             superCanActivateSpy.mockRestore();
@@ -118,16 +118,14 @@ describe('JwtAuthGuard', () => {
             expect(() => guard.handleRequest(null, null, null, mockContext)).toThrow(
                 UnauthorizedException
             );
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
+                undefined,
                 'JWT_AUTH_FAILED',
                 expect.objectContaining({
                     error: 'Authentication failed',
                     url: '/test',
                     method: 'GET',
-                }),
-                undefined,
-                undefined,
-                'test-correlation-id'
+                })
             );
         });
 
@@ -137,14 +135,12 @@ describe('JwtAuthGuard', () => {
             expect(() => guard.handleRequest(authError, null, null, mockContext)).toThrow(
                 authError
             );
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
+                undefined,
                 'JWT_AUTH_FAILED',
                 expect.objectContaining({
                     error: 'Token expired',
-                }),
-                undefined,
-                undefined,
-                'test-correlation-id'
+                })
             );
         });
 
@@ -154,14 +150,12 @@ describe('JwtAuthGuard', () => {
             expect(() => guard.handleRequest(null, null, info, mockContext)).toThrow(
                 UnauthorizedException
             );
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
+            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
+                undefined,
                 'JWT_AUTH_FAILED',
                 expect.objectContaining({
                     error: 'No auth token',
-                }),
-                undefined,
-                undefined,
-                'test-correlation-id'
+                })
             );
         });
     });

@@ -3,7 +3,27 @@ import { QueueService } from './queue.service';
 import { QueueProducer } from './queue.producer';
 import { Permissions, Public } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import {
+    ApiBearerAuth,
+    ApiBody,
+    ApiOperation,
+    ApiParam,
+    ApiQuery,
+    ApiResponse,
+    ApiTags,
+} from '@nestjs/swagger';
+import {
+    CleanQueueResponseDto,
+    ErrorResponseDto,
+    QueueHealthResponseDto,
+    QueueStatsResponseDto,
+    RetryFailedJobsResponseDto,
+    TriggerJobResponseDto,
+} from './queue.dto';
+import { plainToClass } from 'class-transformer';
 
+@ApiTags('Admin - Queues')
+@ApiBearerAuth()
 @Controller('admin/queues')
 export class QueueController {
     constructor(
@@ -13,20 +33,53 @@ export class QueueController {
 
     @Get('stats')
     @Permissions(PERMISSIONS.ADMIN.QUEUE_READ)
-    async getQueueStats() {
-        return this.queueService.getAllQueueStats();
+    @ApiOperation({ summary: 'Get statistics for all queues' })
+    @ApiResponse({
+        status: 200,
+        description: 'Statistics for all queues.',
+        type: QueueStatsResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    async getQueueStats(): Promise<QueueStatsResponseDto> {
+        const stats = await this.queueService.getAllQueueStats();
+        return { queues: stats };
     }
 
     @Get(':queueName/stats')
     @Permissions(PERMISSIONS.ADMIN.QUEUE_READ)
-    async getQueueStatsByName(@Param('queueName') queueName: string) {
-        return this.queueService.getQueueStats(queueName);
+    @ApiOperation({ summary: 'Get statistics for a specific queue' })
+    @ApiParam({ name: 'queueName', description: 'The name of the queue' })
+    @ApiResponse({
+        status: 200,
+        description: 'Statistics for the specified queue.',
+        type: QueueStatsResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    async getQueueStatsByName(@Param('queueName') queueName: string): Promise<QueueStatsResponseDto> {
+        const stats = await this.queueService.getQueueStats(queueName);
+        return { queues: [stats] };
     }
 
     @Post(':queueName/clean')
     @Permissions(PERMISSIONS.ADMIN.QUEUE_MANAGE)
     @HttpCode(HttpStatus.OK)
-    async cleanQueue(@Param('queueName') queueName: string, @Query('grace') grace?: number) {
+    @ApiOperation({ summary: 'Clean a queue' })
+    @ApiParam({ name: 'queueName', description: 'The name of the queue to clean' })
+    @ApiQuery({
+        name: 'grace',
+        description: 'The grace period in milliseconds',
+        required: false,
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'The result of the clean operation.',
+        type: CleanQueueResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    async cleanQueue(
+        @Param('queueName') queueName: string,
+        @Query('grace') grace?: number
+    ): Promise<CleanQueueResponseDto> {
         const cleanedCount = await this.queueService.cleanQueue(
             queueName,
             grace ? parseInt(grace.toString()) : undefined
@@ -42,7 +95,17 @@ export class QueueController {
     @Post(':queueName/retry-failed')
     @Permissions(PERMISSIONS.ADMIN.QUEUE_MANAGE)
     @HttpCode(HttpStatus.OK)
-    async retryFailedJobs(@Param('queueName') queueName: string) {
+    @ApiOperation({ summary: 'Retry all failed jobs in a queue' })
+    @ApiParam({ name: 'queueName', description: 'The name of the queue' })
+    @ApiResponse({
+        status: 200,
+        description: 'The result of the retry operation.',
+        type: RetryFailedJobsResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    async retryFailedJobs(
+        @Param('queueName') queueName: string
+    ): Promise<RetryFailedJobsResponseDto> {
         const retriedCount = await this.queueService.retryFailedJobs(queueName);
 
         return {
@@ -55,13 +118,26 @@ export class QueueController {
     @Post('health-check')
     @Permissions(PERMISSIONS.ADMIN.SYSTEM_MANAGE)
     @HttpCode(HttpStatus.OK)
-    async triggerHealthCheck() {
-        const job = await this.queueProducer.scheduleHealthCheck({
-            checkType: 'database',
-        });
+    @ApiOperation({ summary: 'Trigger a health check job' })
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: { checkType: { type: 'string', example: 'database' } },
+        },
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'The result of the trigger operation.',
+        type: TriggerJobResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    async triggerHealthCheck(
+        @Body('checkType') checkType: string
+    ): Promise<TriggerJobResponseDto> {
+        const job = await this.queueProducer.scheduleHealthCheck({ checkType });
 
         return {
-            jobId: job.id,
+            jobId: String(job.id),
             message: 'Health check scheduled',
             timestamp: new Date(),
         };
@@ -70,11 +146,18 @@ export class QueueController {
     @Post('monitoring')
     @Permissions(PERMISSIONS.ADMIN.SYSTEM_MANAGE)
     @HttpCode(HttpStatus.OK)
-    async triggerQueueMonitoring() {
+    @ApiOperation({ summary: 'Trigger a queue monitoring job' })
+    @ApiResponse({
+        status: 200,
+        description: 'The result of the trigger operation.',
+        type: TriggerJobResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    async triggerQueueMonitoring(): Promise<TriggerJobResponseDto> {
         const job = await this.queueProducer.scheduleQueueMonitoring();
 
         return {
-            jobId: job.id,
+            jobId: String(job.id),
             message: 'Queue monitoring scheduled',
             timestamp: new Date(),
         };
@@ -82,7 +165,13 @@ export class QueueController {
 
     @Get('health')
     @Public()
-    async getQueueHealth() {
+    @ApiOperation({ summary: 'Get the health status of all queues' })
+    @ApiResponse({
+        status: 200,
+        description: 'The health status of all queues.',
+        type: QueueHealthResponseDto,
+    })
+    async getQueueHealth(): Promise<QueueHealthResponseDto> {
         try {
             const stats = await this.queueService.getAllQueueStats();
 
@@ -91,19 +180,19 @@ export class QueueController {
 
             const isHealthy = totalFailed < 50 && totalWaiting < 500;
 
-            return {
+            return plainToClass(QueueHealthResponseDto, {
                 status: isHealthy ? 'healthy' : 'degraded',
                 queues: stats,
                 totalFailed,
                 totalWaiting,
                 timestamp: new Date(),
-            };
+            });
         } catch (error) {
-            return {
+            return plainToClass(QueueHealthResponseDto, {
                 status: 'unhealthy',
                 error: error.message,
                 timestamp: new Date(),
-            };
+            });
         }
     }
 }

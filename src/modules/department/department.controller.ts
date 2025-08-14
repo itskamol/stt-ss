@@ -22,7 +22,10 @@ import {
 import { DepartmentService } from './department.service';
 import {
     CreateDepartmentDto,
+    DepartmentCountResponseDto,
     DepartmentResponseDto,
+    DepartmentStatsResponseDto,
+    ErrorResponseDto,
     PaginationDto,
     PaginationResponseDto,
     UpdateDepartmentDto,
@@ -30,6 +33,7 @@ import {
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { plainToClass } from 'class-transformer';
 
 @ApiTags('Departments')
 @ApiBearerAuth()
@@ -46,8 +50,8 @@ export class DepartmentController {
         description: 'The department has been successfully created.',
         type: DepartmentResponseDto,
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     async createDepartment(
         @Body() createDepartmentDto: CreateDepartmentDto,
         @User() user: UserContext,
@@ -58,15 +62,7 @@ export class DepartmentController {
             scope,
             user.sub
         );
-
-        return {
-            id: department.id,
-            branchId: department.branchId,
-            name: department.name,
-            parentId: department.parentId,
-            createdAt: department.createdAt,
-            updatedAt: department.updatedAt,
-        };
+        return plainToClass(DepartmentResponseDto, department);
     }
 
     @Get()
@@ -76,9 +72,9 @@ export class DepartmentController {
     @ApiResponse({
         status: 200,
         description: 'A paginated list of departments.',
-        type: PaginationResponseDto,
+        type: PaginationResponseDto<DepartmentResponseDto>,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     async getDepartments(
         @Scope() scope: DataScope,
         @Query() paginationDto: PaginationDto
@@ -91,14 +87,9 @@ export class DepartmentController {
         const endIndex = startIndex + limit;
         const paginatedDepartments = departments.slice(startIndex, endIndex);
 
-        const responseDepartments = paginatedDepartments.map(department => ({
-            id: department.id,
-            branchId: department.branchId,
-            name: department.name,
-            parentId: department.parentId,
-            createdAt: department.createdAt,
-            updatedAt: department.updatedAt,
-        }));
+        const responseDepartments = paginatedDepartments.map(department =>
+            plainToClass(DepartmentResponseDto, department)
+        );
 
         return new PaginationResponseDto(responseDepartments, departments.length, page, limit);
     }
@@ -112,7 +103,7 @@ export class DepartmentController {
         description: 'A list of departments matching the search term.',
         type: [DepartmentResponseDto],
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     async searchDepartments(
         @Query('q') searchTerm: string,
         @Scope() scope: DataScope
@@ -126,22 +117,19 @@ export class DepartmentController {
             scope
         );
 
-        return departments.map(department => ({
-            id: department.id,
-            branchId: department.branchId,
-            name: department.name,
-            parentId: department.parentId,
-            createdAt: department.createdAt,
-            updatedAt: department.updatedAt,
-        }));
+        return departments.map(department => plainToClass(DepartmentResponseDto, department));
     }
 
     @Get('count')
     @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get the total number of departments' })
-    @ApiResponse({ status: 200, description: 'The total number of departments.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    async getDepartmentCount(@Scope() scope: DataScope): Promise<{ count: number }> {
+    @ApiResponse({
+        status: 200,
+        description: 'The total number of departments.',
+        type: DepartmentCountResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    async getDepartmentCount(@Scope() scope: DataScope): Promise<DepartmentCountResponseDto> {
         const count = await this.departmentService.getDepartmentCount(scope);
         return { count };
     }
@@ -155,35 +143,33 @@ export class DepartmentController {
         description: 'A list of departments for the branch.',
         type: [DepartmentResponseDto],
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Branch not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
     async getDepartmentsByBranch(
         @Param('branchId') branchId: string,
         @Scope() scope: DataScope
     ): Promise<DepartmentResponseDto[]> {
         const departments = await this.departmentService.getDepartmentsByBranch(branchId, scope);
-
-        return departments.map(department => ({
-            id: department.id,
-            branchId: department.branchId,
-            name: department.name,
-            parentId: department.parentId,
-            createdAt: department.createdAt,
-            updatedAt: department.updatedAt,
-        }));
+        return departments.map(department => plainToClass(DepartmentResponseDto, department));
     }
 
     @Get('branch/:branchId/hierarchy')
     @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get the department hierarchy for a branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
-    @ApiResponse({ status: 200, description: 'The department hierarchy.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Branch not found.' })
-    async getDepartmentHierarchy(@Param('branchId') branchId: string, @Scope() scope: DataScope) {
+    @ApiResponse({
+        status: 200,
+        description: 'The department hierarchy.',
+        type: [DepartmentResponseDto],
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
+    async getDepartmentHierarchy(
+        @Param('branchId') branchId: string,
+        @Scope() scope: DataScope
+    ): Promise<DepartmentResponseDto[]> {
         const hierarchy = await this.departmentService.getDepartmentHierarchy(branchId, scope);
-
-        return hierarchy.map(department => this.mapDepartmentWithChildren(department));
+        return hierarchy;
     }
 
     @Get(':id')
@@ -195,36 +181,31 @@ export class DepartmentController {
         description: 'The department details.',
         type: DepartmentResponseDto,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Department not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Department not found.', type: ErrorResponseDto })
     async getDepartmentById(
         @Param('id') id: string,
         @Scope() scope: DataScope
     ): Promise<DepartmentResponseDto> {
         const department = await this.departmentService.getDepartmentById(id, scope);
-
-        if (!department) {
-            throw new Error('Department not found');
-        }
-
-        return {
-            id: department.id,
-            branchId: department.branchId,
-            name: department.name,
-            parentId: department.parentId,
-            createdAt: department.createdAt,
-            updatedAt: department.updatedAt,
-        };
+        return plainToClass(DepartmentResponseDto, department);
     }
 
     @Get(':id/stats')
     @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get a department with its statistics' })
     @ApiParam({ name: 'id', description: 'ID of the department' })
-    @ApiResponse({ status: 200, description: 'The department with statistics.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Department not found.' })
-    async getDepartmentWithStats(@Param('id') id: string, @Scope() scope: DataScope) {
+    @ApiResponse({
+        status: 200,
+        description: 'The department with statistics.',
+        type: DepartmentStatsResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Department not found.', type: ErrorResponseDto })
+    async getDepartmentWithStats(
+        @Param('id') id: string,
+        @Scope() scope: DataScope
+    ): Promise<DepartmentStatsResponseDto> {
         return this.departmentService.getDepartmentWithStats(id, scope);
     }
 
@@ -238,9 +219,9 @@ export class DepartmentController {
         description: 'The department has been successfully updated.',
         type: DepartmentResponseDto,
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Department not found.' })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Department not found.', type: ErrorResponseDto })
     async updateDepartment(
         @Param('id') id: string,
         @Body() updateDepartmentDto: UpdateDepartmentDto,
@@ -253,15 +234,7 @@ export class DepartmentController {
             scope,
             user.sub
         );
-
-        return {
-            id: department.id,
-            branchId: department.branchId,
-            name: department.name,
-            parentId: department.parentId,
-            createdAt: department.createdAt,
-            updatedAt: department.updatedAt,
-        };
+        return plainToClass(DepartmentResponseDto, department);
     }
 
     @Delete(':id')
@@ -270,8 +243,8 @@ export class DepartmentController {
     @ApiOperation({ summary: 'Delete a department' })
     @ApiParam({ name: 'id', description: 'ID of the department to delete' })
     @ApiResponse({ status: 204, description: 'The department has been successfully deleted.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Department not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Department not found.', type: ErrorResponseDto })
     async deleteDepartment(
         @Param('id') id: string,
         @User() user: UserContext,
@@ -280,17 +253,4 @@ export class DepartmentController {
         await this.departmentService.deleteDepartment(id, scope, user.sub);
     }
 
-    private mapDepartmentWithChildren(department: any): any {
-        return {
-            id: department.id,
-            branchId: department.branchId,
-            name: department.name,
-            parentId: department.parentId,
-            createdAt: department.createdAt,
-            updatedAt: department.updatedAt,
-            children: department.children
-                ? department.children.map(child => this.mapDepartmentWithChildren(child))
-                : [],
-        };
-    }
 }

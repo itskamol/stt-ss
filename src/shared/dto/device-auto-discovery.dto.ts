@@ -55,21 +55,21 @@ export class DeviceAutoDiscoveryDto {
 
     @ApiProperty({
         description: 'Branch ID where the device is located',
-        example: 'branch-uuid',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
     })
     @IsString()
     branchId: string;
 
     @ApiProperty({
         description: 'Organization ID',
-        example: 'org-uuid',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
     })
     @IsString()
     organizationId: string;
 
     @ApiPropertyOptional({
         description: 'Department ID (optional)',
-        example: 'dept-uuid',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
     })
     @IsOptional()
     @IsString()
@@ -79,6 +79,7 @@ export class DeviceAutoDiscoveryDto {
         description: 'Protocol to use for communication',
         enum: DeviceProtocol,
         default: DeviceProtocol.HTTP,
+        example: DeviceProtocol.HTTP,
     })
     @IsOptional()
     @IsEnum(DeviceProtocol)
@@ -139,6 +140,7 @@ export class DeviceDiscoveryTestDto {
         description: 'Protocol to use for communication',
         enum: DeviceProtocol,
         default: DeviceProtocol.HTTP,
+        example: DeviceProtocol.HTTP,
     })
     @IsOptional()
     @IsEnum(DeviceProtocol)

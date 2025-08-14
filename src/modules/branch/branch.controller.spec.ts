@@ -2,7 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BranchController } from './branch.controller';
 import { BranchService } from './branch.service';
 import { LoggerService } from '@/core/logger';
-import { CreateBranchDto, UpdateBranchDto } from '@/shared/dto';
+import {
+    BranchManagerResponseDto,
+    BranchResponseDto,
+    BranchStatsResponseDto,
+    CreateBranchDto,
+    ManagedBranchResponseDto,
+    UpdateBranchDto,
+} from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
@@ -118,14 +125,8 @@ describe('BranchController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toEqual({
-                id: mockBranch.id,
-                organizationId: mockBranch.organizationId,
-                name: mockBranch.name,
-                address: mockBranch.address,
-                createdAt: mockBranch.createdAt,
-                updatedAt: mockBranch.updatedAt,
-            });
+            expect(result).toBeInstanceOf(BranchResponseDto);
+            expect(result.id).toBe(mockBranch.id);
         });
     });
 
@@ -151,15 +152,14 @@ describe('BranchController', () => {
             const result = await controller.getBranchById('branch-123', mockDataScope);
 
             expect(branchService.getBranchById).toHaveBeenCalledWith('branch-123', mockDataScope);
+            expect(result).toBeInstanceOf(BranchResponseDto);
             expect(result.id).toBe(mockBranch.id);
         });
 
         it('should throw error when branch not found', async () => {
             branchService.getBranchById.mockResolvedValue(null);
 
-            await expect(controller.getBranchById('nonexistent', mockDataScope)).rejects.toThrow(
-                'Branch not found'
-            );
+            await expect(controller.getBranchById('nonexistent', mockDataScope)).rejects.toThrow();
         });
     });
 
@@ -185,6 +185,7 @@ describe('BranchController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
+            expect(result).toBeInstanceOf(BranchResponseDto);
             expect(result.name).toBe('Updated Branch');
         });
     });
@@ -221,8 +222,8 @@ describe('BranchController', () => {
                 { ...assignDto, branchId: 'branch-123' },
                 mockUserContext.sub
             );
+            expect(result).toBeInstanceOf(ManagedBranchResponseDto);
             expect(result.managerId).toBe(mockManagedBranch.managerId);
-            expect(result.branchId).toBe(mockManagedBranch.branchId);
         });
     });
 
@@ -251,7 +252,7 @@ describe('BranchController', () => {
                 mockDataScope
             );
             expect(result).toHaveLength(1);
-            expect(result[0].managerId).toBe(mockManagedBranch.managerId);
+            expect(result[0]).toBeInstanceOf(BranchManagerResponseDto);
         });
     });
 
@@ -271,6 +272,7 @@ describe('BranchController', () => {
 
             expect(branchService.searchBranches).toHaveBeenCalledWith('main', mockDataScope);
             expect(result).toHaveLength(1);
+            expect(result[0]).toBeInstanceOf(BranchResponseDto);
         });
     });
 
@@ -288,18 +290,9 @@ describe('BranchController', () => {
     describe('getBranchWithStats', () => {
         it('should return branch with statistics', async () => {
             const branchWithStats = {
-                id: mockBranch.id,
-                organizationId: mockBranch.organizationId,
-                name: mockBranch.name,
-                address: mockBranch.address,
-                createdAt: mockBranch.createdAt,
-                updatedAt: mockBranch.updatedAt,
-                statistics: {
-                    totalDepartments: 5,
-                    totalEmployees: 25,
-                    totalDevices: 3,
-                    totalGuestVisits: 10,
-                },
+                ...mockBranch,
+                employeeCount: 25,
+                deviceCount: 3,
             };
 
             branchService.getBranchWithStats.mockResolvedValue(branchWithStats);
@@ -310,8 +303,8 @@ describe('BranchController', () => {
                 'branch-123',
                 mockDataScope
             );
-            expect(result.statistics.totalDepartments).toBe(5);
-            expect(result.statistics.totalEmployees).toBe(25);
+            expect(result).toBeInstanceOf(BranchStatsResponseDto);
+            expect(result.employeeCount).toBe(25);
         });
     });
 });

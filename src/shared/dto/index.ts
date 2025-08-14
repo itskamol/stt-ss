@@ -12,3 +12,4 @@ export * from './guest.dto';
 export * from './audit-log.dto';
 export * from './report.dto';
 export * from './auth.dto';
+export * from './error.dto';

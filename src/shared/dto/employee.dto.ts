@@ -2,126 +2,252 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateEmployeeDto {
-    @ApiProperty()
+    @ApiProperty({
+        description: "The employee's first name.",
+        example: 'John',
+        maxLength: 50,
+    })
     @IsString()
     @IsNotEmpty()
     @MaxLength(50)
     firstName: string;
 
-    @ApiProperty()
+    @ApiProperty({
+        description: "The employee's last name.",
+        example: 'Doe',
+        maxLength: 50,
+    })
     @IsString()
     @IsNotEmpty()
     @MaxLength(50)
     lastName: string;
 
-    @ApiProperty()
+    @ApiProperty({
+        description: "The unique code for the employee.",
+        example: 'EMP12345',
+        maxLength: 20,
+    })
     @IsString()
     @IsNotEmpty()
     @MaxLength(20)
     employeeCode: string;
 
-    @ApiProperty()
+    @ApiProperty({
+        description: 'The ID of the branch where the employee works.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+    })
     @IsString()
     @IsNotEmpty()
     branchId: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: 'The ID of the department where the employee belongs.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+        required: false,
+    })
     @IsOptional()
     @IsString()
     @IsNotEmpty()
     departmentId?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: "The employee's email address.",
+        example: 'john.doe@acme.com',
+        required: false,
+    })
     @IsOptional()
     @IsEmail()
     email?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: "The employee's phone number.",
+        example: '123-456-7890',
+        maxLength: 20,
+        required: false,
+    })
     @IsOptional()
     @IsString()
     @MaxLength(20)
     phone?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: 'Indicates if the employee is currently active.',
+        example: true,
+        required: false,
+    })
     @IsOptional()
     @IsBoolean()
     isActive?: boolean;
 }
 
 export class UpdateEmployeeDto {
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: "The employee's first name.",
+        example: 'John',
+        maxLength: 50,
+        required: false,
+    })
     @IsOptional()
     @IsString()
     @IsNotEmpty()
     @MaxLength(50)
     firstName?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: "The employee's last name.",
+        example: 'Doe',
+        maxLength: 50,
+        required: false,
+    })
     @IsOptional()
     @IsString()
     @IsNotEmpty()
     @MaxLength(50)
     lastName?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: "The unique code for the employee.",
+        example: 'EMP12345',
+        maxLength: 20,
+        required: false,
+    })
     @IsOptional()
     @IsString()
     @IsNotEmpty()
     @MaxLength(20)
     employeeCode?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: 'The ID of the branch where the employee works.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+        required: false,
+    })
     @IsOptional()
     @IsString()
     @IsNotEmpty()
     branchId?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: 'The ID of the department where the employee belongs.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+        required: false,
+    })
     @IsOptional()
     @IsString()
     @IsNotEmpty()
     departmentId?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: "The employee's email address.",
+        example: 'john.doe@acme.com',
+        required: false,
+    })
     @IsOptional()
     @IsEmail()
     email?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: "The employee's phone number.",
+        example: '123-456-7890',
+        maxLength: 20,
+        required: false,
+    })
     @IsOptional()
     @IsString()
     @MaxLength(20)
     phone?: string;
 
-    @ApiProperty({ required: false })
+    @ApiProperty({
+        description: 'Indicates if the employee is currently active.',
+        example: true,
+        required: false,
+    })
     @IsOptional()
     @IsBoolean()
     isActive?: boolean;
 }
 
 export class EmployeeResponseDto {
-    @ApiProperty()
+    @ApiProperty({
+        description: 'The unique identifier for the employee.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+    })
     id: string;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: 'The ID of the organization this employee belongs to.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+    })
     organizationId: string;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: 'The ID of the branch where the employee works.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+    })
     branchId: string;
-    @ApiProperty({ required: false })
+
+    @ApiProperty({
+        description: 'The ID of the department where the employee belongs.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+        required: false,
+    })
     departmentId?: string;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: "The employee's first name.",
+        example: 'John',
+    })
     firstName: string;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: "The employee's last name.",
+        example: 'Doe',
+    })
     lastName: string;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: "The unique code for the employee.",
+        example: 'EMP12345',
+    })
     employeeCode: string;
-    @ApiProperty({ required: false })
+
+    @ApiProperty({
+        description: "The employee's email address.",
+        example: 'john.doe@acme.com',
+        required: false,
+    })
     email?: string;
-    @ApiProperty({ required: false })
+
+    @ApiProperty({
+        description: "The employee's phone number.",
+        example: '123-456-7890',
+        required: false,
+    })
     phone?: string;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: 'Indicates if the employee is currently active.',
+        example: true,
+    })
     isActive: boolean;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: 'The date and time when the employee was created.',
+        example: '2023-08-14T10:00:00.000Z',
+    })
     createdAt: Date;
-    @ApiProperty()
+
+    @ApiProperty({
+        description: 'The date and time when the employee was last updated.',
+        example: '2023-08-14T10:00:00.000Z',
+    })
     updatedAt: Date;
+}
+
+export class EmployeeCountResponseDto {
+    @ApiProperty({
+        description: 'The total number of employees.',
+        example: 100,
+    })
+    count: number;
 }

@@ -39,7 +39,7 @@ describe('QueryBuilder', () => {
 
             expect(result).toEqual({
                 organizationId: 'org-123',
-                branchId: {
+                id: {
                     in: ['branch-1', 'branch-2'],
                 },
             });

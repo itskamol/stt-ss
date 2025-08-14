@@ -24,7 +24,9 @@ describe('AuditLogInterceptor', () => {
                 },
                 method: 'POST',
                 url: '/api/v1/employees',
-                get: jest.fn().mockReturnValue('Mozilla/5.0'),
+                headers: {
+                    'user-agent': 'Mozilla/5.0',
+                },
                 body: { name: 'John Doe', password: 'secret123' },
                 params: { id: 'emp-123' },
                 query: { page: '1' },
@@ -200,7 +202,17 @@ describe('AuditLogInterceptor', () => {
         });
         mockCallHandler.handle.mockReturnValue(of({ id: 'response-123' }));
 
-        await interceptor.intercept(mockExecutionContext, mockCallHandler).toPromise();
+        const contextWithoutParams = {
+            switchToHttp: () => ({
+                getRequest: () => ({
+                    ...mockExecutionContext.switchToHttp().getRequest(),
+                    params: {}, // Override params to be empty
+                }),
+            }),
+            getHandler: jest.fn(),
+        } as unknown as ExecutionContext;
+
+        await interceptor.intercept(contextWithoutParams, mockCallHandler).toPromise();
 
         let auditCall = auditLogService.createAuditLog.mock.calls[0][0];
         expect(auditCall.resourceId).toBe('response-123');
@@ -209,19 +221,33 @@ describe('AuditLogInterceptor', () => {
         auditLogService.createAuditLog.mockClear();
 
         // Test with params ID when no response ID
-        const contextWithoutResponseId = {
-            ...mockExecutionContext,
+        const contextWithParamsId = {
             switchToHttp: () => ({
                 getRequest: () => ({
-                    ...mockExecutionContext.switchToHttp().getRequest(),
+                    user: {
+                        sub: 'user-123',
+                        organizationId: 'org-123',
+                    },
+                    scope: {
+                        organizationId: 'org-123',
+                    },
+                    method: 'POST',
+                    url: '/api/v1/employees',
+                    headers: {
+                        'user-agent': 'Mozilla/5.0',
+                    },
+                    body: { name: 'John Doe', password: 'secret123' },
                     params: { id: 'param-123' },
+                    query: { page: '1' },
+                    connection: { remoteAddress: '192.168.1.1' },
                 }),
             }),
-        };
+            getHandler: jest.fn(),
+        } as unknown as ExecutionContext;
 
         mockCallHandler.handle.mockReturnValue(of({ name: 'John Doe' }));
 
-        await interceptor.intercept(contextWithoutResponseId as any, mockCallHandler).toPromise();
+        await interceptor.intercept(contextWithParamsId, mockCallHandler).toPromise();
 
         auditCall = auditLogService.createAuditLog.mock.calls[0][0];
         expect(auditCall.resourceId).toBe('param-123');
