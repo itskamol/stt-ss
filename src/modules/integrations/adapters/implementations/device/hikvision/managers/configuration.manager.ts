@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
+import { XmlJsonService } from '@/shared/services/xml-json.service';
 
 export interface DeviceConfiguration {
     deviceInfo: {
@@ -68,7 +69,8 @@ export interface AuthenticationConfig {
 export class HikvisionConfigurationManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
-        private readonly logger: LoggerService
+        private readonly logger: LoggerService,
+        private readonly xmlJsonService: XmlJsonService
     ) {}
 
     /**
@@ -109,19 +111,47 @@ export class HikvisionConfigurationManager {
      * Get device basic information
      */
     async getDeviceInfo(device: any) {
-        const response = await this.httpClient.request<any>(device, {
-            method: 'GET',
-            url: '/ISAPI/System/deviceInfo',
-        });
+        // Try different ISAPI endpoints for device info
+        const url = '/ISAPI/System/deviceInfo';
 
-        return {
-            deviceName: response.data.deviceName,
-            deviceID: response.data.deviceID,
-            model: response.data.model,
-            serialNumber: response.data.serialNumber,
-            firmwareVersion: response.data.firmwareVersion,
-            hardwareVersion: response.data.hardwareVersion,
-        };
+        try {
+            this.logger.debug(`Trying endpoint: ${url}`, {
+                deviceId: device.id,
+                module: 'hikvision-config-manager',
+            });
+
+            const response = await this.httpClient.request<any>(device, {
+                method: 'GET',
+                url,
+            });
+
+            // Convert XML response to JSON if needed
+            let data = response;
+            if (typeof data === 'string' && data.includes('<?xml')) {
+                data = await this.xmlJsonService.xmlToJson(data);
+            }
+
+            // Extract device info from XML structure
+            const deviceInfo = data.DeviceInfo || data.deviceInfo || data;
+
+            // If successful, return formatted data
+            return {
+                deviceName: deviceInfo.deviceName || deviceInfo.DeviceName || 'Unknown',
+                deviceID: deviceInfo.deviceID || deviceInfo.DeviceID || 'Unknown',
+                model: deviceInfo.model || deviceInfo.Model || 'Unknown',
+                serialNumber: deviceInfo.serialNumber || deviceInfo.SerialNumber || 'Unknown',
+                firmwareVersion:
+                    deviceInfo.firmwareVersion || deviceInfo.FirmwareVersion || 'Unknown',
+                hardwareVersion:
+                    deviceInfo.hardwareVersion || deviceInfo.HardwareVersion || 'Unknown',
+            };
+        } catch (error) {
+            this.logger.debug(`Endpoint ${url} failed: ${error.message}`, {
+                deviceId: device.id,
+                module: 'hikvision-config-manager',
+            });
+        }
+
     }
 
     /**

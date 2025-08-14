@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { AxiosRequestConfig } from 'axios';
+import { AxiosRequestConfig, AxiosError, Method } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { LoggerService } from '@/core/logger';
-import { EncryptionService } from '@/shared/services/encryption.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class HikvisionHttpClient {
@@ -12,58 +12,182 @@ export class HikvisionHttpClient {
 
     constructor(
         private readonly logger: LoggerService,
-        private readonly httpService: HttpService,
-        private readonly encryptionService: EncryptionService
+        private readonly httpService: HttpService
     ) {}
 
     async request<T>(device: any, config: AxiosRequestConfig): Promise<T> {
+        const baseUrl = `http://${device.host}:${device.port}`;
+        const url = `${baseUrl}${config.url}`;
+
         try {
-            const url = `http://${device.host}:${device.port || 80}${config.url}`;
+            await firstValueFrom(this.httpService.get(url));
+            return (await firstValueFrom(this.httpService.request({ ...config, url }))).data;
+        } catch (error: any) {
+            if (error.response && error.response.status === 401) {
+                const authHeader = error.response.headers['www-authenticate'];
+                if (!authHeader || !authHeader.toLowerCase().startsWith('digest')) {
+                    throw new HttpException(
+                        'Server is not supporting Digest authentication.',
+                        HttpStatus.INTERNAL_SERVER_ERROR
+                    );
+                }
 
-            const requestConfig: AxiosRequestConfig = {
-                ...config,
-                url,
-                timeout: this.COMMAND_TIMEOUT,
-                auth: {
-                    username: device.username,
-                    password: device.password,
-                },
-            };
+                const digestParams = this.parseDigestHeader(authHeader);
 
-            const response = await firstValueFrom(this.httpService.request(requestConfig));
-            return response.data;
-        } catch (error) {
-            this.logger.error('HTTP request failed', error.message, {
-                deviceId: device.id,
-                url: config.url,
-                method: config.method,
-            });
-            throw error;
+                const authResponseHeader = this.createAuthorizationHeader(
+                    device,
+                    digestParams,
+                    config.method.toUpperCase() as Method,
+                    config.url
+                );
+
+                const finalConfig: AxiosRequestConfig = {
+                    ...config,
+                    url,
+                    headers: {
+                        ...config.headers,
+                        Authorization: authResponseHeader,
+                    },
+                };
+
+                try {
+                    const response = await firstValueFrom(this.httpService.request<T>(finalConfig));
+                    return response.data;
+                } catch (e: any) {
+                    this.logger.error(`Autentifikatsiyali so'rovda xatolik: ${e.message}`, e.stack);
+                    throw new HttpException(
+                        e.response?.data || e.message,
+                        e.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+                    );
+                }
+            }
+            this.logger.error(`Boshlang'ich so'rovda xatolik: ${error.message}`, error.stack);
+            throw new HttpException(
+                error.response?.data || error.message,
+                error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
-    private async handleDigestAuth<T>(
-        device: any,
-        config: AxiosRequestConfig,
-        url: string,
-        error: any
-    ): Promise<T> {
-        // Digest auth logic
-        return {} as T;
-    }
-
     private parseDigestHeader(header: string): Record<string, string> {
-        // Parse digest header logic
-        return {};
+        const params: Record<string, string> = {};
+        header
+            .slice(7)
+            .split(',')
+            .forEach(part => {
+                const [key, value] = part.trim().split(/=(.*)/s);
+                params[key] = value.replace(/"/g, '');
+            });
+        return params;
     }
 
-    private createDigestAuth(
+    private createAuthorizationHeader(
         device: any,
         params: Record<string, string>,
-        method: string,
+        method: Method,
         uri: string
     ): string {
-        // Create digest auth logic
-        return '';
+        const realm = params.realm;
+        const qop = params.qop;
+        const nonce = params.nonce;
+        const opaque = params.opaque;
+        const nc = '00000001';
+        const cnonce = crypto.randomBytes(8).toString('hex');
+
+        // `this.username` va `this.password` o'rniga `device`dan olingan ma'lumotlarni ishlatamiz
+        const ha1 = crypto
+            .createHash('md5')
+            .update(`${device.username}:${realm}:${device.password}`)
+            .digest('hex');
+        const ha2 = crypto.createHash('md5').update(`${method}:${uri}`).digest('hex');
+        const response = crypto
+            .createHash('md5')
+            .update(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`)
+            .digest('hex');
+
+        const authParts = [
+            `username="${device.username}"`,
+            `realm="${realm}"`,
+            `nonce="${nonce}"`,
+            `uri="${uri}"`,
+            `qop=${qop}`,
+            `nc=${nc}`,
+            `cnonce="${cnonce}"`,
+            `response="${response}"`,
+            `opaque="${opaque}"`,
+        ];
+
+        return `Digest ${authParts.join(', ')}`;
+    }
+
+    private md5(input: string): string {
+        return crypto.createHash('md5').update(input).digest('hex');
+    }
+
+    // Qo'shimcha utility metodlar
+    async testConnection(device: any): Promise<boolean> {
+        try {
+            // Use the same endpoint checking logic as in configuration manager
+            const possibleEndpoints = [
+                '/ISAPI/System/deviceInfo',
+                '/ISAPI/System/status',
+                '/ISAPI/System/deviceinfo',
+                '/ISAPI/system/deviceInfo',
+                '/ISAPI/ContentMgmt/System/deviceInfo',
+                '/ISAPI/System/capabilities',
+            ];
+
+            for (const url of possibleEndpoints) {
+                try {
+                    await this.request(device, {
+                        method: 'GET',
+                        url,
+                    });
+                    return true; // If any endpoint works, connection is successful
+                } catch (error) {
+                    continue; // Try next endpoint
+                }
+            }
+
+            return false; // All endpoints failed
+        } catch (error) {
+            this.logger.error('Connection test failed', error.message, {
+                deviceId: device.id,
+                host: device.host,
+            });
+            return false;
+        }
+    }
+
+    async getDeviceInfo(device: any): Promise<any> {
+        // Use same fallback logic as configuration manager
+        const possibleEndpoints = [
+            '/ISAPI/System/deviceInfo',
+            '/ISAPI/System/status',
+            '/ISAPI/System/deviceinfo',
+            '/ISAPI/system/deviceInfo',
+            '/ISAPI/ContentMgmt/System/deviceInfo',
+            '/ISAPI/System/capabilities',
+        ];
+
+        for (const url of possibleEndpoints) {
+            try {
+                return this.request(device, {
+                    method: 'GET',
+                    url,
+                });
+            } catch (error) {
+                continue; // Try next endpoint
+            }
+        }
+
+        throw new Error('No valid device info endpoint found');
+    }
+
+    async getChannels(device: any): Promise<any> {
+        return this.request(device, {
+            method: 'GET',
+            url: '/ISAPI/System/Video/inputs',
+        });
     }
 }

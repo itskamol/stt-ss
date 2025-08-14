@@ -58,7 +58,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
         this.card = new HikvisionCardManager(this.httpClient, this.logger);
         this.user = new HikvisionUserManager(this.httpClient, this.logger);
         this.nfc = new HikvisionNFCManager(this.httpClient, this.logger);
-        this.configuration = new HikvisionConfigurationManager(this.httpClient, this.logger);
+        this.configuration = new HikvisionConfigurationManager(this.httpClient, this.logger, this.xmlJsonService);
 
         // Initialize new ISAPI managers
         this.person = new HikvisionPersonManager(this.httpClient, this.logger);
@@ -106,7 +106,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
 
             // Use configuration manager to get device info
             const deviceInfo = await this.configuration.getDeviceInfo(config);
-
+            console.log(deviceInfo);
             return {
                 id: device.id,
                 name: deviceInfo.deviceName,

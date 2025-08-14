@@ -115,8 +115,6 @@ export class LoggerService implements NestLoggerService, OnModuleDestroy {
         });
     }
 
-    // logApiRequest is now handled by Morgan middleware
-
     logApiError(method: string, url: string, statusCode: number, error: string, context?: LogContext): void {
         const errorContext = {
             module: 'api',

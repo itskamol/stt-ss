@@ -44,6 +44,7 @@ export class DeviceService {
         port: number;
         username: string;
         password: string;
+        brand: string;
         protocol?: DeviceProtocol;
     }) {
         try {
@@ -60,8 +61,7 @@ export class DeviceService {
                 port: connectionDetails.port,
                 username: connectionDetails.username,
                 password: connectionDetails.password,
-                brand: 'unknown',
-                model: 'unknown',
+                brand: connectionDetails.brand,
             };
 
             // Try to get device information using adapter
@@ -178,6 +178,7 @@ export class DeviceService {
                     username: deviceData.username,
                     password: deviceData.password,
                     protocol: deviceData.protocol,
+                    brand:deviceData.manufacturer
                 });
 
                 // Fill in missing information with discovered data
@@ -282,6 +283,7 @@ export class DeviceService {
             username: basicInfo.username,
             password: basicInfo.password,
             protocol: basicInfo.protocol as DeviceProtocol,
+            brand: 'unknown'
         });
 
         // Create full device DTO with discovered information

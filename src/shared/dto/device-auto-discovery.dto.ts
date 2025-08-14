@@ -126,7 +126,6 @@ export class DeviceDiscoveryTestDto {
         maximum: 65535,
     })
     @IsNumber()
-    @IsPort()
     port: number;
 
     @ApiProperty({
@@ -139,6 +138,13 @@ export class DeviceDiscoveryTestDto {
     @MinLength(1)
     @MaxLength(50)
     username: string;
+
+    @ApiProperty({
+        description: 'Device brand',
+        example: 'hikvision',
+    })
+    @IsString()
+    brand: string;
 
     @ApiProperty({
         description: 'Device password',
