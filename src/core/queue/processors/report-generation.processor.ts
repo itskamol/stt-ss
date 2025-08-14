@@ -11,7 +11,7 @@ import { DeviceService } from '../../../modules/device/device.service';
 import { GuestService } from '../../../modules/guest/guest.service';
 import { AuditLogService } from '../../../shared/services/audit-log.service';
 import { DataScope } from '../../../shared/interfaces';
-import { INotificationAdapter, IStorageAdapter } from '@/shared/adapters';
+import { INotificationAdapter, IStorageAdapter } from '@/modules/integrations/adapters';
 
 @Injectable()
 @Processor('exports')

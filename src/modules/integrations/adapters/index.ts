@@ -10,13 +10,19 @@ export * from './factories';
 // Implementations
 export { 
     HikvisionAdapter,
-    HikvisionV2Adapter,
     HikvisionHttpClient,
     HikvisionFaceManager,
     HikvisionCardManager,
     HikvisionUserManager,
     HikvisionNFCManager,
     HikvisionConfigurationManager,
+    // New ISAPI Managers
+    HikvisionPersonManager,
+    HikvisionFaceLibraryManager,
+    HikvisionFingerprintManager,
+    HikvisionEventHostManager,
+    HikvisionScheduleManager,
+    HikvisionSystemManager,
     StubDeviceAdapter
 } from './implementations/device';
 

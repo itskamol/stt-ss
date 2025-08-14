@@ -6,7 +6,7 @@ import { CreateReportDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 
 import { ReportFilters } from '@/shared/interfaces';
-import { IStorageAdapter } from '@/shared/adapters';
+import { IStorageAdapter } from '@/modules/integrations/adapters';
 
 @Injectable()
 export class ReportingService {

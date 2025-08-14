@@ -7,7 +7,7 @@ import { DeviceEventData } from '../queue.producer';
 import { EmployeeRepository } from '../../../modules/employee/employee.repository';
 import { AttendanceService } from '../../../modules/attendance/attendance.service';
 import { DataScope } from '../../../shared/interfaces';
-import { IMatchingAdapter } from '@/shared/adapters';
+import { IMatchingAdapter } from '@/modules/integrations/adapters';
 
 export interface ProcessedEventResult {
     eventId: string;

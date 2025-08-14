@@ -32,10 +32,14 @@ import {
     PaginationResponseDto,
     UpdateDeviceDto,
     UpdateDeviceTemplateDto,
+    DeviceAutoDiscoveryDto,
+    DeviceDiscoveryTestDto,
+    DeviceAutoDiscoveryResponseDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { DeviceProtocol } from '@prisma/client';
 
 @ApiTags('Devices')
 @ApiBearerAuth()
@@ -91,6 +95,78 @@ export class DeviceController {
         const device = await this.deviceService.createDevice(createDeviceDto, scope, user.sub);
 
         return this.mapDeviceToResponse(device);
+    }
+
+    @Post('auto-discover')
+    @Permissions(PERMISSIONS.DEVICE.CREATE)
+    @ApiOperation({ 
+        summary: 'Create device with auto-discovery',
+        description: 'Create a device with minimal information. The system will automatically discover device details like manufacturer, model, firmware, and MAC address.'
+    })
+    @ApiBody({ type: DeviceAutoDiscoveryDto })
+    @ApiResponse({
+        status: 201,
+        description: 'The device has been successfully created with auto-discovered information.',
+        type: DeviceResponseDto,
+    })
+    @ApiResponse({ status: 400, description: 'Invalid input or device not reachable.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    async createDeviceWithAutoDiscovery(
+        @Body() basicInfo: DeviceAutoDiscoveryDto,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ): Promise<DeviceResponseDto> {
+        const device = await this.deviceService.createDeviceWithAutoDiscovery(
+            basicInfo,
+            scope,
+            user.sub
+        );
+
+        return this.mapDeviceToResponse(device);
+    }
+
+    @Post('discover-info')
+    @Permissions(PERMISSIONS.DEVICE.CREATE)
+    @ApiOperation({ 
+        summary: 'Discover device information',
+        description: 'Test connection and discover device information without creating the device.'
+    })
+    @ApiBody({
+        schema: {
+            type: 'object',
+            required: ['ipAddress', 'port', 'username', 'password'],
+            properties: {
+                ipAddress: { type: 'string', description: 'Device IP address' },
+                port: { type: 'number', description: 'Device port' },
+                username: { type: 'string', description: 'Device username' },
+                password: { type: 'string', description: 'Device password' },
+                protocol: { type: 'string', description: 'Protocol (HTTP/HTTPS)', default: 'HTTP' },
+            }
+        }
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Device information discovered successfully.',
+        type: DeviceAutoDiscoveryResponseDto,
+    })
+    @ApiResponse({ status: 400, description: 'Invalid connection details.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    async discoverDeviceInfo(
+        @Body() connectionDetails: DeviceDiscoveryTestDto
+    ): Promise<DeviceAutoDiscoveryResponseDto> {
+        const discoveredInfo = await this.deviceService.discoverDeviceInfo(connectionDetails);
+
+        return {
+            connected: discoveredInfo.status !== 'UNKNOWN',
+            manufacturer: discoveredInfo.manufacturer,
+            model: discoveredInfo.model,
+            firmware: discoveredInfo.firmware,
+            macAddress: discoveredInfo.macAddress,
+            deviceIdentifier: discoveredInfo.deviceIdentifier,
+            capabilities: discoveredInfo.capabilities,
+            status: discoveredInfo.status,
+            discoveredAt: new Date(),
+        };
     }
 
     @Get()

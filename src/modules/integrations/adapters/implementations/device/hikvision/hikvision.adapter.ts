@@ -15,34 +15,59 @@ import { DeviceType, DeviceStatus } from '@prisma/client';
 
 // Import managers
 import { HikvisionHttpClient } from './utils/hikvision-http.client';
+import { XmlJsonService } from '@/shared/services/xml-json.service';
 import {
     HikvisionFaceManager,
     HikvisionCardManager,
     HikvisionUserManager,
     HikvisionNFCManager,
-    HikvisionConfigurationManager
+    HikvisionConfigurationManager,
+    // New ISAPI Managers
+    HikvisionPersonManager,
+    HikvisionFaceLibraryManager,
+    HikvisionFingerprintManager,
+    HikvisionEventHostManager,
+    HikvisionScheduleManager,
+    HikvisionSystemManager
 } from './managers';
 
 @Injectable()
-export class HikvisionV2Adapter implements IDeviceAdapter {
-    // Manager instances - bu sizning asosiy afzalligingiz!
+export class HikvisionAdapter implements IDeviceAdapter {
+    // Original Manager instances
     public readonly face: HikvisionFaceManager;
     public readonly card: HikvisionCardManager;
     public readonly user: HikvisionUserManager;
     public readonly nfc: HikvisionNFCManager;
     public readonly configuration: HikvisionConfigurationManager;
 
+    // New ISAPI Manager instances - bu sizning yangi imkoniyatlaringiz!
+    public readonly person: HikvisionPersonManager;
+    public readonly faceLibrary: HikvisionFaceLibraryManager;
+    public readonly fingerprint: HikvisionFingerprintManager;
+    public readonly eventHost: HikvisionEventHostManager;
+    public readonly schedule: HikvisionScheduleManager;
+    public readonly system: HikvisionSystemManager;
+
     constructor(
         private readonly logger: LoggerService,
         private readonly prisma: PrismaService,
         private readonly httpClient: HikvisionHttpClient,
+        private readonly xmlJsonService: XmlJsonService,
     ) {
-        // Initialize managers
+        // Initialize original managers
         this.face = new HikvisionFaceManager(this.httpClient, this.logger);
         this.card = new HikvisionCardManager(this.httpClient, this.logger);
         this.user = new HikvisionUserManager(this.httpClient, this.logger);
         this.nfc = new HikvisionNFCManager(this.httpClient, this.logger);
         this.configuration = new HikvisionConfigurationManager(this.httpClient, this.logger);
+
+        // Initialize new ISAPI managers
+        this.person = new HikvisionPersonManager(this.httpClient, this.logger);
+        this.faceLibrary = new HikvisionFaceLibraryManager(this.httpClient, this.logger, this.xmlJsonService);
+        this.fingerprint = new HikvisionFingerprintManager(this.httpClient, this.logger, this.xmlJsonService);
+        this.eventHost = new HikvisionEventHostManager(this.httpClient, this.logger, this.xmlJsonService);
+        this.schedule = new HikvisionScheduleManager(this.httpClient, this.logger);
+        this.system = new HikvisionSystemManager(this.httpClient, this.logger, this.xmlJsonService);
     }
 
     // ==================== IDeviceAdapter Implementation ====================
@@ -621,6 +646,290 @@ export class HikvisionV2Adapter implements IDeviceAdapter {
             faces,
             cards,
             nfcs,
+        };
+    }
+
+    // ==================== New ISAPI Methods ====================
+
+    /**
+     * Advanced person management with ISAPI
+     */
+    async searchPersons(deviceId: string, searchCriteria: {
+        searchID?: string;
+        maxResults?: number;
+        employeeNoList?: string[];
+    }) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        return await this.person.searchPersons(device, {
+            UserInfoSearchCond: {
+                searchID: searchCriteria.searchID || `search_${Date.now()}`,
+                searchResultPosition: 0,
+                maxResults: searchCriteria.maxResults || 100,
+                EmployeeNoList: searchCriteria.employeeNoList?.map(no => ({ employeeNo: no })),
+            },
+        });
+    }
+
+    /**
+     * Advanced face library management
+     */
+    async createFaceLibrary(deviceId: string, libraryData: {
+        faceLibType: 'blackFD' | 'staticFD';
+        name: string;
+        customInfo?: string;
+        FDID: string;
+    }) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        return await this.faceLibrary.createFaceLibrary(device, libraryData);
+    }
+
+    /**
+     * Add face picture with image data
+     */
+    async addFacePictureWithImage(deviceId: string, faceData: {
+        faceLibType: string;
+        FDID: string;
+        name: string;
+        employeeNo?: string;
+    }, imageBuffer: Buffer) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        return await this.faceLibrary.addFacePicture(device, faceData, imageBuffer);
+    }
+
+    /**
+     * Fingerprint management
+     */
+    async addFingerprint(deviceId: string, fingerprintData: {
+        employeeNo: string;
+        fingerPrintID: string;
+        fingerType: string;
+        fingerData: string;
+    }) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        return await this.fingerprint.addFingerprint(device, fingerprintData);
+    }
+
+    /**
+     * Configure event notification hosts
+     */
+    async configureEventHost(deviceId: string, hostID: string, hostConfig: {
+        url: string;
+        ipAddress: string;
+        port: number;
+        protocolType?: 'HTTP' | 'HTTPS';
+        parameterFormatType?: 'XML' | 'JSON';
+        eventTypes?: string[];
+    }) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        const hostNotification = this.eventHost.createBasicHostConfig(
+            hostID,
+            hostConfig.url,
+            hostConfig.ipAddress,
+            hostConfig.port,
+            {
+                protocolType: hostConfig.protocolType,
+                parameterFormatType: hostConfig.parameterFormatType,
+            }
+        );
+
+        if (hostConfig.eventTypes && hostConfig.eventTypes.length > 0) {
+            hostNotification.SubscribeEvent = this.eventHost.createEventSubscription(hostConfig.eventTypes);
+        }
+
+        return await this.eventHost.setListeningHost(device, hostID, hostNotification);
+    }
+
+    /**
+     * Schedule management
+     */
+    async createWeekSchedule(deviceId: string, planNo: number, schedule: {
+        timeSegments: Array<{
+            week: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+            beginTime: string;
+            endTime: string;
+            enabled?: boolean;
+        }>;
+    }) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        const weekPlan = this.schedule.createBasicWeekPlan(schedule.timeSegments);
+        return await this.schedule.setWeekPlan(device, planNo, weekPlan);
+    }
+
+    /**
+     * System user management
+     */
+    async createSystemUser(deviceId: string, userData: {
+        id: number;
+        userName: string;
+        password: string;
+        userLevel?: 'Administrator' | 'Operator' | 'Viewer';
+        enabled?: boolean;
+    }) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        const userInfo = this.system.createBasicUser(
+            userData.id,
+            userData.userName,
+            userData.password,
+            userData.userLevel,
+            userData.enabled
+        );
+
+        return await this.system.setUser(device, userData.id, userInfo);
+    }
+
+    /**
+     * Card reader configuration
+     */
+    async configureCardReader(deviceId: string, cardReaderID: number, config: Partial<{
+        enable: boolean;
+        swipeInterval: number;
+        faceMatchThreshold: number;
+        fingerPrintCheckLevel: number;
+        defaultVerifyMode: string;
+        cardReaderFunction: string[];
+    }>) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        const cardReaderConfig = this.system.createBasicCardReaderConfig(config);
+        return await this.system.setCardReaderConfig(device, cardReaderID, cardReaderConfig);
+    }
+
+    /**
+     * Get device capabilities for different features
+     */
+    async getDeviceCapabilities(deviceId: string) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        const [
+            faceLibrarySupport,
+            fingerprintSupport,
+            personCapabilities,
+            faceLibraryCapabilities,
+            fingerprintCapabilities,
+            scheduleCapabilities,
+            cardReaderCapabilities,
+        ] = await Promise.allSettled([
+            this.faceLibrary.checkFaceLibrarySupport(device),
+            this.fingerprint.checkFingerprintSupport(device),
+            this.person.getPersonCapabilities(device),
+            this.faceLibrary.getFaceLibraryCapabilities(device),
+            this.fingerprint.getFingerprintCapabilities(device),
+            this.schedule.getWeekPlanCapabilities(device),
+            this.system.getCardReaderCapabilities(device),
+        ]);
+
+        return {
+            faceLibrarySupport: faceLibrarySupport.status === 'fulfilled' ? faceLibrarySupport.value : false,
+            fingerprintSupport: fingerprintSupport.status === 'fulfilled' ? fingerprintSupport.value : false,
+            capabilities: {
+                person: personCapabilities.status === 'fulfilled' ? personCapabilities.value : null,
+                faceLibrary: faceLibraryCapabilities.status === 'fulfilled' ? faceLibraryCapabilities.value : null,
+                fingerprint: fingerprintCapabilities.status === 'fulfilled' ? fingerprintCapabilities.value : null,
+                schedule: scheduleCapabilities.status === 'fulfilled' ? scheduleCapabilities.value : null,
+                cardReader: cardReaderCapabilities.status === 'fulfilled' ? cardReaderCapabilities.value : null,
+            },
+        };
+    }
+
+    /**
+     * Comprehensive device status check
+     */
+    async getComprehensiveDeviceStatus(deviceId: string) {
+        const device = await this.prisma.device.findUnique({
+            where: { id: deviceId },
+        });
+
+        if (!device) {
+            throw new Error(`Device ${deviceId} not found`);
+        }
+
+        const [
+            deviceHealth,
+            personCount,
+            faceLibraryCount,
+            fingerprintCount,
+            eventHosts,
+            systemUsers,
+        ] = await Promise.allSettled([
+            this.getDeviceHealth(deviceId),
+            this.person.getPersonCount(device),
+            this.faceLibrary.getFaceLibraryCount(device),
+            this.fingerprint.getFingerprintCount(device),
+            this.eventHost.getAllListeningHosts(device),
+            this.system.getAllUsers(device),
+        ]);
+
+        return {
+            health: deviceHealth.status === 'fulfilled' ? deviceHealth.value : null,
+            counts: {
+                persons: personCount.status === 'fulfilled' ? personCount.value : 0,
+                faceLibraries: faceLibraryCount.status === 'fulfilled' ? faceLibraryCount.value.totalRecordDataNumber : 0,
+                fingerprints: fingerprintCount.status === 'fulfilled' ? fingerprintCount.value : 0,
+                eventHosts: eventHosts.status === 'fulfilled' ? eventHosts.value.length : 0,
+                systemUsers: systemUsers.status === 'fulfilled' ? systemUsers.value.length : 0,
+            },
+            lastChecked: new Date(),
         };
     }
 }
