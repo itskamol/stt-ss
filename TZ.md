@@ -285,7 +285,7 @@ model Device {
 
   name           String  
   type           DeviceType  
-  ipAddress      String?  
+  host      String?  
   macAddress     String?      @unique  
   model          String?  
   status         DeviceStatus @default(ONLINE)  

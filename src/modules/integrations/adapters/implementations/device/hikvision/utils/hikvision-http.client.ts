@@ -13,20 +13,20 @@ export class HikvisionHttpClient {
     constructor(
         private readonly logger: LoggerService,
         private readonly httpService: HttpService,
-        private readonly encryptionService: EncryptionService,
+        private readonly encryptionService: EncryptionService
     ) {}
 
     async request<T>(device: any, config: AxiosRequestConfig): Promise<T> {
         try {
-            const url = `http://${device.ipAddress}:${device.port || 80}${config.url}`;
-            
+            const url = `http://${device.host}:${device.port || 80}${config.url}`;
+
             const requestConfig: AxiosRequestConfig = {
                 ...config,
                 url,
                 timeout: this.COMMAND_TIMEOUT,
                 auth: {
-                    username: await this.encryptionService.decrypt(device.username),
-                    password: await this.encryptionService.decrypt(device.password),
+                    username: device.username,
+                    password: device.password,
                 },
             };
 

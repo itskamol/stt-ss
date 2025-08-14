@@ -583,7 +583,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             device.type,
             device.status,
             device.branchId,
-            device.ipAddress || '',
+            device.host || '',
             device.lastSeen ? device.lastSeen.toISOString() : '',
             device.createdAt.toISOString(),
         ]);
@@ -642,7 +642,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
                 log.action,
                 log.resource,
                 log.user?.email || '',
-                log.ipAddress || '',
+                log.host || '',
                 log.status,
                 log.errorMessage || '',
             ];

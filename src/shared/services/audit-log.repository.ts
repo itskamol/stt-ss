@@ -20,7 +20,7 @@ export class AuditLogRepository {
                 method: data.method,
                 url: data.url,
                 userAgent: data.userAgent,
-                ipAddress: data.ipAddress,
+                ipAddress: data.host,
                 requestData: data.requestData,
                 responseData: data.responseData,
                 status: data.status as any,

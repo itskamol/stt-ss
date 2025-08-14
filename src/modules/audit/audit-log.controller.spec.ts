@@ -31,7 +31,7 @@ describe('AuditLogController', () => {
         method: 'POST',
         url: '/api/v1/employees',
         userAgent: 'Mozilla/5.0',
-        ipAddress: '192.168.1.1',
+        host: '192.168.1.1',
         status: 'SUCCESS',
         duration: 150,
         timestamp: new Date('2024-01-15T10:00:00Z'),

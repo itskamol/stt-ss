@@ -127,18 +127,14 @@ export class GuestService {
 
         const updatedVisit = await this.guestRepository.update(id, updateGuestVisitDto, scope);
 
-        this.logger.logUserAction(
-            updatedByUserId,
-            'GUEST_VISIT_UPDATED',
-            {
-                guestVisitId: id,
-                changes: updateGuestVisitDto,
-                oldStatus: existingVisit.status,
-                newStatus: updatedVisit.status,
-                correlationId,
-                organizationId: scope.organizationId,
-            }
-        );
+        this.logger.logUserAction(updatedByUserId, 'GUEST_VISIT_UPDATED', {
+            guestVisitId: id,
+            changes: updateGuestVisitDto,
+            oldStatus: existingVisit.status,
+            newStatus: updatedVisit.status,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
 
         return updatedVisit;
     }

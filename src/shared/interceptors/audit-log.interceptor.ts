@@ -5,6 +5,7 @@ import { Reflector } from '@nestjs/core';
 import { AuditLogService } from '../services/audit-log.service';
 import { LoggerService } from '@/core/logger';
 import { DataScope, UserContext } from '../interfaces';
+import { DataSanitizerService } from '../services/data-sanitizer.service';
 
 export interface AuditLogOptions {
     action: string;
@@ -28,7 +29,8 @@ export class AuditLogInterceptor implements NestInterceptor {
     constructor(
         private readonly reflector: Reflector,
         private readonly auditLogService: AuditLogService,
-        private readonly logger: LoggerService
+        private readonly logger: LoggerService,
+        private readonly dataSanitizer: DataSanitizerService
     ) {}
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -47,14 +49,14 @@ export class AuditLogInterceptor implements NestInterceptor {
         const method = request.method;
         const url = request.url;
         const userAgent = request.get('User-Agent');
-        const ipAddress = this.getClientIp(request);
+        const host = this.getClientIp(request);
 
         // Capture request data if needed
         const requestData = auditOptions.captureRequest
             ? {
-                  body: this.sanitizeData(request.body),
-                  params: request.params,
-                  query: request.query,
+                  body: this.dataSanitizer.sanitizeForAudit(request.body).sanitized,
+                  params: this.dataSanitizer.sanitizeForLogging(request.params),
+                  query: this.dataSanitizer.sanitizeForLogging(request.query),
               }
             : undefined;
 
@@ -67,7 +69,7 @@ export class AuditLogInterceptor implements NestInterceptor {
 
                     // Capture response data if needed (but sanitize sensitive data)
                     const responseData = auditOptions.captureResponse
-                        ? this.sanitizeData(response)
+                        ? this.dataSanitizer.sanitizeForAudit(response).sanitized
                         : undefined;
 
                     await this.auditLogService.createAuditLog({
@@ -79,7 +81,7 @@ export class AuditLogInterceptor implements NestInterceptor {
                         method,
                         url,
                         userAgent,
-                        ipAddress,
+                        host,
                         requestData,
                         responseData,
                         status: 'SUCCESS',
@@ -87,11 +89,14 @@ export class AuditLogInterceptor implements NestInterceptor {
                         timestamp: new Date(),
                     });
                 } catch (error) {
-                    this.logger.error('Failed to create audit log', error.message, {
+                    this.logger.error('Failed to create audit log', error.stack, {
                         action: auditOptions.action,
                         resource: auditOptions.resource,
                         userId: user?.sub,
                         organizationId: scope?.organizationId,
+                        module: 'audit-log',
+                        correlationId: request.correlationId,
+                        error: error.message,
                     });
                 }
             }),
@@ -108,7 +113,7 @@ export class AuditLogInterceptor implements NestInterceptor {
                         method,
                         url,
                         userAgent,
-                        ipAddress,
+                        host,
                         requestData,
                         responseData: undefined,
                         status: 'FAILED',
@@ -118,10 +123,15 @@ export class AuditLogInterceptor implements NestInterceptor {
                         errorStack: error.stack,
                     });
                 } catch (auditError) {
-                    this.logger.error('Failed to create audit log for error', auditError.message, {
+                    this.logger.error('Failed to create audit log for error', auditError.stack, {
                         originalError: error.message,
                         action: auditOptions.action,
                         resource: auditOptions.resource,
+                        userId: user?.sub,
+                        organizationId: scope?.organizationId,
+                        module: 'audit-log',
+                        correlationId: request.correlationId,
+                        error: auditError.message,
                     });
                 }
 
@@ -160,56 +170,5 @@ export class AuditLogInterceptor implements NestInterceptor {
         return undefined;
     }
 
-    private sanitizeData(data: any): any {
-        if (!data) return data;
 
-        // Clone the data to avoid modifying the original
-        const sanitized = JSON.parse(JSON.stringify(data));
-
-        // List of sensitive fields to redact
-        const sensitiveFields = [
-            'password',
-            'token',
-            'secret',
-            'key',
-            'authorization',
-            'cookie',
-            'session',
-            'credential',
-            'pin',
-            'ssn',
-            'social',
-            'credit',
-            'card',
-            'cvv',
-            'cvc',
-        ];
-
-        const redactSensitiveData = (obj: any): any => {
-            if (typeof obj !== 'object' || obj === null) {
-                return obj;
-            }
-
-            if (Array.isArray(obj)) {
-                return obj.map(redactSensitiveData);
-            }
-
-            const result = {};
-            for (const [key, value] of Object.entries(obj)) {
-                const lowerKey = key.toLowerCase();
-                const isSensitive = sensitiveFields.some(field => lowerKey.includes(field));
-
-                if (isSensitive) {
-                    result[key] = '[REDACTED]';
-                } else if (typeof value === 'object' && value !== null) {
-                    result[key] = redactSensitiveData(value);
-                } else {
-                    result[key] = value;
-                }
-            }
-            return result;
-        };
-
-        return redactSensitiveData(sanitized);
-    }
 }

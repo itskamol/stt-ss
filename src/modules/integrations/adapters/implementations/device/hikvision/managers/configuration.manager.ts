@@ -12,7 +12,7 @@ export interface DeviceConfiguration {
         hardwareVersion: string;
     };
     network: {
-        ipAddress: string;
+        host: string;
         subnetMask: string;
         gateway: string;
         dns1: string;
@@ -41,7 +41,7 @@ export interface DeviceConfiguration {
 }
 
 export interface NetworkConfig {
-    ipAddress?: string;
+    host?: string;
     subnetMask?: string;
     gateway?: string;
     dns1?: string;
@@ -68,7 +68,7 @@ export interface AuthenticationConfig {
 export class HikvisionConfigurationManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
-        private readonly logger: LoggerService,
+        private readonly logger: LoggerService
     ) {}
 
     /**
@@ -135,7 +135,7 @@ export class HikvisionConfigurationManager {
 
         const networkInterface = response.data.NetworkInterface;
         return {
-            ipAddress: networkInterface.IPAddress,
+            host: networkInterface.host,
             subnetMask: networkInterface.SubnetMask,
             gateway: networkInterface.DefaultGateway,
             dns1: networkInterface.PrimaryDNS,
@@ -155,7 +155,7 @@ export class HikvisionConfigurationManager {
                 data: {
                     NetworkInterface: {
                         id: 1,
-                        IPAddress: config.ipAddress,
+                        host: config.host,
                         SubnetMask: config.subnetMask,
                         DefaultGateway: config.gateway,
                         PrimaryDNS: config.dns1,
@@ -194,7 +194,7 @@ export class HikvisionConfigurationManager {
         return {
             timeZone: response.data.timeZone,
             ntpEnabled: response.data.NTPServers?.enabled === 'true',
-            ntpServer: response.data.NTPServers?.NTPServer?.[0]?.ipAddress || '',
+            ntpServer: response.data.NTPServers?.NTPServer?.[0]?.host || '',
             currentTime: new Date(response.data.localTime),
         };
     }

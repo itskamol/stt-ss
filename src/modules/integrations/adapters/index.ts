@@ -8,7 +8,7 @@ export * from './interfaces';
 export * from './factories';
 
 // Implementations
-export { 
+export {
     HikvisionAdapter,
     HikvisionHttpClient,
     HikvisionFaceManager,
@@ -23,17 +23,11 @@ export {
     HikvisionEventHostManager,
     HikvisionScheduleManager,
     HikvisionSystemManager,
-    StubDeviceAdapter
+    StubDeviceAdapter,
 } from './implementations/device';
 
-export {
-    StubMatchingAdapter
-} from './implementations/biometric';
+export { StubMatchingAdapter } from './implementations/biometric';
 
-export {
-    StubStorageAdapter
-} from './implementations/storage';
+export { StubStorageAdapter } from './implementations/storage';
 
-export {
-    StubNotificationAdapter
-} from './implementations/notification';
+export { StubNotificationAdapter } from './implementations/notification';

@@ -28,7 +28,7 @@ export interface AddUserRequest {
 export class HikvisionUserManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
-        private readonly logger: LoggerService,
+        private readonly logger: LoggerService
     ) {}
 
     /**
@@ -54,13 +54,17 @@ export class HikvisionUserManager {
                         Valid: {
                             enable: true,
                             beginTime: request.validFrom?.toISOString() || new Date().toISOString(),
-                            endTime: request.validTo?.toISOString() || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                            endTime:
+                                request.validTo?.toISOString() ||
+                                new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
                             timeType: 'local',
                         },
-                        doorRight: request.doorRight?.map(door => ({ doorNo: door })) || [{ doorNo: '1' }],
-                        RightPlan: request.timeTemplate?.map(template => ({ 
+                        doorRight: request.doorRight?.map(door => ({ doorNo: door })) || [
+                            { doorNo: '1' },
+                        ],
+                        RightPlan: request.timeTemplate?.map(template => ({
                             planTemplateNo: template,
-                            doorNo: '1'
+                            doorNo: '1',
                         })) || [{ planTemplateNo: '1', doorNo: '1' }],
                     },
                 },
@@ -130,17 +134,19 @@ export class HikvisionUserManager {
                 },
             });
 
-            return response.data.UserInfoSearch?.UserInfo?.map((user: any) => ({
-                id: user.employeeNo,
-                employeeNo: user.employeeNo,
-                name: user.name,
-                userType: user.userType,
-                validFrom: new Date(user.Valid.beginTime),
-                validTo: new Date(user.Valid.endTime),
-                isActive: user.Valid.enable,
-                doorRight: user.doorRight?.map((door: any) => door.doorNo) || [],
-                timeTemplate: user.RightPlan?.map((plan: any) => plan.planTemplateNo) || [],
-            })) || [];
+            return (
+                response.data.UserInfoSearch?.UserInfo?.map((user: any) => ({
+                    id: user.employeeNo,
+                    employeeNo: user.employeeNo,
+                    name: user.name,
+                    userType: user.userType,
+                    validFrom: new Date(user.Valid.beginTime),
+                    validTo: new Date(user.Valid.endTime),
+                    isActive: user.Valid.enable,
+                    doorRight: user.doorRight?.map((door: any) => door.doorNo) || [],
+                    timeTemplate: user.RightPlan?.map((plan: any) => plan.planTemplateNo) || [],
+                })) || []
+            );
         } catch (error) {
             this.logger.error('Failed to get users', error.message, {
                 deviceId: device.id,
@@ -154,12 +160,16 @@ export class HikvisionUserManager {
     /**
      * Update user information
      */
-    async updateUser(device: any, employeeNo: string, updates: Partial<AddUserRequest>): Promise<DeviceUser> {
+    async updateUser(
+        device: any,
+        employeeNo: string,
+        updates: Partial<AddUserRequest>
+    ): Promise<DeviceUser> {
         try {
             // Get existing user info
             const existingUsers = await this.getUsers(device, employeeNo);
             const existingUser = existingUsers[0];
-            
+
             if (!existingUser) {
                 throw new Error(`User ${employeeNo} not found`);
             }
@@ -178,11 +188,15 @@ export class HikvisionUserManager {
                             endTime: (updates.validTo || existingUser.validTo).toISOString(),
                             timeType: 'local',
                         },
-                        doorRight: (updates.doorRight || existingUser.doorRight).map(door => ({ doorNo: door })),
-                        RightPlan: (updates.timeTemplate || existingUser.timeTemplate).map(template => ({ 
-                            planTemplateNo: template,
-                            doorNo: '1'
+                        doorRight: (updates.doorRight || existingUser.doorRight).map(door => ({
+                            doorNo: door,
                         })),
+                        RightPlan: (updates.timeTemplate || existingUser.timeTemplate).map(
+                            template => ({
+                                planTemplateNo: template,
+                                doorNo: '1',
+                            })
+                        ),
                     },
                 },
             });
@@ -210,7 +224,7 @@ export class HikvisionUserManager {
         try {
             const users = await this.getUsers(device, employeeNo);
             const user = users[0];
-            
+
             if (!user) {
                 throw new Error(`User ${employeeNo} not found`);
             }
@@ -230,9 +244,9 @@ export class HikvisionUserManager {
                             timeType: 'local',
                         },
                         doorRight: user.doorRight.map(door => ({ doorNo: door })),
-                        RightPlan: user.timeTemplate.map(template => ({ 
+                        RightPlan: user.timeTemplate.map(template => ({
                             planTemplateNo: template,
-                            doorNo: '1'
+                            doorNo: '1',
                         })),
                     },
                 },

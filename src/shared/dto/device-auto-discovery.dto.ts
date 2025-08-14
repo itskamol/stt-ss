@@ -1,6 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DeviceProtocol } from '@prisma/client';
-import { IsString, IsNumber, IsOptional, IsIP, IsPort, MinLength, MaxLength, IsEnum } from 'class-validator';
+import {
+    IsString,
+    IsNumber,
+    IsOptional,
+    IsIP,
+    IsPort,
+    MinLength,
+    MaxLength,
+    IsEnum,
+} from 'class-validator';
 
 export class DeviceAutoDiscoveryDto {
     @ApiProperty({
@@ -19,7 +28,15 @@ export class DeviceAutoDiscoveryDto {
         example: '192.168.1.100',
     })
     @IsIP()
-    ipAddress: string;
+    host: string;
+
+    @ApiPropertyOptional({
+        description: 'Device brand (hikvision)',
+        example: 'hikvision',
+    })
+    @IsOptional()
+    @IsString()
+    brand?: string;
 
     @ApiProperty({
         description: 'Device port',
@@ -28,7 +45,6 @@ export class DeviceAutoDiscoveryDto {
         maximum: 65535,
     })
     @IsNumber()
-    @IsPort()
     port: number;
 
     @ApiProperty({
@@ -101,7 +117,7 @@ export class DeviceDiscoveryTestDto {
         example: '192.168.1.100',
     })
     @IsIP()
-    ipAddress: string;
+    host: string;
 
     @ApiProperty({
         description: 'Device port',

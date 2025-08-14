@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
-import { PrismaService } from '@/core/database/prisma.service';
 import {
     IDeviceAdapter,
     DeviceInfo,
@@ -9,8 +8,9 @@ import {
     DeviceCommandResult,
     DeviceHealth,
     DeviceEvent,
-    DeviceCapability
+    DeviceCapability,
 } from '../../../interfaces';
+import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
 import { DeviceType, DeviceStatus } from '@prisma/client';
 
 // Import managers
@@ -28,7 +28,7 @@ import {
     HikvisionFingerprintManager,
     HikvisionEventHostManager,
     HikvisionScheduleManager,
-    HikvisionSystemManager
+    HikvisionSystemManager,
 } from './managers';
 
 @Injectable()
@@ -50,9 +50,8 @@ export class HikvisionAdapter implements IDeviceAdapter {
 
     constructor(
         private readonly logger: LoggerService,
-        private readonly prisma: PrismaService,
         private readonly httpClient: HikvisionHttpClient,
-        private readonly xmlJsonService: XmlJsonService,
+        private readonly xmlJsonService: XmlJsonService
     ) {
         // Initialize original managers
         this.face = new HikvisionFaceManager(this.httpClient, this.logger);
@@ -63,9 +62,21 @@ export class HikvisionAdapter implements IDeviceAdapter {
 
         // Initialize new ISAPI managers
         this.person = new HikvisionPersonManager(this.httpClient, this.logger);
-        this.faceLibrary = new HikvisionFaceLibraryManager(this.httpClient, this.logger, this.xmlJsonService);
-        this.fingerprint = new HikvisionFingerprintManager(this.httpClient, this.logger, this.xmlJsonService);
-        this.eventHost = new HikvisionEventHostManager(this.httpClient, this.logger, this.xmlJsonService);
+        this.faceLibrary = new HikvisionFaceLibraryManager(
+            this.httpClient,
+            this.logger,
+            this.xmlJsonService
+        );
+        this.fingerprint = new HikvisionFingerprintManager(
+            this.httpClient,
+            this.logger,
+            this.xmlJsonService
+        );
+        this.eventHost = new HikvisionEventHostManager(
+            this.httpClient,
+            this.logger,
+            this.xmlJsonService
+        );
         this.schedule = new HikvisionScheduleManager(this.httpClient, this.logger);
         this.system = new HikvisionSystemManager(this.httpClient, this.logger, this.xmlJsonService);
     }
@@ -89,25 +100,19 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async getDeviceInfo(deviceId: string): Promise<DeviceInfo> {
+    async getDeviceInfo(context: DeviceOperationContext): Promise<DeviceInfo> {
         try {
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
-
-            if (!device) {
-                throw new Error(`Device ${deviceId} not found`);
-            }
+            const { device, config } = context;
 
             // Use configuration manager to get device info
-            const deviceInfo = await this.configuration.getDeviceInfo(device);
+            const deviceInfo = await this.configuration.getDeviceInfo(config);
 
             return {
                 id: device.id,
                 name: deviceInfo.deviceName,
                 type: DeviceType.ACCESS_CONTROL,
                 status: device.status,
-                ipAddress: device.ipAddress,
+                host: device.host,
                 firmwareVersion: deviceInfo.firmwareVersion,
                 lastSeen: device.lastSeen,
                 capabilities: [
@@ -116,90 +121,78 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 ] as DeviceCapability[],
             };
         } catch (error) {
-            this.logger.error('Failed to get device info', error.message, {
-                deviceId,
+            this.logger.error(`Failed to get device info: ${error.message}`, error.trace, {
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async getDeviceConfiguration(deviceId: string): Promise<DeviceConfiguration> {
+    async getDeviceConfiguration(context: DeviceOperationContext): Promise<DeviceConfiguration> {
         try {
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
-
-            if (!device) {
-                throw new Error(`Device ${deviceId} not found`);
-            }
+            const { device, config } = context;
 
             // Use configuration manager
-            const config = await this.configuration.getConfiguration(device);
+            const deviceConfig = await this.configuration.getConfiguration(config);
 
             return {
-                deviceId,
+                deviceId: device.id,
                 settings: {
-                    network: config.network,
-                    authentication: config.authentication,
-                    access: config.access,
-                    time: config.time,
+                    network: deviceConfig.network,
+                    authentication: deviceConfig.authentication,
+                    access: deviceConfig.access,
+                    time: deviceConfig.time,
                 },
             } as DeviceConfiguration;
         } catch (error) {
             this.logger.error('Failed to get device configuration', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async updateDeviceConfiguration(deviceId: string, config: Partial<DeviceConfiguration>): Promise<void> {
+    async updateDeviceConfiguration(
+        context: DeviceOperationContext,
+        configuration: Partial<DeviceConfiguration>
+    ): Promise<void> {
         try {
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
-
-            if (!device) {
-                throw new Error(`Device ${deviceId} not found`);
-            }
+            const { device, config } = context;
 
             // Update different configuration sections using managers
-            if (config.settings?.network) {
-                await this.configuration.updateNetworkConfig(device, config.settings.network);
+            if (configuration.settings?.network) {
+                await this.configuration.updateNetworkConfig(config, configuration.settings.network);
             }
 
-            if (config.settings?.access) {
-                await this.configuration.updateAccessConfig(device, config.settings.access);
+            if (configuration.settings?.access) {
+                await this.configuration.updateAccessConfig(config, configuration.settings.access);
             }
 
-            if (config.settings?.authentication) {
-                await this.configuration.updateAuthenticationConfig(device, config.settings.authentication);
+            if (configuration.settings?.authentication) {
+                await this.configuration.updateAuthenticationConfig(
+                    config,
+                    configuration.settings.authentication
+                );
             }
 
             this.logger.debug('Device configuration updated', {
-                deviceId,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
         } catch (error) {
             this.logger.error('Failed to update device configuration', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async sendCommand(deviceId: string, command: DeviceCommand): Promise<DeviceCommandResult> {
+    async sendCommand(context: DeviceOperationContext, command: DeviceCommand): Promise<DeviceCommandResult> {
         try {
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
-
-            if (!device) {
-                throw new Error(`Device ${deviceId} not found`);
-            }
+            const device = context.device
 
             let result: any;
 
@@ -246,7 +239,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             };
         } catch (error) {
             this.logger.error('Failed to execute command', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 command: command.command,
                 module: 'hikvision-v2-adapter',
             });
@@ -259,41 +252,35 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async getDeviceHealth(deviceId: string): Promise<DeviceHealth> {
+    async getDeviceHealth(context: DeviceOperationContext): Promise<DeviceHealth> {
+        const device = context.device;
         try {
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
-
-            if (!device) {
-                throw new Error(`Device ${deviceId} not found`);
-            }
 
             // Get device info to check connectivity
             await this.configuration.getDeviceInfo(device);
             const nfcStatus = await this.nfc.getNFCReaderStatus(device);
 
             return {
-                deviceId,
+                deviceId: device.id,
                 status: device.status,
                 uptime: 0, // Would need to get from device
                 memoryUsage: 0, // Would need to get from device
                 temperature: 0, // Would need to get from device
                 lastHealthCheck: new Date(),
-                issues: nfcStatus.errorCount > 0 ? [`NFC reader has ${nfcStatus.errorCount} errors`] : [],
+                issues:
+                    nfcStatus.errorCount > 0
+                        ? [`NFC reader has ${nfcStatus.errorCount} errors`]
+                        : [],
             };
         } catch (error) {
+            console.log(error);
             this.logger.error('Failed to get device health', error.message, {
-                deviceId,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
 
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
-
             return {
-                deviceId,
+                deviceId: device.id,
                 status: device?.status || DeviceStatus.OFFLINE,
                 uptime: 0,
                 memoryUsage: 0,
@@ -306,10 +293,13 @@ export class HikvisionAdapter implements IDeviceAdapter {
 
     // ==================== IDeviceAdapter Required Methods ====================
 
-    async subscribeToEvents(deviceId: string, callback: (event: DeviceEvent) => void): Promise<void> {
+    async subscribeToEvents(
+        context: DeviceOperationContext,
+        callback: (event: DeviceEvent) => void
+    ): Promise<void> {
         try {
             this.logger.debug('Subscribing to device events', {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
 
@@ -317,43 +307,40 @@ export class HikvisionAdapter implements IDeviceAdapter {
             // For now, just log that subscription is set up
         } catch (error) {
             this.logger.error('Failed to subscribe to events', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async unsubscribeFromEvents(deviceId: string): Promise<void> {
+    async unsubscribeFromEvents(context: DeviceOperationContext): Promise<void> {
         try {
             this.logger.debug('Unsubscribing from device events', {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
 
             // Implementation would clean up event subscription
         } catch (error) {
             this.logger.error('Failed to unsubscribe from events', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async syncUsers(deviceId: string, users: Array<{
-        userId: string;
-        cardId?: string;
-        biometricData?: string;
-        accessLevel: number;
-    }>): Promise<void> {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
-        }
+    async syncUsers(
+        context: DeviceOperationContext,
+        users: Array<{
+            userId: string;
+            cardId?: string;
+            biometricData?: string;
+            accessLevel: number;
+        }>
+    ): Promise<void> {
+        const device = context.device;
 
         for (const userData of users) {
             try {
@@ -382,7 +369,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 }
             } catch (error) {
                 this.logger.error('Failed to sync user', error.message, {
-                    deviceId,
+                    deviceId: context.device.id,
                     userId: userData.userId,
                     module: 'hikvision-v2-adapter',
                 });
@@ -391,25 +378,19 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async removeUser(deviceId: string, userId: string): Promise<void> {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
-        }
+    async removeUser(context: DeviceOperationContext, userId: string): Promise<void> {
+        const device = context.device;
 
         try {
             await this.user.deleteUser(device, userId);
             this.logger.debug('User removed successfully', {
-                deviceId,
+                deviceId: context.device.id,
                 userId,
                 module: 'hikvision-v2-adapter',
             });
         } catch (error) {
             this.logger.error('Failed to remove user', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 userId,
                 module: 'hikvision-v2-adapter',
             });
@@ -417,11 +398,9 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async testConnection(deviceId: string): Promise<boolean> {
+    async testConnection(context: DeviceOperationContext): Promise<boolean> {
         try {
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
+            const device = context.device;
 
             if (!device) {
                 return false;
@@ -432,51 +411,40 @@ export class HikvisionAdapter implements IDeviceAdapter {
             return true;
         } catch (error) {
             this.logger.error('Connection test failed', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
             return false;
         }
     }
 
-    async rebootDevice(deviceId: string): Promise<void> {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
-        }
+    async rebootDevice(context: DeviceOperationContext): Promise<void> {
+        const device = context.device;
 
         try {
             await this.configuration.rebootDevice(device);
             this.logger.debug('Device reboot initiated', {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
         } catch (error) {
             this.logger.error('Failed to reboot device', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async updateFirmware(deviceId: string, firmwareUrl: string): Promise<{ success: boolean; message: string }> {
+    async updateFirmware(
+        context: DeviceOperationContext,
+        firmwareUrl: string
+    ): Promise<{ success: boolean; message: string }> {
         try {
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
-
-            if (!device) {
-                throw new Error(`Device ${deviceId} not found`);
-            }
-
             // Implementation would handle firmware update
             // For now, just return success
             this.logger.debug('Firmware update initiated', {
-                deviceId,
+                deviceId: context.device.id,
                 firmwareUrl,
                 module: 'hikvision-v2-adapter',
             });
@@ -487,7 +455,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             };
         } catch (error) {
             this.logger.error('Failed to update firmware', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 firmwareUrl,
                 module: 'hikvision-v2-adapter',
             });
@@ -499,20 +467,14 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async getDeviceLogs(deviceId: string, startDate?: Date, endDate?: Date): Promise<string[]> {
+    async getDeviceLogs(context: DeviceOperationContext, startDate?: Date, endDate?: Date): Promise<string[]> {
         try {
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
-
-            if (!device) {
-                throw new Error(`Device ${deviceId} not found`);
-            }
+            const device = context.device;
 
             // Implementation would fetch logs from device
             // For now, return empty array
             this.logger.debug('Fetching device logs', {
-                deviceId,
+                deviceId: context.device.id,
                 startDate,
                 endDate,
                 module: 'hikvision-v2-adapter',
@@ -521,18 +483,16 @@ export class HikvisionAdapter implements IDeviceAdapter {
             return [];
         } catch (error) {
             this.logger.error('Failed to get device logs', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async clearDeviceLogs(deviceId: string): Promise<void> {
+    async clearDeviceLogs(context: DeviceOperationContext): Promise<void> {
         try {
-            const device = await this.prisma.device.findUnique({
-                where: { id: deviceId },
-            });
+            const device = context.device;
 
             if (!device) {
                 throw new Error(`Devid} not found`);
@@ -540,12 +500,12 @@ export class HikvisionAdapter implements IDeviceAdapter {
 
             // Implementation would clear logs on device
             this.logger.debug('Clearing device logs', {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvision-v2-adapter',
             });
         } catch (error) {
             this.logger.error('Failed to clear device logs', error.message, {
-                deviceId,
+                deviceId: context.device.id,
                 module: 'hikvisiapter',
             });
             throw error;
@@ -556,20 +516,17 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Bulk add users with all their credentials
      */
-    async bulkAddUsers(deviceId: string, users: Array<{
-        employeeNo: string;
-        name: string;
-        faceData?: string;
-        cardNo?: string;
-        nfcId?: string;
-    }>): Promise<void> {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
-        }
+    async bulkAddUsers(
+        context: DeviceOperationContext,
+        users: Array<{
+            employeeNo: string;
+            name: string;
+            faceData?: string;
+            cardNo?: string;
+            nfcId?: string;
+        }>
+    ): Promise<void> {
+        const device = context.device;
 
         for (const userData of users) {
             try {
@@ -607,13 +564,13 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 }
 
                 this.logger.debug('User added successfully', {
-                    deviceId,
+                    deviceId: context.device.id,
                     employeeNo: userData.employeeNo,
                     module: 'hikvision-v2-adapter',
                 });
             } catch (error) {
                 this.logger.error('Failed to add user', error.message, {
-                    deviceId,
+                    deviceId: context.device.id,
                     employeeNo: userData.employeeNo,
                     module: 'hikvision-v2-adapter',
                 });
@@ -625,14 +582,8 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Get complete user information including all credentials
      */
-    async getUserComplete(deviceId: string, employeeNo: string) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
-        }
+    async getUserComplete(context: DeviceOperationContext, employeeNo: string) {
+        const device = context.device;
 
         const [users, faces, cards, nfcs] = await Promise.all([
             this.user.getUsers(device, employeeNo),
@@ -654,18 +605,15 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Advanced person management with ISAPI
      */
-    async searchPersons(deviceId: string, searchCriteria: {
-        searchID?: string;
-        maxResults?: number;
-        employeeNoList?: string[];
-    }) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
+    async searchPersons(
+        context: DeviceOperationContext,
+        searchCriteria: {
+            searchID?: string;
+            maxResults?: number;
+            employeeNoList?: string[];
         }
+    ) {
+        const device = context.device;
 
         return await this.person.searchPersons(device, {
             UserInfoSearchCond: {
@@ -680,19 +628,16 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Advanced face library management
      */
-    async createFaceLibrary(deviceId: string, libraryData: {
-        faceLibType: 'blackFD' | 'staticFD';
-        name: string;
-        customInfo?: string;
-        FDID: string;
-    }) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
+    async createFaceLibrary(
+        context: DeviceOperationContext,
+        libraryData: {
+            faceLibType: 'blackFD' | 'staticFD';
+            name: string;
+            customInfo?: string;
+            FDID: string;
         }
+    ) {
+        const device = context.device;
 
         return await this.faceLibrary.createFaceLibrary(device, libraryData);
     }
@@ -700,19 +645,17 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Add face picture with image data
      */
-    async addFacePictureWithImage(deviceId: string, faceData: {
-        faceLibType: string;
-        FDID: string;
-        name: string;
-        employeeNo?: string;
-    }, imageBuffer: Buffer) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
-        }
+    async addFacePictureWithImage(
+        context: DeviceOperationContext,
+        faceData: {
+            faceLibType: string;
+            FDID: string;
+            name: string;
+            employeeNo?: string;
+        },
+        imageBuffer: Buffer
+    ) {
+        const device = context.device;
 
         return await this.faceLibrary.addFacePicture(device, faceData, imageBuffer);
     }
@@ -720,19 +663,16 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Fingerprint management
      */
-    async addFingerprint(deviceId: string, fingerprintData: {
-        employeeNo: string;
-        fingerPrintID: string;
-        fingerType: string;
-        fingerData: string;
-    }) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
+    async addFingerprint(
+        context: DeviceOperationContext,
+        fingerprintData: {
+            employeeNo: string;
+            fingerPrintID: string;
+            fingerType: string;
+            fingerData: string;
         }
+    ) {
+        const device = context.device;
 
         return await this.fingerprint.addFingerprint(device, fingerprintData);
     }
@@ -740,26 +680,24 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Configure event notification hosts
      */
-    async configureEventHost(deviceId: string, hostID: string, hostConfig: {
-        url: string;
-        ipAddress: string;
-        port: number;
-        protocolType?: 'HTTP' | 'HTTPS';
-        parameterFormatType?: 'XML' | 'JSON';
-        eventTypes?: string[];
-    }) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
+    async configureEventHost(
+        context: DeviceOperationContext,
+        hostID: string,
+        hostConfig: {
+            url: string;
+            host: string;
+            port: number;
+            protocolType?: 'HTTP' | 'HTTPS';
+            parameterFormatType?: 'XML' | 'JSON';
+            eventTypes?: string[];
         }
+    ) {
+        const device = context.device;
 
         const hostNotification = this.eventHost.createBasicHostConfig(
             hostID,
             hostConfig.url,
-            hostConfig.ipAddress,
+            hostConfig.host,
             hostConfig.port,
             {
                 protocolType: hostConfig.protocolType,
@@ -768,7 +706,9 @@ export class HikvisionAdapter implements IDeviceAdapter {
         );
 
         if (hostConfig.eventTypes && hostConfig.eventTypes.length > 0) {
-            hostNotification.SubscribeEvent = this.eventHost.createEventSubscription(hostConfig.eventTypes);
+            hostNotification.SubscribeEvent = this.eventHost.createEventSubscription(
+                hostConfig.eventTypes
+            );
         }
 
         return await this.eventHost.setListeningHost(device, hostID, hostNotification);
@@ -777,21 +717,26 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Schedule management
      */
-    async createWeekSchedule(deviceId: string, planNo: number, schedule: {
-        timeSegments: Array<{
-            week: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
-            beginTime: string;
-            endTime: string;
-            enabled?: boolean;
-        }>;
-    }) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
+    async createWeekSchedule(
+        context: DeviceOperationContext,
+        planNo: number,
+        schedule: {
+            timeSegments: Array<{
+                week:
+                    | 'Monday'
+                    | 'Tuesday'
+                    | 'Wednesday'
+                    | 'Thursday'
+                    | 'Friday'
+                    | 'Saturday'
+                    | 'Sunday';
+                beginTime: string;
+                endTime: string;
+                enabled?: boolean;
+            }>;
         }
+    ) {
+        const device = context.device;
 
         const weekPlan = this.schedule.createBasicWeekPlan(schedule.timeSegments);
         return await this.schedule.setWeekPlan(device, planNo, weekPlan);
@@ -800,20 +745,17 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * System user management
      */
-    async createSystemUser(deviceId: string, userData: {
-        id: number;
-        userName: string;
-        password: string;
-        userLevel?: 'Administrator' | 'Operator' | 'Viewer';
-        enabled?: boolean;
-    }) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
+    async createSystemUser(
+        context: DeviceOperationContext,
+        userData: {
+            id: number;
+            userName: string;
+            password: string;
+            userLevel?: 'Administrator' | 'Operator' | 'Viewer';
+            enabled?: boolean;
         }
+    ) {
+        const device = context.device;
 
         const userInfo = this.system.createBasicUser(
             userData.id,
@@ -829,21 +771,19 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Card reader configuration
      */
-    async configureCardReader(deviceId: string, cardReaderID: number, config: Partial<{
-        enable: boolean;
-        swipeInterval: number;
-        faceMatchThreshold: number;
-        fingerPrintCheckLevel: number;
-        defaultVerifyMode: string;
-        cardReaderFunction: string[];
-    }>) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
-        }
+    async configureCardReader(
+        context: DeviceOperationContext,
+        cardReaderID: number,
+        config: Partial<{
+            enable: boolean;
+            swipeInterval: number;
+            faceMatchThreshold: number;
+            fingerPrintCheckLevel: number;
+            defaultVerifyMode: string;
+            cardReaderFunction: string[];
+        }>
+    ) {
+        const device = context.device;
 
         const cardReaderConfig = this.system.createBasicCardReaderConfig(config);
         return await this.system.setCardReaderConfig(device, cardReaderID, cardReaderConfig);
@@ -852,14 +792,8 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Get device capabilities for different features
      */
-    async getDeviceCapabilities(deviceId: string) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
-        }
+    async getDeviceCapabilities(context: DeviceOperationContext) {
+        const device = context.device;
 
         const [
             faceLibrarySupport,
@@ -880,14 +814,26 @@ export class HikvisionAdapter implements IDeviceAdapter {
         ]);
 
         return {
-            faceLibrarySupport: faceLibrarySupport.status === 'fulfilled' ? faceLibrarySupport.value : false,
-            fingerprintSupport: fingerprintSupport.status === 'fulfilled' ? fingerprintSupport.value : false,
+            faceLibrarySupport:
+                faceLibrarySupport.status === 'fulfilled' ? faceLibrarySupport.value : false,
+            fingerprintSupport:
+                fingerprintSupport.status === 'fulfilled' ? fingerprintSupport.value : false,
             capabilities: {
                 person: personCapabilities.status === 'fulfilled' ? personCapabilities.value : null,
-                faceLibrary: faceLibraryCapabilities.status === 'fulfilled' ? faceLibraryCapabilities.value : null,
-                fingerprint: fingerprintCapabilities.status === 'fulfilled' ? fingerprintCapabilities.value : null,
-                schedule: scheduleCapabilities.status === 'fulfilled' ? scheduleCapabilities.value : null,
-                cardReader: cardReaderCapabilities.status === 'fulfilled' ? cardReaderCapabilities.value : null,
+                faceLibrary:
+                    faceLibraryCapabilities.status === 'fulfilled'
+                        ? faceLibraryCapabilities.value
+                        : null,
+                fingerprint:
+                    fingerprintCapabilities.status === 'fulfilled'
+                        ? fingerprintCapabilities.value
+                        : null,
+                schedule:
+                    scheduleCapabilities.status === 'fulfilled' ? scheduleCapabilities.value : null,
+                cardReader:
+                    cardReaderCapabilities.status === 'fulfilled'
+                        ? cardReaderCapabilities.value
+                        : null,
             },
         };
     }
@@ -895,14 +841,8 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Comprehensive device status check
      */
-    async getComprehensiveDeviceStatus(deviceId: string) {
-        const device = await this.prisma.device.findUnique({
-            where: { id: deviceId },
-        });
-
-        if (!device) {
-            throw new Error(`Device ${deviceId} not found`);
-        }
+    async getComprehensiveDeviceStatus(context: DeviceOperationContext) {
+        const device = context.device;
 
         const [
             deviceHealth,
@@ -912,7 +852,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             eventHosts,
             systemUsers,
         ] = await Promise.allSettled([
-            this.getDeviceHealth(deviceId),
+            this.getDeviceHealth(context),
             this.person.getPersonCount(device),
             this.faceLibrary.getFaceLibraryCount(device),
             this.fingerprint.getFingerprintCount(device),
@@ -924,7 +864,10 @@ export class HikvisionAdapter implements IDeviceAdapter {
             health: deviceHealth.status === 'fulfilled' ? deviceHealth.value : null,
             counts: {
                 persons: personCount.status === 'fulfilled' ? personCount.value : 0,
-                faceLibraries: faceLibraryCount.status === 'fulfilled' ? faceLibraryCount.value.totalRecordDataNumber : 0,
+                faceLibraries:
+                    faceLibraryCount.status === 'fulfilled'
+                        ? faceLibraryCount.value.totalRecordDataNumber
+                        : 0,
                 fingerprints: fingerprintCount.status === 'fulfilled' ? fingerprintCount.value : 0,
                 eventHosts: eventHosts.status === 'fulfilled' ? eventHosts.value.length : 0,
                 systemUsers: systemUsers.status === 'fulfilled' ? systemUsers.value.length : 0,

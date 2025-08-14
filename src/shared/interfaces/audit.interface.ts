@@ -7,7 +7,7 @@ export interface CreateAuditLogData {
     method: string;
     url: string;
     userAgent?: string;
-    ipAddress?: string;
+    host?: string;
     requestData?: any;
     responseData?: any;
     status: string;

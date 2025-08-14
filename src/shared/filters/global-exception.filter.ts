@@ -40,31 +40,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             }
         }
 
-        // Log the exception with better formatting
+        // Log the exception with standardized format
         const userContext = request.user as any;
-        const errorContext = {
-            method: request.method,
-            url: request.url,
-            statusCode: status,
-            userId: userContext?.sub,
-            organizationId: userContext?.organizationId,
-            correlationId: request.correlationId,
-            module: 'exception-filter',
-            userAgent: request.headers['user-agent'],
-            ip: request.ip,
-            ...(details && { details }),
-        };
-
-        // Format error message for better readability
-        let errorMessage = `HTTP ${status} - ${message}`;
-        if (request.method && request.url) {
-            errorMessage = `${request.method} ${request.url} - ${errorMessage}`;
-        }
-
-        this.logger.error(
-            errorMessage,
-            exception instanceof Error ? exception.stack : String(exception),
-            errorContext
+        
+        // Use standardized API error logging
+        this.logger.logApiError(
+            request.method,
+            request.url,
+            status,
+            message,
+            {
+                userId: userContext?.sub || userContext?.id,
+                organizationId: userContext?.organizationId,
+                correlationId: request.correlationId,
+                userAgent: request.headers['user-agent'],
+                ip: request.ip,
+                trace: exception instanceof Error ? exception.stack : String(exception),
+                exceptionType: exception?.constructor?.name || 'Unknown',
+                ...(details && { details }),
+            }
         );
 
         // Prepare error response

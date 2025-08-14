@@ -22,7 +22,7 @@ export class AuditLogService {
                 method: data.method,
                 url: data.url,
                 userAgent: data.userAgent,
-                ipAddress: data.ipAddress,
+                host: data.host,
                 requestData: data.requestData,
                 responseData: data.responseData,
                 status: data.status,

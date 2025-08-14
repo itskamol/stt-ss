@@ -23,15 +23,11 @@ export class OrganizationService {
         try {
             const organization = await this.organizationRepository.create(createOrganizationDto);
 
-            this.logger.logUserAction(
-                createdByUserId,
-                'ORGANIZATION_CREATED',
-                {
-                    organizationId: organization.id,
-                    organizationName: organization.name,
-                    correlationId
-                }
-            );
+            this.logger.logUserAction(createdByUserId, 'ORGANIZATION_CREATED', {
+                organizationId: organization.id,
+                organizationName: organization.name,
+                correlationId,
+            });
 
             return organization;
         } catch (error) {
@@ -86,17 +82,13 @@ export class OrganizationService {
                 updateOrganizationDto
             );
 
-            this.logger.logUserAction(
-                updatedByUserId,
-                'ORGANIZATION_UPDATED',
-                {
-                    organizationId: id,
-                    changes: updateOrganizationDto,
-                    oldName: existingOrganization.name,
-                    newName: updatedOrganization.name,
-                    correlationId
-                }
-            );
+            this.logger.logUserAction(updatedByUserId, 'ORGANIZATION_UPDATED', {
+                organizationId: id,
+                changes: updateOrganizationDto,
+                oldName: existingOrganization.name,
+                newName: updatedOrganization.name,
+                correlationId,
+            });
 
             return updatedOrganization;
         } catch (error) {
@@ -125,15 +117,11 @@ export class OrganizationService {
 
         await this.organizationRepository.delete(id);
 
-        this.logger.logUserAction(
-            deletedByUserId,
-            'ORGANIZATION_DELETED',
-            {
-                organizationId: id,
-                organizationName: existingOrganization.name,
-                correlationId
-            }
-        );
+        this.logger.logUserAction(deletedByUserId, 'ORGANIZATION_DELETED', {
+            organizationId: id,
+            organizationName: existingOrganization.name,
+            correlationId,
+        });
     }
 
     /**

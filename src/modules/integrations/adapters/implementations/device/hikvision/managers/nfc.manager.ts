@@ -27,7 +27,7 @@ export interface AddNFCRequest {
 export class HikvisionNFCManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
-        private readonly logger: LoggerService,
+        private readonly logger: LoggerService
     ) {}
 
     /**
@@ -56,7 +56,9 @@ export class HikvisionNFCManager {
                         Valid: {
                             enable: true,
                             beginTime: request.validFrom?.toISOString() || new Date().toISOString(),
-                            endTime: request.validTo?.toISOString() || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                            endTime:
+                                request.validTo?.toISOString() ||
+                                new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
                             timeType: 'local',
                         },
                         accessLevel: request.accessLevel || 1,
@@ -115,7 +117,7 @@ export class HikvisionNFCManager {
      */
     async getNFCs(device: any, userId?: string): Promise<NFCInfo[]> {
         try {
-            const url = userId 
+            const url = userId
                 ? `/ISAPI/AccessControl/CardInfo/Search?employeeNo=${userId}`
                 : '/ISAPI/AccessControl/CardInfo/Search';
 
@@ -132,16 +134,18 @@ export class HikvisionNFCManager {
                 },
             });
 
-            return response.data.CardInfoSearch?.CardInfo?.map((nfc: any) => ({
-                id: nfc.employeeNo,
-                nfcId: nfc.cardNo,
-                userId: nfc.employeeNo,
-                nfcType: this.detectNFCType(nfc.cardNo),
-                validFrom: new Date(nfc.Valid.beginTime),
-                validTo: new Date(nfc.Valid.endTime),
-                isActive: nfc.Valid.enable,
-                accessLevel: nfc.accessLevel || 1,
-            })) || [];
+            return (
+                response.data.CardInfoSearch?.CardInfo?.map((nfc: any) => ({
+                    id: nfc.employeeNo,
+                    nfcId: nfc.cardNo,
+                    userId: nfc.employeeNo,
+                    nfcType: this.detectNFCType(nfc.cardNo),
+                    validFrom: new Date(nfc.Valid.beginTime),
+                    validTo: new Date(nfc.Valid.endTime),
+                    isActive: nfc.Valid.enable,
+                    accessLevel: nfc.accessLevel || 1,
+                })) || []
+            );
         } catch (error) {
             this.logger.error('Failed to get NFC tags', error.message, {
                 deviceId: device.id,
@@ -160,7 +164,7 @@ export class HikvisionNFCManager {
             // Get existing NFC info first
             const existingNFCs = await this.getNFCs(device);
             const existingNFC = existingNFCs.find(n => n.nfcId === nfcId);
-            
+
             if (!existingNFC) {
                 throw new Error(`NFC tag ${nfcId} not found`);
             }
@@ -195,7 +199,7 @@ export class HikvisionNFCManager {
         try {
             const nfcs = await this.getNFCs(device);
             const nfc = nfcs.find(n => n.nfcId === nfcId);
-            
+
             if (!nfc) {
                 throw new Error(`NFC tag ${nfcId} not found`);
             }
@@ -240,7 +244,10 @@ export class HikvisionNFCManager {
     /**
      * Read NFC tag information (when tag is presented to reader)
      */
-    async readNFC(device: any, timeout: number = 30000): Promise<{ nfcId: string; nfcType: string } | null> {
+    async readNFC(
+        device: any,
+        timeout: number = 30000
+    ): Promise<{ nfcId: string; nfcType: string } | null> {
         try {
             this.logger.debug('Starting NFC read operation', {
                 deviceId: device.id,
@@ -297,7 +304,7 @@ export class HikvisionNFCManager {
     private detectNFCType(nfcId: string): 'mifare' | 'desfire' | 'ntag' | 'other' {
         // This is a simplified detection based on common patterns
         // In real implementation, you'd use proper NFC type detection
-        
+
         if (nfcId.length === 8) {
             return 'mifare'; // MIFARE Classic typically has 4-byte UID
         } else if (nfcId.length === 14) {
@@ -305,7 +312,7 @@ export class HikvisionNFCManager {
         } else if (nfcId.length === 14 && nfcId.startsWith('04')) {
             return 'ntag'; // NTAG typically starts with 04
         }
-        
+
         return 'other';
     }
 
@@ -325,8 +332,9 @@ export class HikvisionNFCManager {
 
             return {
                 isOnline: response.data.CardReader?.status === 'online',
-                lastActivity: response.data.CardReader?.lastActivity ? 
-                    new Date(response.data.CardReader.lastActivity) : null,
+                lastActivity: response.data.CardReader?.lastActivity
+                    ? new Date(response.data.CardReader.lastActivity)
+                    : null,
                 errorCount: response.data.CardReader?.errorCount || 0,
             };
         } catch (error) {

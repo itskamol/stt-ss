@@ -15,7 +15,7 @@ export class DeviceRepository {
                 name: data.name,
                 type: data.type,
                 branchId: data.branchId,
-                ipAddress: data.ipAddress,
+                host: data.host,
                 username: data.username,
                 password: data.password,
                 model: data.model,
@@ -87,7 +87,7 @@ export class DeviceRepository {
     async update(id: string, data: UpdateDeviceDto, scope: DataScope): Promise<Device> {
         return this.prisma.device.update({
             where: { id },
-            data
+            data,
         });
     }
 
@@ -136,7 +136,7 @@ export class DeviceRepository {
                     { name: { contains: searchTerm, mode: 'insensitive' } },
                     { macAddress: { contains: searchTerm, mode: 'insensitive' } },
                     { model: { contains: searchTerm, mode: 'insensitive' } },
-                    { ipAddress: { contains: searchTerm, mode: 'insensitive' } },
+                    { host: { contains: searchTerm, mode: 'insensitive' } },
                 ],
             },
             orderBy: { name: 'asc' },

@@ -16,7 +16,7 @@
           },
           "response": {
             "format": "XML",
-            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<HttpHostNotificationCap xmlns=\"http://www.isapi.org/ver20/XMLSchema\" version=\"2.0\">\n    \n    <hostNumber>\n        0\n    </hostNumber>\n    <urlLen max=\"10\">\n        test\n    </urlLen>\n    <protocolType opt=\"HTTP,HTTPS,EHome\">\n        HTTP\n    </protocolType>\n    <parameterFormatType opt=\"XML,querystring,JSON\">\n        XML\n    </parameterFormatType>\n    <addressingFormatType opt=\"ipaddress,hostname\">\n        hostname\n    </addressingFormatType>\n    <httpAuthenticationMethod opt=\"none,MD5digest,base64\">\n        none\n    </httpAuthenticationMethod>\n</HttpHostNotificationCap>"
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<HttpHostNotificationCap xmlns=\"http://www.isapi.org/ver20/XMLSchema\" version=\"2.0\">\n    \n    <hostNumber>\n        0\n    </hostNumber>\n    <urlLen max=\"10\">\n        test\n    </urlLen>\n    <protocolType opt=\"HTTP,HTTPS,EHome\">\n        HTTP\n    </protocolType>\n    <parameterFormatType opt=\"XML,querystring,JSON\">\n        XML\n    </parameterFormatType>\n    <addressingFormatType opt=\"host,hostname\">\n        hostname\n    </addressingFormatType>\n    <httpAuthenticationMethod opt=\"none,MD5digest,base64\">\n        none\n    </httpAuthenticationMethod>\n</HttpHostNotificationCap>"
           },
           "status_codes": [
             {
@@ -35,7 +35,7 @@
           },
           "request": {
             "format": "XML",
-            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<HttpHostNotification xmlns=\"http://www.isapi.org/ver20/XMLSchema\" version=\"2.0\">\n    \n    <id>\n        test\n    </id>\n    <url>\n        test\n    </url>\n    <protocolType>\n        HTTP\n    </protocolType>\n    <parameterFormatType>\n        JSON\n    </parameterFormatType>\n    <addressingFormatType>\n        hostname\n    </addressingFormatType>\n    <ipAddress>\n        test\n    </ipAddress>\n    <portNo>\n        1\n    </portNo>\n    <httpAuthenticationMethod>\n        MD5digest\n    </httpAuthenticationMethod>\n</HttpHostNotification>"
+            "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<HttpHostNotification xmlns=\"http://www.isapi.org/ver20/XMLSchema\" version=\"2.0\">\n    \n    <id>\n        test\n    </id>\n    <url>\n        test\n    </url>\n    <protocolType>\n        HTTP\n    </protocolType>\n    <parameterFormatType>\n        JSON\n    </parameterFormatType>\n    <addressingFormatType>\n        hostname\n    </addressingFormatType>\n    <host>\n        test\n    </host>\n    <portNo>\n        1\n    </portNo>\n    <httpAuthenticationMethod>\n        MD5digest\n    </httpAuthenticationMethod>\n</HttpHostNotification>"
           },
           "response": {
             "format": "XML",

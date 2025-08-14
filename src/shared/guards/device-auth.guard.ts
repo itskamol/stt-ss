@@ -18,7 +18,7 @@ interface RequestWithDevice extends RequestWithCorrelation {
 export class DeviceAuthGuard implements CanActivate {
     constructor(
         private reflector: Reflector,
-        private readonly logger: LoggerService,
+        private readonly logger: LoggerService
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -65,7 +65,7 @@ export class DeviceAuthGuard implements CanActivate {
             if (timeDiff > 5 * 60 * 1000) {
                 this.logger.warn('Device authentication failed: Request too old', {
                     deviceId,
-                    timestamp,
+                    timestamp: requestTime,
                     timeDiff,
                 });
                 throw new UnauthorizedException('Request timestamp is too old');

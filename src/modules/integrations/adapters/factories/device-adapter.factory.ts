@@ -18,12 +18,12 @@ export interface AdapterHealthStatus {
 @Injectable()
 export class DeviceAdapterFactory {
     private readonly adapterHealthStatus = new Map<AdapterType, AdapterHealthStatus>();
-    
+
     constructor(
         private readonly logger: LoggerService,
         private readonly configService: ConfigService,
         private readonly hikvisionAdapter: HikvisionAdapter,
-        private readonly stubAdapter: StubDeviceAdapter,
+        private readonly stubAdapter: StubDeviceAdapter
     ) {}
 
     /**
@@ -35,20 +35,20 @@ export class DeviceAdapterFactory {
         switch (type) {
             case 'hikvision':
                 return this.hikvisionAdapter;
-            
+
             case 'stub':
                 return this.stubAdapter;
-            
+
             case 'zkteco':
                 // Future implementation
                 this.logger.warn('ZKTeco adapter not implemented, falling back to stub');
                 return this.stubAdapter;
-            
+
             case 'dahua':
                 // Future implementation
                 this.logger.warn('Dahua adapter not implemented, falling back to stub');
                 return this.stubAdapter;
-            
+
             default:
                 this.logger.warn('Unknown adapter type, falling back to stub', { type });
                 return this.stubAdapter;
@@ -73,7 +73,7 @@ export class DeviceAdapterFactory {
             try {
                 const adapter = this.createAdapter(type);
                 const isHealthy = await this.checkAdapterHealth(adapter, type);
-                
+
                 if (isHealthy) {
                     this.logger.log('Selected healthy adapter', { type });
                     return adapter;
@@ -129,7 +129,7 @@ export class DeviceAdapterFactory {
      */
     async performHealthCheckOnAllAdapters(): Promise<AdapterHealthStatus[]> {
         const supportedTypes = this.getSupportedAdapterTypes();
-        const healthChecks = supportedTypes.map(async (type) => {
+        const healthChecks = supportedTypes.map(async type => {
             try {
                 const adapter = this.createAdapter(type);
                 const isHealthy = await this.checkAdapterHealth(adapter, type);
@@ -150,20 +150,20 @@ export class DeviceAdapterFactory {
     async getRecommendedAdapterType(): Promise<AdapterType> {
         // Check environment preference
         const envType = this.getAdapterTypeFromConfig();
-        
+
         if (envType !== 'stub') {
             // Check if preferred type is healthy
             try {
                 const adapter = this.createAdapter(envType);
                 const isHealthy = await this.checkAdapterHealth(adapter, envType);
-                
+
                 if (isHealthy) {
                     return envType;
                 }
             } catch (error) {
-                this.logger.warn('Preferred adapter type is unhealthy', { 
-                    type: envType, 
-                    error: error.message 
+                this.logger.warn('Preferred adapter type is unhealthy', {
+                    type: envType,
+                    error: error.message,
                 });
             }
         }
@@ -171,7 +171,7 @@ export class DeviceAdapterFactory {
         // Fallback logic
         const healthStatuses = await this.performHealthCheckOnAllAdapters();
         const healthyAdapters = healthStatuses.filter(status => status.healthy);
-        
+
         if (healthyAdapters.length > 0) {
             // Return the healthiest non-stub adapter, or stub if it's the only healthy one
             const nonStubHealthy = healthyAdapters.filter(status => status.type !== 'stub');
@@ -186,20 +186,20 @@ export class DeviceAdapterFactory {
 
     private getAdapterTypeFromConfig(): AdapterType {
         const configType = this.configService.get<string>('DEVICE_ADAPTER_TYPE', 'hikvision');
-        
+
         if (this.isAdapterTypeSupported(configType as AdapterType)) {
             return configType as AdapterType;
         }
 
-        this.logger.warn('Configured adapter type not supported, falling back to hikvision', { 
-            configType 
+        this.logger.warn('Configured adapter type not supported, falling back to hikvision', {
+            configType,
         });
         return 'hikvision';
     }
 
     private async checkAdapterHealth(adapter: IDeviceAdapter, type: AdapterType): Promise<boolean> {
         const startTime = Date.now();
-        
+
         try {
             // Basic health check - try to discover devices with timeout
             const timeoutPromise = new Promise((_, reject) => {
@@ -207,25 +207,25 @@ export class DeviceAdapterFactory {
             });
 
             const healthCheckPromise = adapter.discoverDevices();
-            
+
             await Promise.race([healthCheckPromise, timeoutPromise]);
-            
+
             const responseTime = Date.now() - startTime;
             this.updateHealthStatus(type, true, undefined, responseTime);
-            
+
             return true;
         } catch (error) {
             const responseTime = Date.now() - startTime;
             this.updateHealthStatus(type, false, error.message, responseTime);
-            
+
             return false;
         }
     }
 
     private updateHealthStatus(
-        type: AdapterType, 
-        healthy: boolean, 
-        error?: string, 
+        type: AdapterType,
+        healthy: boolean,
+        error?: string,
         responseTime?: number
     ): void {
         this.adapterHealthStatus.set(type, {

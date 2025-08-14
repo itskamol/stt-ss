@@ -2,7 +2,8 @@ import { EncryptionUtil } from './encryption.util';
 
 // Mock environment variables for testing
 beforeAll(() => {
-    process.env.ENCRYPTION_SECRET_KEY = 'test-super-secret-encryption-key-32-chars-long-minimum-for-testing';
+    process.env.ENCRYPTION_SECRET_KEY =
+        'test-super-secret-encryption-key-32-chars-long-minimum-for-testing';
     process.env.ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 });
 
@@ -24,7 +25,7 @@ describe('EncryptionUtil', () => {
             const encrypted2 = EncryptionUtil.encrypt(testData);
 
             expect(encrypted1).not.toBe(encrypted2);
-            
+
             // But both should decrypt to same value
             expect(EncryptionUtil.decrypt(encrypted1)).toBe(testData);
             expect(EncryptionUtil.decrypt(encrypted2)).toBe(testData);
@@ -32,7 +33,7 @@ describe('EncryptionUtil', () => {
 
         it('should handle empty strings', () => {
             expect(() => EncryptionUtil.encrypt('')).not.toThrow();
-            
+
             const encrypted = EncryptionUtil.encrypt('');
             const decrypted = EncryptionUtil.decrypt(encrypted);
             expect(decrypted).toBe('');
@@ -57,7 +58,7 @@ describe('EncryptionUtil', () => {
         });
 
         it('should trim whitespace from passwords', () => {
-            const passwordWithSpaces = `  ${  testPassword  }  `;
+            const passwordWithSpaces = `  ${testPassword}  `;
             const encrypted = EncryptionUtil.encryptPassword(passwordWithSpaces);
             const decrypted = EncryptionUtil.decryptPassword(encrypted);
 
@@ -70,8 +71,12 @@ describe('EncryptionUtil', () => {
         });
 
         it('should throw error for empty encrypted password', () => {
-            expect(() => EncryptionUtil.decryptPassword('')).toThrow('Encrypted password cannot be empty');
-            expect(() => EncryptionUtil.decryptPassword('   ')).toThrow('Encrypted password cannot be empty');
+            expect(() => EncryptionUtil.decryptPassword('')).toThrow(
+                'Encrypted password cannot be empty'
+            );
+            expect(() => EncryptionUtil.decryptPassword('   ')).toThrow(
+                'Encrypted password cannot be empty'
+            );
         });
     });
 
@@ -88,7 +93,7 @@ describe('EncryptionUtil', () => {
 
         it('should generate password with required character types', () => {
             const password = EncryptionUtil.generateSecurePassword(20, true);
-            
+
             expect(password).toMatch(/[a-z]/); // lowercase
             expect(password).toMatch(/[A-Z]/); // uppercase
             expect(password).toMatch(/\d/); // numbers
@@ -97,7 +102,7 @@ describe('EncryptionUtil', () => {
 
         it('should generate password without symbols when requested', () => {
             const password = EncryptionUtil.generateSecurePassword(20, false);
-            
+
             expect(password).toMatch(/[a-z]/); // lowercase
             expect(password).toMatch(/[A-Z]/); // uppercase
             expect(password).toMatch(/\d/); // numbers
@@ -107,7 +112,7 @@ describe('EncryptionUtil', () => {
         it('should generate different passwords each time', () => {
             const password1 = EncryptionUtil.generateSecurePassword();
             const password2 = EncryptionUtil.generateSecurePassword();
-            
+
             expect(password1).not.toBe(password2);
         });
     });
@@ -177,7 +182,9 @@ describe('EncryptionUtil', () => {
             const originalKey = process.env.ENCRYPTION_SECRET_KEY;
             delete process.env.ENCRYPTION_SECRET_KEY;
 
-            expect(() => EncryptionUtil.encrypt(testData)).toThrow('ENCRYPTION_SECRET_KEY environment variable is not set');
+            expect(() => EncryptionUtil.encrypt(testData)).toThrow(
+                'ENCRYPTION_SECRET_KEY environment variable is not set'
+            );
 
             process.env.ENCRYPTION_SECRET_KEY = originalKey;
         });
@@ -186,14 +193,20 @@ describe('EncryptionUtil', () => {
             const originalKey = process.env.ENCRYPTION_SECRET_KEY;
             process.env.ENCRYPTION_SECRET_KEY = 'short';
 
-            expect(() => EncryptionUtil.encrypt(testData)).toThrow('ENCRYPTION_SECRET_KEY must be at least 32 characters long');
+            expect(() => EncryptionUtil.encrypt(testData)).toThrow(
+                'ENCRYPTION_SECRET_KEY must be at least 32 characters long'
+            );
 
             process.env.ENCRYPTION_SECRET_KEY = originalKey;
         });
 
         it('should throw error for invalid encrypted text format', () => {
-            expect(() => EncryptionUtil.decrypt('invalid-format')).toThrow('Invalid encrypted text format');
-            expect(() => EncryptionUtil.decrypt('part1:part2:part3')).toThrow('Invalid encrypted text format');
+            expect(() => EncryptionUtil.decrypt('invalid-format')).toThrow(
+                'Invalid encrypted text format'
+            );
+            expect(() => EncryptionUtil.decrypt('part1:part2:part3')).toThrow(
+                'Invalid encrypted text format'
+            );
         });
 
         it('should throw error for corrupted encrypted data', () => {
@@ -209,10 +222,10 @@ describe('EncryptionUtil', () => {
             // Simulate storing password in database
             const userPassword = 'UserPassword123!';
             const encryptedForDb = EncryptionUtil.encryptPassword(userPassword);
-            
+
             // Simulate retrieving and decrypting from database
             const decryptedFromDb = EncryptionUtil.decryptPassword(encryptedForDb);
-            
+
             expect(decryptedFromDb).toBe(userPassword);
         });
 
@@ -229,7 +242,7 @@ describe('EncryptionUtil', () => {
             const configData = JSON.stringify({
                 dbPassword: 'secret123',
                 apiKey: 'key-456',
-                webhookSecret: 'webhook-789'
+                webhookSecret: 'webhook-789',
             });
 
             const encrypted = EncryptionUtil.encrypt(configData);

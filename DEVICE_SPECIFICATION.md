@@ -8,7 +8,7 @@
 interface Device {
   id: string;
   name: string;
-  ipAddress: string;
+  host: string;
   username: string;
   password: string; // Encrypted
   port: number;
@@ -68,7 +68,7 @@ enum DeviceStatus {
 
 ```typescript
 interface DeviceConnectionConfig {
-  ipAddress: string;
+  host: string;
   port: number;
   username: string;
   password: string;
@@ -416,7 +416,7 @@ Authorization: Bearer {jwt}
 Content-Type: application/json
 {
   "name": "Main Door Reader",
-  "ipAddress": "192.168.1.100",
+  "host": "192.168.1.100",
   "username": "admin",
   "password": "admin123",
   "port": 80,

@@ -55,17 +55,13 @@ export class RolesGuard implements CanActivate {
         if (requiredRoles && requiredRoles.length > 0) {
             const hasRole = requiredRoles.some(role => user.roles.includes(role));
             if (!hasRole) {
-                this.logger.logUserAction(
-                    user.sub,
-                    'ROLE_ACCESS_DENIED',
-                    {
-                        userId: user.sub,
-                        userRoles: user.roles,
-                        requiredRoles,
-                        url: request.url,
-                        method: request.method,
-                    },
-                );
+                this.logger.logUserAction(user.sub, 'ROLE_ACCESS_DENIED', {
+                    userId: user.sub,
+                    userRoles: user.roles,
+                    requiredRoles,
+                    url: request.url,
+                    method: request.method,
+                });
                 throw new ForbiddenException('Insufficient role privileges');
             }
         }
@@ -81,18 +77,14 @@ export class RolesGuard implements CanActivate {
                     permission => !user.permissions.includes(permission)
                 );
 
-                this.logger.logUserAction(
-                    user.sub,
-                    'PERMISSION_ACCESS_DENIED',
-                    {
-                        userId: user.sub,
-                        userPermissions: user.permissions,
-                        requiredPermissions,
-                        missingPermissions,
-                        url: request.url,
-                        method: request.method,
-                    },
-                );
+                this.logger.logUserAction(user.sub, 'PERMISSION_ACCESS_DENIED', {
+                    userId: user.sub,
+                    userPermissions: user.permissions,
+                    requiredPermissions,
+                    missingPermissions,
+                    url: request.url,
+                    method: request.method,
+                });
 
                 throw new ForbiddenException('Insufficient permissions');
             }

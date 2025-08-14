@@ -1,18 +1,16 @@
 import { Global, Module } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from '@/core/logger/winston.config';
-import { LoggerService } from './services/main-logger.service';
+import { LoggerService } from './services/logger.service';
+import { DataSanitizerService } from '@/shared/services/data-sanitizer.service';
 
 @Global()
 @Module({
-    imports: [
-        WinstonModule.forRoot(winstonConfig)
-    ],
+    imports: [WinstonModule.forRoot(winstonConfig)],
     providers: [
-        LoggerService
+        LoggerService,
+        DataSanitizerService,
     ],
-    exports: [
-        LoggerService
-    ],
+    exports: [LoggerService],
 })
 export class LoggerModule {}

@@ -91,7 +91,7 @@ await adapter.eventHost.setListeningHost(device, 'host_001', {
   url: '/api/events',
   protocolType: 'HTTP',
   parameterFormatType: 'JSON',
-  ipAddress: '192.168.1.100',
+  host: '192.168.1.100',
   portNo: 8080,
   httpAuthenticationMethod: 'none'
 });
@@ -163,7 +163,7 @@ await adapter.addFacePictureWithImage(deviceId, {
 // Event host sozlash
 await adapter.configureEventHost(deviceId, 'host_001', {
   url: '/api/events',
-  ipAddress: '192.168.1.100',
+  host: '192.168.1.100',
   port: 8080,
   eventTypes: ['AccessControllerEvent', 'faceRecognition']
 });

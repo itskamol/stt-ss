@@ -30,7 +30,7 @@ export class AuditLogResponseDto {
     @ApiProperty({ required: false })
     userAgent?: string;
     @ApiProperty({ required: false })
-    ipAddress?: string;
+    host?: string;
     @ApiProperty({ required: false })
     requestData?: any;
     @ApiProperty({ required: false })
@@ -182,7 +182,7 @@ export class SecurityEventDto {
     @ApiProperty({ required: false })
     userId?: string;
     @ApiProperty({ required: false })
-    ipAddress?: string;
+    host?: string;
     @ApiProperty()
     timestamp: Date;
     @ApiProperty()

@@ -38,7 +38,7 @@ export class CreateDeviceDto {
     @ApiProperty({ required: false })
     @IsOptional()
     @IsIP()
-    ipAddress?: string;
+    host?: string;
 
     @ApiProperty({ required: false })
     @IsOptional()
@@ -149,7 +149,7 @@ export class UpdateDeviceDto {
     @ApiProperty({ required: false })
     @IsOptional()
     @IsIP()
-    ipAddress?: string;
+    host?: string;
 
     @ApiProperty({ required: false })
     @IsOptional()
@@ -249,7 +249,7 @@ export class DeviceResponseDto {
     @ApiProperty()
     type: DeviceType;
     @ApiProperty({ required: false })
-    ipAddress?: string;
+    host?: string;
     @ApiProperty({ required: false })
     username?: string;
     @ApiProperty({ required: false })
@@ -307,7 +307,7 @@ class DiscoveredDeviceDto {
     @ApiProperty({ enum: Object.values(DeviceType) })
     type: DeviceType;
     @ApiProperty({ required: false })
-    ipAddress?: string;
+    host?: string;
     @ApiProperty({ enum: Object.values(DeviceStatus) })
     status: DeviceStatus;
 }

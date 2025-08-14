@@ -11,7 +11,7 @@ export class EncryptionUtil {
      * Initialize encryption key from environment
      */
     private static getSecretKey(): Buffer {
-        const secretKey = "213233231213"
+        const secretKey = '213233231213';
         // Create a 32-byte key from the secret
         return crypto.scryptSync(secretKey, 'salt', 32);
     }

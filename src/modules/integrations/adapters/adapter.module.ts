@@ -5,7 +5,13 @@ import { LoggerModule } from '@/core/logger/logger.module';
 import { DatabaseModule } from '@/core/database/database.module';
 import { EncryptionService } from '@/shared/services/encryption.service';
 import { XmlJsonService } from '@/shared/services/xml-json.service';
-import { HikvisionHttpClient, HikvisionAdapter, StubMatchingAdapter, StubNotificationAdapter, StubStorageAdapter } from './implementations';
+import {
+    HikvisionHttpClient,
+    HikvisionAdapter,
+    StubMatchingAdapter,
+    StubNotificationAdapter,
+    StubStorageAdapter,
+} from './implementations';
 
 /**
  * Hikvision qurilmasi bilan ishlash uchun zarur bo'lgan

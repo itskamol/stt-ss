@@ -56,7 +56,7 @@ export class DeviceController {
             name: device.name,
             type: device.type,
             deviceIdentifier: device.deviceIdentifier,
-            ipAddress: device.ipAddress,
+            host: device.host,
             username: device.username,
             port: device.port,
             protocol: device.protocol,
@@ -99,9 +99,10 @@ export class DeviceController {
 
     @Post('auto-discover')
     @Permissions(PERMISSIONS.DEVICE.CREATE)
-    @ApiOperation({ 
+    @ApiOperation({
         summary: 'Create device with auto-discovery',
-        description: 'Create a device with minimal information. The system will automatically discover device details like manufacturer, model, firmware, and MAC address.'
+        description:
+            'Create a device with minimal information. The system will automatically discover device details like manufacturer, model, firmware, and MAC address.',
     })
     @ApiBody({ type: DeviceAutoDiscoveryDto })
     @ApiResponse({
@@ -127,22 +128,22 @@ export class DeviceController {
 
     @Post('discover-info')
     @Permissions(PERMISSIONS.DEVICE.CREATE)
-    @ApiOperation({ 
+    @ApiOperation({
         summary: 'Discover device information',
-        description: 'Test connection and discover device information without creating the device.'
+        description: 'Test connection and discover device information without creating the device.',
     })
     @ApiBody({
         schema: {
             type: 'object',
-            required: ['ipAddress', 'port', 'username', 'password'],
+            required: ['host', 'port', 'username', 'password'],
             properties: {
-                ipAddress: { type: 'string', description: 'Device IP address' },
+                host: { type: 'string', description: 'Device IP address' },
                 port: { type: 'number', description: 'Device port' },
                 username: { type: 'string', description: 'Device username' },
                 password: { type: 'string', description: 'Device password' },
                 protocol: { type: 'string', description: 'Protocol (HTTP/HTTPS)', default: 'HTTP' },
-            }
-        }
+            },
+        },
     })
     @ApiResponse({
         status: 200,

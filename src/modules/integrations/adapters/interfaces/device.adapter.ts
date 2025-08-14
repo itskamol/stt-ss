@@ -1,11 +1,12 @@
 import { DeviceStatus, DeviceType, EventType } from '@prisma/client';
+import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
 
 export interface DeviceInfo {
     id: string;
     name: string;
     type: DeviceType;
     status: DeviceStatus;
-    ipAddress?: string;
+    host?: string;
     macAddress?: string;
     firmwareVersion?: string;
     lastSeen?: Date;
@@ -85,46 +86,46 @@ export interface IDeviceAdapter {
     /**
      * Get device information
      */
-    getDeviceInfo(deviceId: string): Promise<DeviceInfo>;
+    getDeviceInfo(context: DeviceOperationContext): Promise<DeviceInfo>;
 
     /**
      * Get device configuration
      */
-    getDeviceConfiguration(deviceId: string): Promise<DeviceConfiguration>;
+    getDeviceConfiguration(context: DeviceOperationContext): Promise<DeviceConfiguration>;
 
     /**
      * Update device configuration
      */
     updateDeviceConfiguration(
-        deviceId: string,
+        context: DeviceOperationContext,
         configuration: Partial<DeviceConfiguration>
     ): Promise<void>;
 
     /**
      * Send command to device
      */
-    sendCommand(deviceId: string, command: DeviceCommand): Promise<DeviceCommandResult>;
+    sendCommand(context: DeviceOperationContext, command: DeviceCommand): Promise<DeviceCommandResult>;
 
     /**
      * Get device health status
      */
-    getDeviceHealth(deviceId: string): Promise<DeviceHealth>;
+    getDeviceHealth(context: DeviceOperationContext): Promise<DeviceHealth>;
 
     /**
      * Subscribe to device events
      */
-    subscribeToEvents(deviceId: string, callback: (event: DeviceEvent) => void): Promise<void>;
+    subscribeToEvents(context: DeviceOperationContext, callback: (event: DeviceEvent) => void): Promise<void>;
 
     /**
      * Unsubscribe from device events
      */
-    unsubscribeFromEvents(deviceId: string): Promise<void>;
+    unsubscribeFromEvents(context: DeviceOperationContext): Promise<void>;
 
     /**
      * Sync user data to device
      */
     syncUsers(
-        deviceId: string,
+        context: DeviceOperationContext,
         users: Array<{
             userId: string;
             cardId?: string;
@@ -136,33 +137,33 @@ export interface IDeviceAdapter {
     /**
      * Remove user from device
      */
-    removeUser(deviceId: string, userId: string): Promise<void>;
+    removeUser(context: DeviceOperationContext, userId: string): Promise<void>;
 
     /**
      * Test device connectivity
      */
-    testConnection(deviceId: string): Promise<boolean>;
+    testConnection(context: DeviceOperationContext): Promise<boolean>;
 
     /**
      * Reboot device
      */
-    rebootDevice(deviceId: string): Promise<void>;
+    rebootDevice(context: DeviceOperationContext): Promise<void>;
 
     /**
      * Update device firmware
      */
     updateFirmware(
-        deviceId: string,
+        context: DeviceOperationContext,
         firmwareUrl: string
     ): Promise<{ success: boolean; message: string }>;
 
     /**
      * Get device logs
      */
-    getDeviceLogs(deviceId: string, startDate?: Date, endDate?: Date): Promise<string[]>;
+    getDeviceLogs(context: DeviceOperationContext, startDate?: Date, endDate?: Date): Promise<string[]>;
 
     /**
      * Clear device logs
      */
-    clearDeviceLogs(deviceId: string): Promise<void>;
+    clearDeviceLogs(context: DeviceOperationContext): Promise<void>;
 }
