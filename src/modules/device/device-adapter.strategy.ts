@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
-import { DeviceType, DeviceProtocol, Device } from '@prisma/client';
+import { Device, DeviceProtocol, DeviceType } from '@prisma/client';
 import {
     AdapterType,
     DeviceAdapterFactory,

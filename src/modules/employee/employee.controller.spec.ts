@@ -37,6 +37,7 @@ describe('EmployeeController', () => {
         email: 'john.doe@example.com',
         phone: '+1234567890',
         isActive: true,
+        photoKey: null,
         createdAt: new Date(),
         updatedAt: new Date(),
     };

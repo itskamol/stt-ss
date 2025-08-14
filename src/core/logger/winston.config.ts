@@ -1,4 +1,4 @@
-import { transports, format } from 'winston';
+import { format, transports } from 'winston';
 import { WinstonModuleOptions } from 'nest-winston';
 import * as DailyRotateFile from 'winston-daily-rotate-file';
 

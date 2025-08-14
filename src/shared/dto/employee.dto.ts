@@ -158,6 +158,15 @@ export class UpdateEmployeeDto {
     phone?: string;
 
     @ApiProperty({
+        description: 'The storage key for the employee photo.',
+        example: 'employees/12345/photo.jpg',
+        required: false,
+    })
+    @IsOptional()
+    @IsString()
+    photoKey?: string;
+
+    @ApiProperty({
         description: 'Indicates if the employee is currently active.',
         example: true,
         required: false,
@@ -226,6 +235,13 @@ export class EmployeeResponseDto {
     phone?: string;
 
     @ApiProperty({
+        description: 'The storage key for the employee photo.',
+        example: 'employees/12345/photo.jpg',
+        required: false,
+    })
+    photoKey?: string;
+
+    @ApiProperty({
         description: 'Indicates if the employee is currently active.',
         example: true,
     })
@@ -250,4 +266,24 @@ export class EmployeeCountResponseDto {
         example: 100,
     })
     count: number;
+}
+
+export class EmployeePhotoUploadResponseDto {
+    @ApiProperty({
+        description: 'The URL of the uploaded employee photo.',
+        example: 'https://storage.example.com/employees/12345/photo.jpg',
+    })
+    photoUrl: string;
+
+    @ApiProperty({
+        description: 'The unique key of the uploaded photo in storage.',
+        example: 'employees/12345/photo.jpg',
+    })
+    photoKey: string;
+
+    @ApiProperty({
+        description: 'The size of the uploaded photo in bytes.',
+        example: 1024000,
+    })
+    fileSize: number;
 }

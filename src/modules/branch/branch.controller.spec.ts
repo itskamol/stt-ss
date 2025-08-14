@@ -289,7 +289,7 @@ describe('BranchController', () => {
 
     describe('getBranchWithStats', () => {
         it('should return branch with statistics', async () => {
-            const branchWithStats = {
+            const branchWithStats: any = {
                 ...mockBranch,
                 employeeCount: 25,
                 deviceCount: 3,

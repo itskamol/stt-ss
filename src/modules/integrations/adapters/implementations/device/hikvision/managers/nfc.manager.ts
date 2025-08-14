@@ -261,7 +261,7 @@ export class HikvisionNFCManager {
                 url: '/ISAPI/AccessControl/RemoteControl/door/1',
                 data: {
                     cmd: 'nfcRead',
-                    timeout: timeout,
+                    timeout,
                 },
             });
 

@@ -21,7 +21,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         if (exception instanceof HttpException) {
             status = exception.getStatus();
             const exceptionResponse = exception.getResponse();
-
+            console.log(exceptionResponse);
             if (typeof exceptionResponse === 'string') {
                 message = exceptionResponse;
             } else if (typeof exceptionResponse === 'object') {
@@ -41,8 +41,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         }
 
         // Log the exception with standardized format
-        const userContext = request.user as any;
-        
+        const userContext = request.user as any;        
         // Use standardized API error logging
         this.logger.logApiError(
             request.method,

@@ -1,4 +1,4 @@
-import { Injectable, Inject, LoggerService as NestLoggerService, OnModuleDestroy, Optional } from '@nestjs/common';
+import { Inject, Injectable, LoggerService as NestLoggerService, OnModuleDestroy, Optional } from '@nestjs/common';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { LogContext, LogLevel } from '../interfaces/log-entry.interface';
@@ -125,7 +125,7 @@ export class LoggerService implements NestLoggerService, OnModuleDestroy {
         };
 
         this.errorMonitoring?.recordError?.('api', error, errorContext).catch(() => {});
-        this.error(`API Request failed: ${method} ${url} - ${statusCode}`, error, errorContext);
+        this.error(`API Request failed: ${method} ${url} - ${statusCode} - ${error}`, errorContext.trace, errorContext);
     }
 
     logPerformance(operation: string, duration: number, context?: LogContext): void {

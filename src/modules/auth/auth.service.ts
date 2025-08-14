@@ -5,7 +5,7 @@ import { LoggerService } from '@/core/logger';
 import { CacheService } from '@/core/cache/cache.service';
 import { PasswordUtil } from '@/shared/utils/password.util';
 import { Role } from '@/shared/enums';
-import { LoginDto, LoginResponse, RefreshTokenDto } from '@/shared/dto';
+import { LoginDto, LoginResponseDto, RefreshTokenDto } from '@/shared/dto';
 import { User } from '@prisma/client';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
@@ -21,7 +21,7 @@ export class AuthService {
     /**
      * Authenticate user with email and password
      */
-    async login(loginDto: LoginDto, correlationId?: string): Promise<LoginResponse> {
+    async login(loginDto: LoginDto, correlationId?: string): Promise<LoginResponseDto> {
         const { email, password } = loginDto;
 
         try {

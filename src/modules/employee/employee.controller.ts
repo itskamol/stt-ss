@@ -9,10 +9,13 @@ import {
     Patch,
     Post,
     Query,
+    UploadedFile,
+    UseInterceptors,
 } from '@nestjs/common';
 import {
     ApiBearerAuth,
     ApiBody,
+    ApiConsumes,
     ApiOperation,
     ApiParam,
     ApiQuery,
@@ -23,6 +26,7 @@ import { EmployeeService } from './employee.service';
 import {
     CreateEmployeeDto,
     EmployeeCountResponseDto,
+    EmployeePhotoUploadResponseDto,
     EmployeeResponseDto,
     ErrorResponseDto,
     PaginationDto,
@@ -33,6 +37,7 @@ import { Permissions, Scope, User } from '@/shared/decorators';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { AuditLog } from '@/shared/interceptors/audit-log.interceptor';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { plainToClass } from 'class-transformer';
 
 @ApiTags('Employees')
@@ -337,5 +342,75 @@ export class EmployeeController {
         @Scope() scope: DataScope
     ): Promise<void> {
         await this.employeeService.deleteEmployee(id, scope, user.sub);
+    }
+
+    @Post(':id/photo')
+    @Permissions(PERMISSIONS.EMPLOYEE.UPDATE_MANAGED)
+    @AuditLog({
+        action: 'PHOTO_UPLOAD',
+        resource: 'employee',
+        captureRequest: true,
+        captureResponse: true,
+    })
+    @UseInterceptors(FileInterceptor('photo'))
+    @ApiConsumes('multipart/form-data')
+    @ApiOperation({ summary: 'Upload employee photo' })
+    @ApiParam({ name: 'id', description: 'ID of the employee' })
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                photo: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Employee photo file (JPEG, PNG, GIF, WebP, max 5MB)',
+                },
+            },
+            required: ['photo'],
+        },
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'The employee photo has been successfully uploaded.',
+        type: EmployeePhotoUploadResponseDto,
+    })
+    @ApiResponse({ status: 400, description: 'Invalid file format or size.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
+    async uploadEmployeePhoto(
+        @Param('id') id: string,
+        @UploadedFile() file: Express.Multer.File,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ): Promise<EmployeePhotoUploadResponseDto> {
+        const result = await this.employeeService.uploadEmployeePhoto(
+            id,
+            file,
+            scope,
+            user.sub
+        );
+        return plainToClass(EmployeePhotoUploadResponseDto, result);
+    }
+
+    @Delete(':id/photo')
+    @Permissions(PERMISSIONS.EMPLOYEE.UPDATE_MANAGED)
+    @AuditLog({
+        action: 'PHOTO_DELETE',
+        resource: 'employee',
+        captureRequest: true,
+    })
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({ summary: 'Delete employee photo' })
+    @ApiParam({ name: 'id', description: 'ID of the employee' })
+    @ApiResponse({ status: 204, description: 'The employee photo has been successfully deleted.' })
+    @ApiResponse({ status: 400, description: 'Employee does not have a photo.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
+    async deleteEmployeePhoto(
+        @Param('id') id: string,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ): Promise<void> {
+        await this.employeeService.deleteEmployeePhoto(id, scope, user.sub);
     }
 }

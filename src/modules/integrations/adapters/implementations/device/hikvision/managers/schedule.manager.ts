@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
 import {
-    AttendanceWeekPlan,
     AttendancePlanTemplate,
+    AttendanceWeekPlan,
     HolidayPlanCfg,
     ISAPIResponse,
 } from '../types';

@@ -206,7 +206,8 @@ export class DepartmentController {
         @Param('id') id: string,
         @Scope() scope: DataScope
     ): Promise<DepartmentStatsResponseDto> {
-        return this.departmentService.getDepartmentWithStats(id, scope);
+        const result = await this.departmentService.getDepartmentWithStats(id, scope);
+        return plainToClass(DepartmentStatsResponseDto, result);
     }
 
     @Patch(':id')

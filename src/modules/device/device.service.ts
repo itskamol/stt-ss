@@ -616,7 +616,7 @@ export class DeviceService {
      * Test device connection
      */
     async testDeviceConnection(id: string, scope: DataScope) {
-        const device = await this.deviceRepository.findById(id, scope);
+        const device = await this.findDeviceById(id, scope);
         if (!device) {
             throw new NotFoundException('Device not found');
         }
@@ -935,5 +935,14 @@ export class DeviceService {
             appliedByUserId,
             correlationId
         );
+    }
+
+    private async findDeviceById(id: string, scope: DataScope): Promise<Device> {
+        const device = await this.deviceRepository.findById(id, scope);
+        device.password = this.encryptionService.decrypt(device.password);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+        return device;
     }
 }

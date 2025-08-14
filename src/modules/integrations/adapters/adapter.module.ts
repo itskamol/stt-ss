@@ -6,8 +6,8 @@ import { DatabaseModule } from '@/core/database/database.module';
 import { EncryptionService } from '@/shared/services/encryption.service';
 import { XmlJsonService } from '@/shared/services/xml-json.service';
 import {
-    HikvisionHttpClient,
     HikvisionAdapter,
+    HikvisionHttpClient,
     StubMatchingAdapter,
     StubNotificationAdapter,
     StubStorageAdapter,

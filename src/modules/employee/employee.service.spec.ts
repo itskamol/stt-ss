@@ -5,11 +5,14 @@ import { EmployeeRepository } from './employee.repository';
 import { LoggerService } from '@/core/logger';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
+import { IStorageAdapter } from '@/modules/integrations/adapters/interfaces/storage.adapter';
+import { StubStorageAdapter } from '@/modules/integrations/adapters/implementations/storage/stub-storage.adapter';
 
 describe('EmployeeService', () => {
     let service: EmployeeService;
     let employeeRepository: jest.Mocked<EmployeeRepository>;
     let loggerService: jest.Mocked<LoggerService>;
+    let storageAdapter: jest.Mocked<IStorageAdapter>;
 
     const mockDataScope: DataScope = {
         organizationId: 'org-123',
@@ -27,6 +30,7 @@ describe('EmployeeService', () => {
         email: 'john.doe@example.com',
         phone: '+1234567890',
         isActive: true,
+        photoKey: null,
         createdAt: new Date(),
         updatedAt: new Date(),
     };
@@ -53,6 +57,19 @@ describe('EmployeeService', () => {
             logUserAction: jest.fn(),
         };
 
+        const mockStorageAdapter = {
+            generatePresignedUploadUrl: jest.fn(),
+            generatePresignedDownloadUrl: jest.fn(),
+            uploadFile: jest.fn(),
+            downloadFile: jest.fn(),
+            deleteFile: jest.fn(),
+            fileExists: jest.fn(),
+            getFileMetadata: jest.fn(),
+            listFiles: jest.fn(),
+            copyFile: jest.fn(),
+            getFileSize: jest.fn(),
+        };
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 EmployeeService,
@@ -64,12 +81,17 @@ describe('EmployeeService', () => {
                     provide: LoggerService,
                     useValue: mockLoggerService,
                 },
+                {
+                    provide: 'IStorageAdapter',
+                    useValue: mockStorageAdapter,
+                },
             ],
         }).compile();
 
         service = module.get<EmployeeService>(EmployeeService);
         employeeRepository = module.get(EmployeeRepository);
         loggerService = module.get(LoggerService);
+        storageAdapter = module.get('IStorageAdapter') as jest.Mocked<IStorageAdapter>;
     });
 
     it('should be defined', () => {
@@ -341,6 +363,172 @@ describe('EmployeeService', () => {
         it('should throw BadRequestException for inaccessible branch', async () => {
             await expect(
                 service.getEmployeeCountByBranch('invalid-branch', mockDataScope)
+            ).rejects.toThrow(BadRequestException);
+        });
+    });
+
+    describe('uploadEmployeePhoto', () => {
+        const mockFile = {
+            originalname: 'test.jpg',
+            mimetype: 'image/jpeg',
+            size: 1024 * 1024, // 1MB
+            buffer: Buffer.from('test-image-data'),
+        } as Express.Multer.File;
+
+        it('should upload employee photo successfully', async () => {
+            employeeRepository.findById.mockResolvedValue(mockEmployee);
+            storageAdapter.uploadFile.mockResolvedValue({
+                key: 'employees/org-123/emp-123/photo.jpg',
+                url: 'https://example.com/employees/org-123/emp-123/photo.jpg',
+                size: mockFile.size,
+            });
+            employeeRepository.update.mockResolvedValue({
+                ...mockEmployee,
+                photoKey: 'employees/org-123/emp-123/photo.jpg',
+            });
+
+            const result = await service.uploadEmployeePhoto(
+                'emp-123',
+                mockFile,
+                mockDataScope,
+                'user-123'
+            );
+
+            expect(employeeRepository.findById).toHaveBeenCalledWith('emp-123', mockDataScope);
+            expect(storageAdapter.uploadFile).toHaveBeenCalledWith(
+                'employees/org-123/emp-123/photo.jpg',
+                mockFile.buffer,
+                mockFile.mimetype
+            );
+            expect(employeeRepository.update).toHaveBeenCalledWith(
+                'emp-123',
+                { photoKey: 'employees/org-123/emp-123/photo.jpg' },
+                mockDataScope
+            );
+            expect(loggerService.logUserAction).toHaveBeenCalledWith(
+                'user-123',
+                'EMPLOYEE_PHOTO_UPLOADED',
+                expect.objectContaining({
+                    employeeId: 'emp-123',
+                    fileSize: mockFile.size,
+                    mimeType: mockFile.mimetype,
+                }),
+                mockDataScope.organizationId,
+                undefined
+            );
+            expect(result).toEqual({
+                photoUrl: 'https://example.com/employees/org-123/emp-123/photo.jpg',
+                photoKey: 'employees/org-123/emp-123/photo.jpg',
+                fileSize: mockFile.size,
+            });
+        });
+
+        it('should throw NotFoundException when employee not found', async () => {
+            employeeRepository.findById.mockResolvedValue(null);
+
+            await expect(
+                service.uploadEmployeePhoto('nonexistent', mockFile, mockDataScope, 'user-123')
+            ).rejects.toThrow(NotFoundException);
+        });
+
+        it('should throw BadRequestException for invalid file type', async () => {
+            const invalidFile = {
+                ...mockFile,
+                mimetype: 'application/pdf',
+            } as Express.Multer.File;
+
+            employeeRepository.findById.mockResolvedValue(mockEmployee);
+
+            await expect(
+                service.uploadEmployeePhoto('emp-123', invalidFile, mockDataScope, 'user-123')
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('should throw BadRequestException for file too large', async () => {
+            const largeFile = {
+                ...mockFile,
+                size: 6 * 1024 * 1024, // 6MB
+            } as Express.Multer.File;
+
+            employeeRepository.findById.mockResolvedValue(mockEmployee);
+
+            await expect(
+                service.uploadEmployeePhoto('emp-123', largeFile, mockDataScope, 'user-123')
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('should delete existing photo when uploading new one', async () => {
+            const employeeWithPhoto = {
+                ...mockEmployee,
+                photoKey: 'employees/org-123/emp-123/old-photo.jpg',
+            };
+
+            employeeRepository.findById.mockResolvedValue(employeeWithPhoto);
+            storageAdapter.uploadFile.mockResolvedValue({
+                key: 'employees/org-123/emp-123/photo.jpg',
+                url: 'https://example.com/employees/org-123/emp-123/photo.jpg',
+                size: mockFile.size,
+            });
+            employeeRepository.update.mockResolvedValue({
+                ...employeeWithPhoto,
+                photoKey: 'employees/org-123/emp-123/photo.jpg',
+            });
+
+            await service.uploadEmployeePhoto('emp-123', mockFile, mockDataScope, 'user-123');
+
+            expect(storageAdapter.deleteFile).toHaveBeenCalledWith('employees/org-123/emp-123/old-photo.jpg');
+        });
+    });
+
+    describe('deleteEmployeePhoto', () => {
+
+        it('should delete employee photo successfully', async () => {
+            const employeeWithPhoto = {
+                ...mockEmployee,
+                photoKey: 'employees/org-123/emp-123/photo.jpg',
+            };
+
+            employeeRepository.findById.mockResolvedValue(employeeWithPhoto);
+            storageAdapter.deleteFile.mockResolvedValue();
+            employeeRepository.update.mockResolvedValue({
+                ...employeeWithPhoto,
+                photoKey: null,
+            });
+
+            await service.deleteEmployeePhoto('emp-123', mockDataScope, 'user-123');
+
+            expect(employeeRepository.findById).toHaveBeenCalledWith('emp-123', mockDataScope);
+            expect(storageAdapter.deleteFile).toHaveBeenCalledWith('employees/org-123/emp-123/photo.jpg');
+            expect(employeeRepository.update).toHaveBeenCalledWith(
+                'emp-123',
+                { photoKey: null },
+                mockDataScope
+            );
+            expect(loggerService.logUserAction).toHaveBeenCalledWith(
+                'user-123',
+                'EMPLOYEE_PHOTO_DELETED',
+                expect.objectContaining({
+                    employeeId: 'emp-123',
+                    photoKey: 'employees/org-123/emp-123/photo.jpg',
+                }),
+                mockDataScope.organizationId,
+                undefined
+            );
+        });
+
+        it('should throw NotFoundException when employee not found', async () => {
+            employeeRepository.findById.mockResolvedValue(null);
+
+            await expect(
+                service.deleteEmployeePhoto('nonexistent', mockDataScope, 'user-123')
+            ).rejects.toThrow(NotFoundException);
+        });
+
+        it('should throw BadRequestException when employee has no photo', async () => {
+            employeeRepository.findById.mockResolvedValue(mockEmployee);
+
+            await expect(
+                service.deleteEmployeePhoto('emp-123', mockDataScope, 'user-123')
             ).rejects.toThrow(BadRequestException);
         });
     });

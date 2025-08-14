@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
 import {
-    IDeviceAdapter,
-    DeviceInfo,
-    DeviceConfiguration,
+    DeviceCapability,
     DeviceCommand,
     DeviceCommandResult,
-    DeviceHealth,
+    DeviceConfiguration,
     DeviceEvent,
-    DeviceCapability,
+    DeviceHealth,
+    DeviceInfo,
+    IDeviceAdapter,
 } from '../../../interfaces';
 import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
-import { DeviceType, DeviceStatus } from '@prisma/client';
+import { DeviceStatus, DeviceType } from '@prisma/client';
 
 // Import managers
 import { HikvisionHttpClient } from './utils/hikvision-http.client';

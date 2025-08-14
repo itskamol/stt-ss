@@ -3,15 +3,15 @@ import { LoggerService } from '@/core/logger';
 import { XmlJsonService } from '@/shared/services/xml-json.service';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
 import {
-    UserInfo,
-    UserList,
-    UserCheckResponse,
     CardReaderCfg,
-    WiegandCfg,
     FaceCompareCond,
-    IdentityTerminal,
     ISAPIResponse,
     ISAPIXMLResponse,
+    IdentityTerminal,
+    UserCheckResponse,
+    UserInfo,
+    UserList,
+    WiegandCfg,
 } from '../types';
 
 @Injectable()

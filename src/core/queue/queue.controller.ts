@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import { QueueService } from './queue.service';
 import { QueueProducer } from './queue.producer';
 import { Permissions, Public } from '@/shared/decorators';
@@ -14,13 +14,13 @@ import {
 } from '@nestjs/swagger';
 import {
     CleanQueueResponseDto,
-    ErrorResponseDto,
     QueueHealthResponseDto,
     QueueStatsResponseDto,
     RetryFailedJobsResponseDto,
     TriggerJobResponseDto,
 } from './queue.dto';
 import { plainToClass } from 'class-transformer';
+import { ErrorResponseDto } from '@/shared/dto';
 
 @ApiTags('Admin - Queues')
 @ApiBearerAuth()
@@ -134,7 +134,11 @@ export class QueueController {
     async triggerHealthCheck(
         @Body('checkType') checkType: string
     ): Promise<TriggerJobResponseDto> {
-        const job = await this.queueProducer.scheduleHealthCheck({ checkType });
+        const allowedTypes = ['database', 'redis', 'external-api', 'disk-space', 'memory'] as const;
+        if (!allowedTypes.includes(checkType as any)) {
+            throw new Error(`Invalid checkType: ${checkType}`);
+        }
+        const job = await this.queueProducer.scheduleHealthCheck({ checkType: checkType as typeof allowedTypes[number] });
 
         return {
             jobId: String(job.id),

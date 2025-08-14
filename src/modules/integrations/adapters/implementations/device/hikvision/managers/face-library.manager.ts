@@ -3,11 +3,11 @@ import { LoggerService } from '@/core/logger';
 import { XmlJsonService } from '@/shared/services/xml-json.service';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
 import {
+    FaceAddRequest,
+    FaceLibraryInfo,
+    FaceModifyRequest,
     FaceSearchRequest,
     FaceSearchResponse,
-    FaceAddRequest,
-    FaceModifyRequest,
-    FaceLibraryInfo,
     ISAPIResponse,
 } from '../types';
 

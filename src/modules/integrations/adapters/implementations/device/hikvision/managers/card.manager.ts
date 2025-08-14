@@ -206,7 +206,7 @@ export class HikvisionCardManager {
                 data: {
                     CardInfo: {
                         employeeNo: card.userId,
-                        cardNo: cardNo,
+                        cardNo,
                         cardType: card.cardType,
                         Valid: {
                             enable: isActive,

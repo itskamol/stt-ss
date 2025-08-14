@@ -3,6 +3,7 @@ import { HealthService } from './health.service';
 import { Public } from '@/shared/decorators';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { DetailedHealthCheckResponseDto, HealthCheckResponseDto } from './health.dto';
+import { plainToClass } from 'class-transformer';
 
 @ApiTags('Health')
 @Controller('health')
@@ -30,6 +31,7 @@ export class HealthController {
         type: DetailedHealthCheckResponseDto,
     })
     async getDetailedHealth(): Promise<DetailedHealthCheckResponseDto> {
-        return this.healthService.getDetailedHealthStatus();
+        const result = await this.healthService.getDetailedHealthStatus();
+        return plainToClass(DetailedHealthCheckResponseDto, result);
     }
 }

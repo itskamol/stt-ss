@@ -5,12 +5,7 @@ import { AuthService } from './auth.service';
 import { UserContext } from '@/shared/interfaces';
 import { RequestWithCorrelation } from '@/shared/middleware/correlation-id.middleware';
 import { Role } from '@/shared/enums';
-import {
-    LoginRequestDto,
-    LoginResponse,
-    LogoutRequestDto,
-    RefreshTokenRequestDto,
-} from '@/shared/dto';
+import { LoginResponseDto, LogoutDto, RefreshTokenDto } from '@/shared/dto';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { MockLoggerProvider, mockLoggerService } from '@/testing/mocks/logger.mock';
 
@@ -60,12 +55,12 @@ describe('AuthController', () => {
     });
 
     describe('login', () => {
-        const loginDto: LoginRequestDto = {
+        const loginDto = {
             email: 'test@example.com',
             password: 'TestPassword123!',
         };
 
-        const mockLoginResponse: LoginResponse = {
+        const mockLoginResponse: LoginResponseDto = {
             accessToken: 'access-token',
             refreshToken: 'refresh-token',
             user: {
@@ -121,7 +116,7 @@ describe('AuthController', () => {
     });
 
     describe('refreshToken', () => {
-        const refreshTokenDto: RefreshTokenRequestDto = {
+        const refreshTokenDto: RefreshTokenDto = {
             refreshToken: 'valid-refresh-token',
         };
 
@@ -175,7 +170,7 @@ describe('AuthController', () => {
     });
 
     describe('logout', () => {
-        const logoutDto: LogoutRequestDto = {
+        const logoutDto: LogoutDto = {
             refreshToken: 'refresh-token-to-logout',
         };
 

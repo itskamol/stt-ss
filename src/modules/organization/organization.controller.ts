@@ -175,7 +175,8 @@ export class OrganizationController {
     async getCurrentOrganizationWithStats(
         @Scope() scope: DataScope
     ): Promise<OrganizationStatsResponseDto> {
-        return this.organizationService.getOrganizationWithStats(scope.organizationId);
+        const result = await this.organizationService.getOrganizationWithStats(scope.organizationId);
+        return plainToClass(OrganizationStatsResponseDto, result);
     }
 
     @Get(':id')
@@ -219,7 +220,8 @@ export class OrganizationController {
         type: ErrorResponseDto,
     })
     async getOrganizationWithStats(@Param('id') id: string): Promise<OrganizationStatsResponseDto> {
-        return this.organizationService.getOrganizationWithStats(id);
+        const result = await this.organizationService.getOrganizationWithStats(id);
+        return plainToClass(OrganizationStatsResponseDto, result);
     }
 
     @Patch('self')

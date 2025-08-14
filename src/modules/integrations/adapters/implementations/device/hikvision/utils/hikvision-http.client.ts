@@ -1,15 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { AxiosRequestConfig, AxiosError, Method } from 'axios';
+import { AxiosError, AxiosRequestConfig, Method } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { LoggerService } from '@/core/logger';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class HikvisionHttpClient {
-    private readonly AUTH_TIMEOUT = 5000;
-    private readonly COMMAND_TIMEOUT = 10000;
-
     constructor(
         private readonly logger: LoggerService,
         private readonly httpService: HttpService

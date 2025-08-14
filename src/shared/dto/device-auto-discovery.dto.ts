@@ -1,14 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DeviceProtocol } from '@prisma/client';
 import {
-    IsString,
+    IsEnum,
+    IsIP,
     IsNumber,
     IsOptional,
-    IsIP,
     IsPort,
-    MinLength,
+    IsString,
     MaxLength,
-    IsEnum,
+    MinLength,
 } from 'class-validator';
 
 export class DeviceAutoDiscoveryDto {

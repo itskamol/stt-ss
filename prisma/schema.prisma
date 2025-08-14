@@ -231,6 +231,7 @@ model Employee {
   employeeCode String // Must be unique within the organization  
   email        String? @unique
   phone        String?
+  photoKey     String?
   isActive     Boolean @default(true)
 
   createdAt DateTime @default(now())

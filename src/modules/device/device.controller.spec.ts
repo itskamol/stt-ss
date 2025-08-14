@@ -348,7 +348,7 @@ describe('DeviceController', () => {
 
     describe('testDeviceConnection', () => {
         it('should test device connection successfully', async () => {
-            const connectionResult = {
+            const connectionResult: any = {
                 deviceId: 'device-123',
                 deviceName: 'Main Door Reader',
                 connected: true,

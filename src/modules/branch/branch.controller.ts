@@ -23,16 +23,16 @@ import { BranchService } from './branch.service';
 import {
     AssignBranchManagerBodyDto,
     AssignBranchManagerDto,
+    BranchCountResponseDto,
+    BranchManagerResponseDto,
     BranchResponseDto,
+    BranchStatsResponseDto,
     CreateBranchDto,
     ErrorResponseDto,
     ManagedBranchResponseDto,
     PaginationDto,
     PaginationResponseDto,
     UpdateBranchDto,
-    BranchCountResponseDto,
-    BranchStatsResponseDto,
-    BranchManagerResponseDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';

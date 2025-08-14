@@ -1,6 +1,7 @@
 import {
     BadRequestException,
     ConflictException,
+    Inject,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
@@ -10,12 +11,15 @@ import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
+import { IStorageAdapter } from '@/modules/integrations/adapters/interfaces/storage.adapter';
 
 @Injectable()
 export class EmployeeService {
     constructor(
         private readonly employeeRepository: EmployeeRepository,
-        private readonly logger: LoggerService
+        private readonly logger: LoggerService,
+        @Inject('IStorageAdapter')
+        private readonly storageAdapter: IStorageAdapter
     ) {}
 
     /**
@@ -273,5 +277,108 @@ export class EmployeeService {
         );
 
         return updatedEmployee;
+    }
+
+    /**
+     * Upload employee photo
+     */
+    async uploadEmployeePhoto(
+        employeeId: string,
+        file: Express.Multer.File,
+        scope: DataScope,
+        updatedByUserId: string,
+        correlationId?: string
+    ): Promise<{ photoUrl: string; photoKey: string; fileSize: number }> {
+        const employee = await this.employeeRepository.findById(employeeId, scope);
+        if (!employee) {
+            throw new NotFoundException('Employee not found');
+        }
+
+        // Validate file type (only allow images)
+        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            throw new BadRequestException('Only image files are allowed (JPEG, PNG, GIF, WebP)');
+        }
+
+        // Validate file size (max 5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            throw new BadRequestException('File size must be less than 5MB');
+        }
+
+        // Generate a unique key for the photo
+        const fileExtension = file.originalname.split('.').pop()?.toLowerCase() || 'jpg';
+        const photoKey = `employees/${employee.organizationId}/${employeeId}/photo.${fileExtension}`;
+
+        // Delete existing photo if it exists
+        if (employee.photoKey) {
+            try {
+                await this.storageAdapter.deleteFile(employee.photoKey);
+            } catch (error) {
+                this.logger.warn('Failed to delete existing employee photo', {
+                    employeeId,
+                    photoKey: employee.photoKey,
+                    error: error.message,
+                    correlationId,
+                });
+            }
+        }
+
+        // Upload the new photo
+        const uploadResult = await this.storageAdapter.uploadFile(
+            photoKey,
+            file.buffer,
+            file.mimetype
+        );
+
+        // Update employee record with photo key
+        await this.employeeRepository.update(employeeId, { photoKey }, scope);
+
+        this.logger.logUserAction(updatedByUserId, 'EMPLOYEE_PHOTO_UPLOADED', {
+            employeeId,
+            photoKey,
+            fileSize: file.size,
+            mimeType: file.mimetype,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
+
+        return {
+            photoUrl: uploadResult.url,
+            photoKey: uploadResult.key,
+            fileSize: uploadResult.size || file.size,
+        };
+    }
+
+    /**
+     * Delete employee photo
+     */
+    async deleteEmployeePhoto(
+        employeeId: string,
+        scope: DataScope,
+        deletedByUserId: string,
+        correlationId?: string
+    ): Promise<void> {
+        const employee = await this.employeeRepository.findById(employeeId, scope);
+        if (!employee) {
+            throw new NotFoundException('Employee not found');
+        }
+
+        if (!employee.photoKey) {
+            throw new BadRequestException('Employee does not have a photo');
+        }
+
+        // Delete photo from storage
+        await this.storageAdapter.deleteFile(employee.photoKey);
+
+        // Update employee record to remove photo key
+        await this.employeeRepository.update(employeeId, { photoKey: null }, scope);
+
+        this.logger.logUserAction(deletedByUserId, 'EMPLOYEE_PHOTO_DELETED', {
+            employeeId,
+            photoKey: employee.photoKey,
+            correlationId,
+            organizationId: scope.organizationId,
+        });
     }
 }

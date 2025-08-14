@@ -2,13 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
 import {
-    PersonSearchRequest,
-    PersonSearchResponse,
+    ISAPIResponse,
     PersonAddRequest,
-    PersonModifyRequest,
     PersonDeleteRequest,
     PersonInfo,
-    ISAPIResponse,
+    PersonModifyRequest,
+    PersonSearchRequest,
+    PersonSearchResponse,
 } from '../types';
 
 @Injectable()
