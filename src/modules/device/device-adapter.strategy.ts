@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { DeviceAdapterFactory, AdapterType } from '@/shared/adapters/device-adapter.factory';
-import { IDeviceAdapter, DeviceCommand } from '@/shared/adapters/device.adapter';
 import { LoggerService } from '@/core/logger';
 import { DeviceType, DeviceProtocol } from '@prisma/client';
+import { AdapterType, DeviceAdapterFactory, DeviceCommand, IDeviceAdapter } from '@/modules/integrations/adapters';
 
 export interface DeviceConnectionConfig {
     type: DeviceType;
@@ -142,7 +141,6 @@ export class DeviceAdapterStrategy {
      */
     async getDeviceHealth(deviceId: string, config: DeviceConnectionConfig): Promise<any> {
         const adapter = this.getAdapter(config);
-        
         try {
             const health = await adapter.getDeviceHealth(deviceId);
             
@@ -156,6 +154,34 @@ export class DeviceAdapterStrategy {
             return health;
         } catch (error) {
             this.logger.warn('Failed to get device health', {
+                deviceId,
+                deviceHost: config.host,
+                error: error.message,
+                module: 'device-adapter-strategy'
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Get device information using appropriate adapter
+     */
+    async getDeviceInfo(deviceId: string, config: DeviceConnectionConfig): Promise<any> {
+        const adapter = this.getAdapter(config);
+
+        try {
+            const deviceInfo = await adapter.getDeviceInfo(deviceId);
+            
+            this.logger.log('Device information retrieved successfully', {
+                deviceId,
+                deviceHost: config.host,
+                deviceName: deviceInfo.name,
+                module: 'device-adapter-strategy'
+            });
+
+            return deviceInfo;
+        } catch (error) {
+            this.logger.warn('Failed to get device information', {
                 deviceId,
                 deviceHost: config.host,
                 error: error.message,

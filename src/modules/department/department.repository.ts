@@ -16,7 +16,7 @@ export class DepartmentRepository {
     }
 
     async findById(id: string, scope: DataScope): Promise<Department | null> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+        const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         return this.prisma.department.findFirst({
             where: {
@@ -31,7 +31,7 @@ export class DepartmentRepository {
     }
 
     async findMany(filters: any = {}, scope: DataScope): Promise<Department[]> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+        const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         return this.prisma.department.findMany({
             where: {
@@ -47,7 +47,7 @@ export class DepartmentRepository {
     }
 
     async findByBranch(branchId: string, scope: DataScope): Promise<Department[]> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+        const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         return this.prisma.department.findMany({
             where: {
@@ -63,7 +63,7 @@ export class DepartmentRepository {
     }
 
     async findHierarchy(branchId: string, scope: DataScope): Promise<Department[]> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+        const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         // Get root departments (no parent) with their full hierarchy
         return this.prisma.department.findMany({
@@ -105,7 +105,7 @@ export class DepartmentRepository {
     }
 
     async count(filters: any = {}, scope: DataScope): Promise<number> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+        const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         return this.prisma.department.count({
             where: {
@@ -116,7 +116,7 @@ export class DepartmentRepository {
     }
 
     async findWithStats(id: string, scope: DataScope) {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+        const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         return this.prisma.department.findFirst({
             where: {
@@ -137,7 +137,7 @@ export class DepartmentRepository {
     }
 
     async searchDepartments(searchTerm: string, scope: DataScope): Promise<Department[]> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+        const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         return this.prisma.department.findMany({
             where: {
@@ -160,7 +160,7 @@ export class DepartmentRepository {
         branchId: string,
         scope: DataScope
     ): Promise<boolean> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+        const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         const parent = await this.prisma.department.findFirst({
             where: {

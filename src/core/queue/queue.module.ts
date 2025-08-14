@@ -9,7 +9,7 @@ import { DeviceEventProcessor } from './processors/device-event.processor';
 import { LoggerModule } from '../logger/logger.module';
 import { EmployeeModule } from '../../modules/employee/employee.module';
 import { AttendanceModule } from '../../modules/attendance/attendance.module';
-import { AdapterModule } from '@/shared/adapters/adapter.module';
+import { AdapterModule } from '@/modules/integrations/adapters/adapter.module';
 
 @Module({
     imports: [
@@ -17,7 +17,7 @@ import { AdapterModule } from '@/shared/adapters/adapter.module';
         LoggerModule,
         EmployeeModule,
         AttendanceModule,
-        AdapterModule.forRoot({ useStubAdapters: true }),
+        AdapterModule,
         BullModule.forRootAsync({
             imports: [ConfigModule],
             useFactory: async (configService: ConfigService) => ({

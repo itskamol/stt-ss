@@ -1,11 +1,10 @@
 import {
     BadRequestException,
     ConflictException,
-    Inject,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { Device } from '@prisma/client';
+import { Device, DeviceProtocol } from '@prisma/client';
 import { DeviceRepository } from './device.repository';
 import { DeviceConfigurationService } from './device-configuration.service';
 import { EmployeeSyncService } from './employee-sync.service';
@@ -23,7 +22,8 @@ import {
     UpdateDeviceTemplateDto,
 } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
-import { DeviceCommand } from '@/shared/adapters/device.adapter';
+import { EncryptionService } from '@/shared/services/encryption.service';
+import { DeviceCommand } from '@/modules/integrations/adapters';
 
 @Injectable()
 export class DeviceService {
@@ -33,7 +33,8 @@ export class DeviceService {
         private readonly employeeSyncService: EmployeeSyncService,
         private readonly deviceAdapterStrategy: DeviceAdapterStrategy,
         private readonly logger: LoggerService,
-    ) {}
+        private readonly encryptionService: EncryptionService
+    ) { }
 
     /**
      * Create device connection config from device entity
@@ -46,15 +47,133 @@ export class DeviceService {
             port: device.port,
             username: device.username,
             password: device.password,
-            brand: device.model?.toLowerCase().includes('hikvision') ? 'hikvision' : 
-                   device.model?.toLowerCase().includes('zkteco') ? 'zkteco' :
-                   device.model?.toLowerCase().includes('dahua') ? 'dahua' : 'unknown',
-            model: device.model
+            brand: device.model?.toLowerCase().includes('hikvision')
+                ? 'hikvision'
+                : device.model?.toLowerCase().includes('zkteco')
+                    ? 'zkteco'
+                    : device.model?.toLowerCase().includes('dahua')
+                        ? 'dahua'
+                        : 'unknown',
+            model: device.model,
         };
     }
 
     /**
-     * Create a new device
+     * Auto-discover device information from connection details
+     */
+    async discoverDeviceInfo(connectionDetails: {
+        ipAddress: string;
+        port: number;
+        username: string;
+        password: string;
+        protocol?: DeviceProtocol;
+    }) {
+        try {
+            this.logger.debug('Starting device auto-discovery', {
+                ipAddress: connectionDetails.ipAddress,
+                port: connectionDetails.port,
+            });
+
+            // Create temporary device config for discovery
+            const tempDeviceConfig = {
+                type: 'ACCESS_CONTROL' as any,
+                protocol: connectionDetails.protocol || 'HTTP',
+                host: connectionDetails.ipAddress,
+                port: connectionDetails.port,
+                username: connectionDetails.username,
+                password: connectionDetails.password,
+                brand: 'unknown',
+                model: 'unknown',
+            };
+
+            // Try to get device information using adapter
+            const deviceInfo = await this.deviceAdapterStrategy.getDeviceInfo(
+                `temp_${connectionDetails.ipAddress}`,
+                tempDeviceConfig
+            );
+
+            // Extract device details
+            const discoveredInfo = {
+                manufacturer: this.extractManufacturer(deviceInfo),
+                model: deviceInfo.name || 'Unknown Model',
+                firmware: deviceInfo.firmwareVersion || 'Unknown',
+                macAddress: this.extractMacAddress(deviceInfo),
+                deviceIdentifier: deviceInfo.id || `${connectionDetails.ipAddress}_${Date.now()}`,
+                capabilities: deviceInfo.capabilities || [],
+                status: deviceInfo.status || 'UNKNOWN',
+            };
+
+            this.logger.debug('Device auto-discovery completed', {
+                ipAddress: connectionDetails.ipAddress,
+                discoveredInfo,
+            });
+
+            return discoveredInfo;
+        } catch (error) {
+            this.logger.warn('Device auto-discovery failed, using defaults', {
+                ipAddress: connectionDetails.ipAddress,
+                error: error.message,
+            });
+
+            // Return default values if discovery fails
+            return {
+                manufacturer: 'Unknown',
+                model: 'Unknown Model',
+                firmware: 'Unknown',
+                macAddress: null,
+                deviceIdentifier: `${connectionDetails.ipAddress}_${Date.now()}`,
+                capabilities: [],
+                status: 'UNKNOWN',
+            };
+        }
+    }
+
+    /**
+     * Extract manufacturer from device info
+     */
+    private extractManufacturer(deviceInfo: any): string {
+        const name = (deviceInfo.name || '').toLowerCase();
+        const type = (deviceInfo.type || '').toLowerCase();
+
+        if (name.includes('hikvision') || type.includes('hikvision')) {
+            return 'Hikvision';
+        }
+        if (name.includes('zkteco') || type.includes('zkteco')) {
+            return 'ZKTeco';
+        }
+        if (name.includes('dahua') || type.includes('dahua')) {
+            return 'Dahua';
+        }
+        if (name.includes('suprema') || type.includes('suprema')) {
+            return 'Suprema';
+        }
+        if (name.includes('anviz') || type.includes('anviz')) {
+            return 'Anviz';
+        }
+
+        return 'Unknown';
+    }
+
+    /**
+     * Extract MAC address from device info
+     */
+    private extractMacAddress(deviceInfo: any): string | null {
+        // Try to extract MAC address from various possible fields
+        if (deviceInfo.macAddress) {
+            return deviceInfo.macAddress;
+        }
+        if (deviceInfo.networkInfo?.macAddress) {
+            return deviceInfo.networkInfo.macAddress;
+        }
+        if (deviceInfo.hardware?.macAddress) {
+            return deviceInfo.hardware.macAddress;
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a new device with auto-discovery
      */
     async createDevice(
         createDeviceDto: CreateDeviceDto,
@@ -68,10 +187,43 @@ export class DeviceService {
                 throw new BadRequestException('Branch not accessible within your scope');
             }
 
+            // Auto-discover device information if not provided
+            let deviceData = { ...createDeviceDto };
+
+            if (!deviceData.manufacturer || !deviceData.model || !deviceData.firmware) {
+                this.logger.debug('Auto-discovering device information', {
+                    ipAddress: deviceData.ipAddress,
+                    port: deviceData.port,
+                });
+
+                const discoveredInfo = await this.discoverDeviceInfo({
+                    ipAddress: deviceData.ipAddress,
+                    port: deviceData.port,
+                    username: deviceData.username,
+                    password: deviceData.password,
+                    protocol: deviceData.protocol,
+                });
+
+                // Fill in missing information with discovered data
+                deviceData = {
+                    ...deviceData,
+                    manufacturer: deviceData.manufacturer || discoveredInfo.manufacturer,
+                    model: deviceData.model || discoveredInfo.model,
+                    firmware: deviceData.firmware || discoveredInfo.firmware,
+                    macAddress: deviceData.macAddress || discoveredInfo.macAddress,
+                    deviceIdentifier: deviceData.deviceIdentifier || discoveredInfo.deviceIdentifier,
+                };
+
+                this.logger.debug('Device information auto-filled', {
+                    original: createDeviceDto,
+                    enhanced: deviceData,
+                });
+            }
+
             // Check if device with same MAC address already exists (if provided)
-            if (createDeviceDto.macAddress) {
+            if (deviceData.macAddress) {
                 const existingDevice = await this.deviceRepository.findByMacAddress(
-                    createDeviceDto.macAddress,
+                    deviceData.macAddress,
                     scope
                 );
 
@@ -80,7 +232,22 @@ export class DeviceService {
                 }
             }
 
-            const device = await this.deviceRepository.create(createDeviceDto, scope);
+            // Check if device identifier already exists
+            if (deviceData.deviceIdentifier) {
+                const existingByIdentifier = await this.deviceRepository.findByDeviceIdentifier(
+                    deviceData.deviceIdentifier,
+                    scope
+                );
+
+                if (existingByIdentifier) {
+                    // Generate a unique identifier if the discovered one already exists
+                    deviceData.deviceIdentifier = `${deviceData.ipAddress}_${Date.now()}`;
+                }
+            }
+
+            deviceData.password = this.encryptionService.encrypt(deviceData.password);
+
+            const device = await this.deviceRepository.create(deviceData, scope);
 
             this.logger.logUserAction(createdByUserId, 'DEVICE_CREATED', {
                 deviceId: device.id,
@@ -88,6 +255,9 @@ export class DeviceService {
                 deviceType: device.type,
                 branchId: device.branchId,
                 macAddress: device.macAddress,
+                manufacturer: device.manufacturer,
+                model: device.model,
+                autoDiscovered: !createDeviceDto.manufacturer || !createDeviceDto.model,
                 organizationId: scope.organizationId,
                 correlationId,
             });
@@ -100,6 +270,66 @@ export class DeviceService {
             }
             throw error;
         }
+    }
+
+    /**
+     * Create device with minimal information (auto-discovery enabled)
+     */
+    async createDeviceWithAutoDiscovery(
+        basicInfo: {
+            name: string;
+            ipAddress: string;
+            port: number;
+            username: string;
+            password: string;
+            branchId: string;
+            organizationId: string;
+            departmentId?: string;
+            protocol?: string;
+            description?: string;
+        },
+        scope: DataScope,
+        createdByUserId: string,
+        correlationId?: string
+    ): Promise<Device> {
+        this.logger.debug('Creating device with auto-discovery', {
+            name: basicInfo.name,
+            ipAddress: basicInfo.ipAddress,
+            port: basicInfo.port,
+        });
+
+        // Discover device information
+        const discoveredInfo = await this.discoverDeviceInfo({
+            ipAddress: basicInfo.ipAddress,
+            port: basicInfo.port,
+            username: basicInfo.username,
+            password: basicInfo.password,
+            protocol: basicInfo.protocol as DeviceProtocol,
+        });
+
+        // Create full device DTO with discovered information
+        const createDeviceDto: CreateDeviceDto = {
+            name: basicInfo.name,
+            type: 'ACCESS_CONTROL' as any,
+            deviceIdentifier: discoveredInfo.deviceIdentifier,
+            ipAddress: basicInfo.ipAddress,
+            username: basicInfo.username,
+            password: basicInfo.password,
+            port: basicInfo.port,
+            protocol: (basicInfo.protocol as DeviceProtocol) || DeviceProtocol.HTTP,
+            macAddress: discoveredInfo.macAddress,
+            manufacturer: discoveredInfo.manufacturer,
+            model: discoveredInfo.model,
+            firmware: discoveredInfo.firmware,
+            description: basicInfo.description || `Auto-discovered ${discoveredInfo.manufacturer} device`,
+            branchId: basicInfo.branchId,
+            isActive: true,
+            timeout: 5000,
+            retryAttempts: 3,
+            keepAlive: true,
+        };
+
+        return this.createDevice(createDeviceDto, scope, createdByUserId, correlationId);
     }
 
     /**
@@ -180,6 +410,10 @@ export class DeviceService {
                 if (existingByMacAddress && existingByMacAddress.id !== id) {
                     throw new ConflictException('Device with this MAC address already exists');
                 }
+            }
+
+            if (updateDeviceDto.password) {
+                updateDeviceDto.password = this.encryptionService.encrypt(updateDeviceDto.password);
             }
 
             const updatedDevice = await this.deviceRepository.update(id, updateDeviceDto, scope);
@@ -344,8 +578,8 @@ export class DeviceService {
         try {
             const deviceConfig = this.createDeviceConfig(device);
             const result = await this.deviceAdapterStrategy.executeCommand(
-                device.deviceIdentifier, 
-                deviceConfig, 
+                device.deviceIdentifier,
+                deviceConfig,
                 command
             );
 
@@ -379,13 +613,18 @@ export class DeviceService {
      */
     async getDeviceHealth(id: string, scope: DataScope) {
         const device = await this.deviceRepository.findById(id, scope);
+
         if (!device) {
             throw new NotFoundException('Device not found');
         }
 
         try {
             const deviceConfig = this.createDeviceConfig(device);
-            const health = await this.deviceAdapterStrategy.getDeviceHealth(device.deviceIdentifier, deviceConfig);
+
+            const health = await this.deviceAdapterStrategy.getDeviceHealth(
+                device.id,
+                deviceConfig
+            );
             return health;
         } catch (error) {
             this.logger.error(`Failed to get device health for ${device.name}`, error, {
@@ -414,7 +653,10 @@ export class DeviceService {
 
         try {
             const deviceConfig = this.createDeviceConfig(device);
-            const isConnected = await this.deviceAdapterStrategy.testConnection(device.deviceIdentifier, deviceConfig);
+            const isConnected = await this.deviceAdapterStrategy.testConnection(
+                device.deviceIdentifier,
+                deviceConfig
+            );
 
             // Update last seen if connection is successful
             if (isConnected) {

@@ -5,6 +5,7 @@ export * from './employee.dto';
 export * from './branch.dto';
 export * from './department.dto';
 export * from './device.dto';
+export * from './device-auto-discovery.dto';
 export * from './event.dto';
 export * from './attendance.dto';
 export * from './guest.dto';

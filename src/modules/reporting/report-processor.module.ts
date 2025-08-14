@@ -7,7 +7,7 @@ import { DeviceModule } from '../device/device.module';
 import { GuestModule } from '../guest/guest.module';
 import { AuditModule } from '../audit/audit.module';
 import { LoggerModule } from '@/core/logger/logger.module';
-import { AdapterModule } from '@/shared/adapters/adapter.module';
+import { AdapterModule } from '@/modules/integrations/adapters/adapter.module';
 
 @Module({
     imports: [
