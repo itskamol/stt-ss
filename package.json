@@ -1,6 +1,6 @@
 {
-  "name": "sector-staff-v2",
-  "version": "2.1.0",
+  "name": "sector-staff",
+  "version": "0.0.1",
   "description": "Multi-organization attendance tracking and access control system",
   "author": "Sector Staff Team",
   "private": true,

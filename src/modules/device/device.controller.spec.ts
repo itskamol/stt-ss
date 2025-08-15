@@ -404,31 +404,4 @@ describe('DeviceController', () => {
         });
     });
 
-    describe('discoverDevices', () => {
-        it('should discover new devices', async () => {
-            const discoveryResult = {
-                totalDiscovered: 3,
-                newDevices: 1,
-                existingDevices: 2,
-                devices: [
-                    {
-                        identifier: 'NEW-DEVICE-001',
-                        name: 'New Card Reader',
-                        type: 'card_reader' as any,
-                        host: '192.168.1.105',
-                        status: 'online' as any,
-                    },
-                ],
-            };
-
-            deviceService.discoverDevices.mockResolvedValue(discoveryResult as any);
-
-            const result = await controller.discoverDevices(mockDataScope);
-
-            expect(deviceService.discoverDevices).toHaveBeenCalledWith(mockDataScope);
-            expect(result.totalDiscovered).toBe(3);
-            expect(result.newDevices).toBe(1);
-            expect(result.devices).toHaveLength(1);
-        });
     });
-});

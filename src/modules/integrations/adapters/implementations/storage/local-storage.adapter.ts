@@ -1,7 +1,7 @@
 import { Readable } from 'stream';
 import { Injectable } from '@nestjs/common';
 import * as path from 'path';
-import { mkdir, writeFile, unlink, readFile, readdir, stat } from 'fs/promises';
+import { mkdir, readFile, readdir, stat, unlink, writeFile } from 'fs/promises';
 import {
     DownloadResult,
     IStorageAdapter,

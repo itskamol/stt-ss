@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res, NotFoundException, Inject } from '@nestjs/common';
+import { Controller, Get, Inject, NotFoundException, Param, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { Public } from '@/shared/decorators/public.decorator';
 import { IStorageAdapter } from '../adapters/interfaces/storage.adapter';

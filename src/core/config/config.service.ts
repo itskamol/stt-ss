@@ -160,8 +160,10 @@ export class ConfigService {
 
         // Validate JWT secrets length
         try {
-            this.jwtSecret; // This will throw if too short
-            this.refreshTokenSecret; // This will throw if too short
+            const jwtSecret = this.jwtSecret; // This will throw if too short
+            const refreshTokenSecret = this.refreshTokenSecret; // This will throw if too short
+            void jwtSecret;
+            void refreshTokenSecret;
         } catch (error) {
             throw new Error(`Configuration validation failed: ${error.message}`);
         }

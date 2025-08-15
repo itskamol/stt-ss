@@ -5,6 +5,8 @@ import {
     AdapterType,
     DeviceAdapterFactory,
     DeviceCommand,
+    DeviceDiscoveryConfig,
+    DeviceInfo,
     IDeviceAdapter,
 } from '@/modules/integrations/adapters';
 
@@ -178,6 +180,37 @@ export class DeviceAdapterStrategy {
     }
 
     /**
+     * Get device configuration using appropriate adapter
+     */
+    async getDeviceConfiguration(device: Device): Promise<any> {
+        const context = this.createContext(device);
+        const adapter = this.getAdapter(context.config);
+
+        try {
+            const result = await adapter.getDeviceConfiguration(context);
+
+            this.logger.log('Get device configuration', {
+                deviceHost: context.config.host,
+                deviceId: context.device.id,
+                deviceName: context.device.name,
+                success: result,
+                module: 'device-adapter-strategy',
+            });
+
+            return result;
+        } catch (error) {
+            this.logger.warn('Get device configuration filed', {
+                deviceHost: context.config.host,
+                deviceId: context.device.id,
+                deviceName: context.device.name,
+                error: error.message,
+                module: 'device-adapter-strategy',
+            });
+            return false;
+        }
+    }
+
+    /**
      * Get device health using appropriate adapter
      */
     async getDeviceHealth(device: Device): Promise<any> {
@@ -241,12 +274,42 @@ export class DeviceAdapterStrategy {
     /**
      * Get device information without persisted device (for discovery/testing)
      */
-    async getDeviceInfoByConfig(config: DeviceConnectionConfig): Promise<any> {
-        const context = this.createContext(config as unknown as Device);
+    async getDeviceInfoByConfig(config: DeviceDiscoveryConfig): Promise<DeviceInfo> {
+        // Create virtual device object for discovery
+        const virtualDevice: Partial<Device> = {
+            id: `discovery_${Date.now()}`,
+            type: config.type,
+            protocol: config.protocol,
+            host: config.host,
+            port: config.port,
+            username: config.username,
+            password: config.password,
+            manufacturer: config.brand,
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            branchId: '',
+            organizationId: '',
+            name: `${config.brand} Discovery Device`,
+        };
+
+        const context: DeviceOperationContext = {
+            device: virtualDevice as Device,
+            config: {
+                type: config.type,
+                protocol: config.protocol,
+                host: config.host,
+                port: config.port,
+                username: config.username,
+                password: config.password,
+                brand: config.brand,
+                model: undefined,
+            }
+        };
+
         const adapter = this.getAdapter(config);
 
         try {
-            // For discovery/testing purposes, we pass a dummy deviceId or let adapter handle it
             const deviceInfo = await adapter.getDeviceInfo(context);
 
             this.logger.log('Device information retrieved successfully (discovery mode)', {

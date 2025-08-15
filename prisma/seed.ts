@@ -121,11 +121,11 @@ async function main() {
     // Create a test device
     const testDevice = await prisma.device.upsert({
         where: {
-            deviceIdentifier: 'camera-001',
+            id: 'test-device-001',
         },
         update: {},
         create: {
-            deviceIdentifier: 'camera-001',
+            id: 'test-device-001',
             organizationId: organization.id,
             branchId: branch.id,
             name: 'Test Camera 001',

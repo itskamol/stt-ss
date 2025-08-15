@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
 import { XmlJsonService } from '@/shared/services/xml-json.service';
+import { DeviceConnectionConfig, DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
 
 export interface DeviceConfiguration {
     deviceInfo: {
@@ -110,17 +111,17 @@ export class HikvisionConfigurationManager {
     /**
      * Get device basic information
      */
-    async getDeviceInfo(device: any) {
+    async getDeviceInfo(context: DeviceOperationContext) {
         // Try different ISAPI endpoints for device info
         const url = '/ISAPI/System/deviceInfo';
 
         try {
             this.logger.debug(`Trying endpoint: ${url}`, {
-                deviceId: device.id,
+                deviceId: context.device.id,
                 module: 'hikvision-config-manager',
             });
 
-            const response = await this.httpClient.request<any>(device, {
+            const response = await this.httpClient.request<any>(context.config, {
                 method: 'GET',
                 url,
             });
@@ -135,23 +136,50 @@ export class HikvisionConfigurationManager {
             const deviceInfo = data.DeviceInfo || data.deviceInfo || data;
 
             // If successful, return formatted data
-            return {
-                deviceName: deviceInfo.deviceName || deviceInfo.DeviceName || 'Unknown',
-                deviceID: deviceInfo.deviceID || deviceInfo.DeviceID || 'Unknown',
-                model: deviceInfo.model || deviceInfo.Model || 'Unknown',
-                serialNumber: deviceInfo.serialNumber || deviceInfo.SerialNumber || 'Unknown',
-                firmwareVersion:
-                    deviceInfo.firmwareVersion || deviceInfo.FirmwareVersion || 'Unknown',
-                hardwareVersion:
-                    deviceInfo.hardwareVersion || deviceInfo.HardwareVersion || 'Unknown',
-            };
+            return deviceInfo;
         } catch (error) {
             this.logger.debug(`Endpoint ${url} failed: ${error.message}`, {
-                deviceId: device.id,
+                deviceId: context.device.id,
                 module: 'hikvision-config-manager',
             });
         }
+    }
 
+    /**
+     * Get device basic information
+     */
+    async getDeviceCapabilities(context: DeviceOperationContext): Promise<any> {
+        // Try different ISAPI endpoints for device info
+        const url = '/ISAPI/System/capabilities';
+
+        try {
+            this.logger.debug(`Trying endpoint: ${url}`, {
+                deviceId: context.device.id,
+                module: 'hikvision-config-manager',
+            });
+
+            const response = await this.httpClient.request<any>(context.config, {
+                method: 'GET',
+                url,
+            });
+
+            // Convert XML response to JSON if needed
+            let data = response;
+            if (typeof data === 'string' && data.includes('<?xml')) {
+                data = await this.xmlJsonService.xmlToJson(data);
+            }
+
+            // Extract device info from XML structure
+            const deviceInfo = data.DeviceCap || data.deviceCap || data;
+
+            // If successful, return formatted data
+            return deviceInfo;
+        } catch (error) {
+            this.logger.debug(`Endpoint ${url} failed: ${error.message}`, {
+                deviceId: context.device.id,
+                module: 'hikvision-config-manager',
+            });
+        }
     }
 
     /**

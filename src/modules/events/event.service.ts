@@ -126,24 +126,15 @@ export class EventService {
 
     private async getDeviceInfo(deviceId: string) {
         // For device authentication, we need to bypass organization scope
-        // Try to find by deviceIdentifier first (our test device uses this)
+        // Try to find by ID first
         let device = await this.prisma.device.findFirst({
             where: {
-                deviceIdentifier: deviceId,
+                id: deviceId,
             },
         });
 
-        // If not found, try by ID
+        // If not found, try by MAC address
         if (!device) {
-            device = await this.prisma.device.findFirst({
-                where: {
-                    id: deviceId,
-                },
-            });
-        }
-
-        // If still not found, try by MAC address
-        if (!device && (deviceId.includes(':') || deviceId.includes('-'))) {
             device = await this.prisma.device.findFirst({
                 where: {
                     macAddress: deviceId,
@@ -151,6 +142,7 @@ export class EventService {
             });
         }
 
+    
         return device;
     }
 

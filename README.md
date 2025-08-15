@@ -41,7 +41,7 @@ cd sector-staff-v2
 
 2. Install dependencies:
 ```bash
-npm install
+pnpm install
 ```
 
 3. Copy environment variables:
@@ -56,13 +56,13 @@ docker-compose up -d
 
 5. Generate Prisma client and run migrations:
 ```bash
-npm run db:generate
-npm run db:migrate
+pnpm run db:generate
+pnpm run db:migrate
 ```
 
 6. Start the development server:
 ```bash
-npm run start:dev
+pnpm run start:dev
 ```
 
 The API will be available at `http://localhost:3000/api/v1`
@@ -116,42 +116,42 @@ The API follows RESTful conventions with the following base URL: `/api/v1`
 
 ```bash
 # Unit tests
-npm run test
+pnpm run test
 
 # Integration tests
-npm run test:e2e
+pnpm run test:e2e
 
 # Test coverage
-npm run test:cov
+pnpm run test:cov
 ```
 
 ## Development
 
 ```bash
 # Start in development mode
-npm run start:dev
+pnpm run start:dev
 
 # Build for production
-npm run build
+pnpm run build
 
 # Start production server
-npm run start:prod
+pnpm run start:prod
 ```
 
 ## Database
 
 ```bash
 # Generate Prisma client
-npm run db:generate
+pnpm run db:generate
 
 # Create and apply migration
-npm run db:migrate
+pnpm run db:migrate
 
 # Deploy migrations (production)
-npm run db:deploy
+pnpm run db:deploy
 
 # Seed database
-npm run db:seed
+pnpm run db:seed
 ```
 
 ## License

@@ -11,7 +11,7 @@ import {
     IDeviceAdapter,
 } from '../../../interfaces';
 import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
-import { DeviceStatus, DeviceType } from '@prisma/client';
+import { Device, DeviceStatus, DeviceType } from '@prisma/client';
 
 // Import managers
 import { HikvisionHttpClient } from './utils/hikvision-http.client';
@@ -48,6 +48,66 @@ export class HikvisionAdapter implements IDeviceAdapter {
     public readonly schedule: HikvisionScheduleManager;
     public readonly system: HikvisionSystemManager;
 
+    private readonly deviceTypes = {
+        [DeviceType.CAMERA]: [
+            'BladePS',
+            'CVR',
+            'DVR',
+            'DVS',
+            'HybirdNVR',
+            'IPCamera',
+            'IPDome',
+            'IPZoom',
+            'NVR',
+            'lightFace',
+            'Visitor',
+            'bodyCamera',
+            'videoMatrix',
+        ],
+        [DeviceType.CARD_READER]: ['RFID', 'PersonnelChannel'],
+        [DeviceType.FINGERPRINT]: ['FS'],
+        [DeviceType.ANPR]: ['HA'],
+        [DeviceType.ACCESS_CONTROL]: [
+            'DM',
+            'DMbehavior',
+            'DockStation',
+            'FA',
+            'FD',
+            'HAWK',
+            'MCU',
+            'PHA',
+            'PHAPro',
+            'ACS',
+            'VIS',
+            'FacePaymentTerminal',
+            'InteractiveTerminal',
+            'Cabinet',
+            'ElevatorControl',
+            'PanicAlarmPanel',
+            'PersonnelChannel',
+        ],
+        [DeviceType.OTHER]: [
+            'Blade',
+            'InfoReleaseSys',
+            'InfoTerminal',
+            'PURE',
+            'SipServer',
+            'Switch',
+            'VoiceSpeaker',
+            'PowerAmplifier',
+            'FireControlMatrix',
+            'PagingMicrophone',
+            'conferencePlat',
+            'AIOT',
+            'OPCA',
+            'NetworkReceiver',
+            'EmbeddedCentralController',
+            'networkMic',
+            'IPA',
+            'MediaComponentGateway',
+        ],
+    };
+
     constructor(
         private readonly logger: LoggerService,
         private readonly httpClient: HikvisionHttpClient,
@@ -58,7 +118,11 @@ export class HikvisionAdapter implements IDeviceAdapter {
         this.card = new HikvisionCardManager(this.httpClient, this.logger);
         this.user = new HikvisionUserManager(this.httpClient, this.logger);
         this.nfc = new HikvisionNFCManager(this.httpClient, this.logger);
-        this.configuration = new HikvisionConfigurationManager(this.httpClient, this.logger, this.xmlJsonService);
+        this.configuration = new HikvisionConfigurationManager(
+            this.httpClient,
+            this.logger,
+            this.xmlJsonService
+        );
 
         // Initialize new ISAPI managers
         this.person = new HikvisionPersonManager(this.httpClient, this.logger);
@@ -102,27 +166,30 @@ export class HikvisionAdapter implements IDeviceAdapter {
 
     async getDeviceInfo(context: DeviceOperationContext): Promise<DeviceInfo> {
         try {
-            const { device, config } = context;
-
             // Use configuration manager to get device info
-            const deviceInfo = await this.configuration.getDeviceInfo(config);
-            console.log(deviceInfo);
+            const deviceInfo = await this.configuration.getDeviceInfo(context);
+            const capabilities = await this.configuration.getDeviceCapabilities(context);
+
+            const deviceType: any = Object.keys(this.deviceTypes).find(type =>
+                this.deviceTypes[type].includes(deviceInfo.deviceType)
+            );
+
             return {
-                id: device.id,
-                name: deviceInfo.deviceName,
-                type: DeviceType.ACCESS_CONTROL,
-                status: device.status,
-                host: device.host,
-                firmwareVersion: deviceInfo.firmwareVersion,
-                lastSeen: device.lastSeen,
-                capabilities: [
-                    { type: DeviceType.ACCESS_CONTROL, enabled: true },
-                    { type: DeviceType.OTHER, enabled: true },
-                ] as DeviceCapability[],
+                name: deviceInfo.deviceName || deviceInfo.name || 'Hikvision Device',
+                deviceId: deviceInfo.deviceID || deviceInfo.deviceId || deviceInfo.serialNumber || context.device.id,
+                model: deviceInfo.model || 'Unknown Model',
+                serialNumber: deviceInfo.serialNumber || '',
+                macAddress: deviceInfo.macAddress || '',
+                firmwareVersion: deviceInfo.firmwareVersion || 'Unknown',
+                firmwareReleasedDate: deviceInfo.firmwareReleasedDate,
+                deviceType: deviceType || 'ACCESS_CONTROL',
+                manufacturer: deviceInfo.manufacturer || 'Hikvision',
+                capabilities: Array.isArray(capabilities) ? capabilities : [],
+                status: 'online',
             };
         } catch (error) {
             this.logger.error(`Failed to get device info: ${error.message}`, error.trace, {
-                deviceId: context.device.id,
+                host: context.config.host,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
@@ -163,7 +230,10 @@ export class HikvisionAdapter implements IDeviceAdapter {
 
             // Update different configuration sections using managers
             if (configuration.settings?.network) {
-                await this.configuration.updateNetworkConfig(config, configuration.settings.network);
+                await this.configuration.updateNetworkConfig(
+                    config,
+                    configuration.settings.network
+                );
             }
 
             if (configuration.settings?.access) {
@@ -190,16 +260,19 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async sendCommand(context: DeviceOperationContext, command: DeviceCommand): Promise<DeviceCommandResult> {
+    async sendCommand(
+        context: DeviceOperationContext,
+        command: DeviceCommand
+    ): Promise<DeviceCommandResult> {
         try {
-            const device = context.device
+            const { device, config } = context;
 
             let result: any;
 
             // Route commands to appropriate managers
             switch (command.command) {
                 case 'unlock_door':
-                    result = await this.httpClient.request(device, {
+                    result = await this.httpClient.request(config, {
                         method: 'PUT',
                         url: '/ISAPI/AccessControl/RemoteControl/door/1',
                         data: { cmd: 'open' },
@@ -207,7 +280,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
                     break;
 
                 case 'lock_door':
-                    result = await this.httpClient.request(device, {
+                    result = await this.httpClient.request(config, {
                         method: 'PUT',
                         url: '/ISAPI/AccessControl/RemoteControl/door/1',
                         data: { cmd: 'close' },
@@ -226,6 +299,71 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 case 'update_firmware':
                     // Handle firmware update
                     result = { message: 'Firmware update initiated' };
+                    break;
+
+                case 'configure_webhook':
+                    const {
+                        hostId,
+                        url,
+                        host,
+                        port,
+                        eventTypes,
+                        protocolType,
+                        parameterFormatType,
+                    } = command.parameters;
+
+                    this.logger.debug('Configuring webhook on device', {
+                        deviceId: device.id,
+                        hostId,
+                        url,
+                        eventTypes,
+                    });
+
+                    const hostNotification = this.eventHost.createBasicHostConfig(
+                        hostId,
+                        url,
+                        host,
+                        port,
+                        {
+                            protocolType: protocolType || 'HTTP',
+                            parameterFormatType: parameterFormatType || 'JSON',
+                        }
+                    );
+
+                    if (eventTypes && eventTypes.length > 0) {
+                        hostNotification.SubscribeEvent =
+                            this.eventHost.createEventSubscription(eventTypes);
+                    }
+
+                    result = await this.eventHost.setListeningHost(
+                        device,
+                        hostId,
+                        hostNotification
+                    );
+
+                    this.logger.debug('Webhook configured successfully', {
+                        deviceId: device.id,
+                        hostId,
+                        statusCode: result.statusCode,
+                    });
+                    break;
+
+                case 'remove_webhook':
+                    this.logger.debug('Removing webhook from device', {
+                        deviceId: device.id,
+                        hostId: command.parameters.hostId,
+                    });
+
+                    result = await this.eventHost.deleteListeningHost(
+                        device,
+                        command.parameters.hostId
+                    );
+
+                    this.logger.debug('Webhook removed successfully', {
+                        deviceId: device.id,
+                        hostId: command.parameters.hostId,
+                        statusCode: result.statusCode,
+                    });
                     break;
 
                 default:
@@ -253,12 +391,11 @@ export class HikvisionAdapter implements IDeviceAdapter {
     }
 
     async getDeviceHealth(context: DeviceOperationContext): Promise<DeviceHealth> {
-        const device = context.device;
+        const { device } = context;
         try {
-
             // Get device info to check connectivity
-            await this.configuration.getDeviceInfo(device);
-            const nfcStatus = await this.nfc.getNFCReaderStatus(device);
+            const result = await this.configuration.getDeviceInfo(context);
+            // const nfcStatus = await this.nfc.getNFCReaderStatus(device);
 
             return {
                 deviceId: device.id,
@@ -267,10 +404,10 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 memoryUsage: 0, // Would need to get from device
                 temperature: 0, // Would need to get from device
                 lastHealthCheck: new Date(),
-                issues:
-                    nfcStatus.errorCount > 0
-                        ? [`NFC reader has ${nfcStatus.errorCount} errors`]
-                        : [],
+                issues: [],
+                // nfcStatus.errorCount > 0
+                //     ? [`NFC reader has ${nfcStatus.errorCount} errors`]
+                //     : [],
             };
         } catch (error) {
             console.log(error);
@@ -407,7 +544,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             }
 
             // Try to get device info to test connection
-            await this.configuration.getDeviceInfo(device);
+            await this.configuration.getDeviceInfo(context);
             return true;
         } catch (error) {
             this.logger.error('Connection test failed', error.message, {
@@ -467,7 +604,11 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async getDeviceLogs(context: DeviceOperationContext, startDate?: Date, endDate?: Date): Promise<string[]> {
+    async getDeviceLogs(
+        context: DeviceOperationContext,
+        startDate?: Date,
+        endDate?: Date
+    ): Promise<string[]> {
         try {
             const device = context.device;
 
@@ -495,7 +636,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             const device = context.device;
 
             if (!device) {
-                throw new Error(`Devid} not found`);
+                throw new Error(`Device not found`);
             }
 
             // Implementation would clear logs on device
@@ -506,7 +647,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
         } catch (error) {
             this.logger.error('Failed to clear device logs', error.message, {
                 deviceId: context.device.id,
-                module: 'hikvisiapter',
+                module: 'hikvision-v2-adapter',
             });
             throw error;
         }

@@ -4,6 +4,7 @@ import { AxiosError, AxiosRequestConfig, Method } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { LoggerService } from '@/core/logger';
 import * as crypto from 'crypto';
+import { DeviceConnectionConfig } from '@/modules/device/device-adapter.strategy';
 
 @Injectable()
 export class HikvisionHttpClient {
@@ -12,8 +13,8 @@ export class HikvisionHttpClient {
         private readonly httpService: HttpService
     ) {}
 
-    async request<T>(device: any, config: AxiosRequestConfig): Promise<T> {
-        const baseUrl = `http://${device.host}:${device.port}`;
+    async request<T>(deviceConfig: DeviceConnectionConfig, config: AxiosRequestConfig): Promise<T> {
+        const baseUrl = `http://${deviceConfig.host}:${deviceConfig.port}`;
         const url = `${baseUrl}${config.url}`;
 
         try {
@@ -32,7 +33,7 @@ export class HikvisionHttpClient {
                 const digestParams = this.parseDigestHeader(authHeader);
 
                 const authResponseHeader = this.createAuthorizationHeader(
-                    device,
+                    deviceConfig,
                     digestParams,
                     config.method.toUpperCase() as Method,
                     config.url
@@ -79,7 +80,7 @@ export class HikvisionHttpClient {
     }
 
     private createAuthorizationHeader(
-        device: any,
+        deviceConfig: DeviceConnectionConfig,
         params: Record<string, string>,
         method: Method,
         uri: string
@@ -94,7 +95,7 @@ export class HikvisionHttpClient {
         // `this.username` va `this.password` o'rniga `device`dan olingan ma'lumotlarni ishlatamiz
         const ha1 = crypto
             .createHash('md5')
-            .update(`${device.username}:${realm}:${device.password}`)
+            .update(`${deviceConfig.username}:${realm}:${deviceConfig.password}`)
             .digest('hex');
         const ha2 = crypto.createHash('md5').update(`${method}:${uri}`).digest('hex');
         const response = crypto
@@ -103,7 +104,7 @@ export class HikvisionHttpClient {
             .digest('hex');
 
         const authParts = [
-            `username="${device.username}"`,
+            `username="${deviceConfig.username}"`,
             `realm="${realm}"`,
             `nonce="${nonce}"`,
             `uri="${uri}"`,
@@ -122,7 +123,7 @@ export class HikvisionHttpClient {
     }
 
     // Qo'shimcha utility metodlar
-    async testConnection(device: any): Promise<boolean> {
+    async testConnection(deviceConfig: DeviceConnectionConfig): Promise<boolean> {
         try {
             // Use the same endpoint checking logic as in configuration manager
             const possibleEndpoints = [
@@ -136,7 +137,7 @@ export class HikvisionHttpClient {
 
             for (const url of possibleEndpoints) {
                 try {
-                    await this.request(device, {
+                    await this.request(deviceConfig, {
                         method: 'GET',
                         url,
                     });
@@ -149,8 +150,7 @@ export class HikvisionHttpClient {
             return false; // All endpoints failed
         } catch (error) {
             this.logger.error('Connection test failed', error.message, {
-                deviceId: device.id,
-                host: device.host,
+                host: deviceConfig.host,
             });
             return false;
         }

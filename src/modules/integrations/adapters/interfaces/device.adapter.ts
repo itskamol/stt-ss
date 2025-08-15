@@ -1,16 +1,28 @@
-import { DeviceStatus, DeviceType, EventType } from '@prisma/client';
+import { DeviceProtocol, DeviceStatus, DeviceType, EventType } from '@prisma/client';
 import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
 
-export interface DeviceInfo {
-    id: string;
-    name: string;
+export interface DeviceDiscoveryConfig {
     type: DeviceType;
-    status: DeviceStatus;
-    host?: string;
-    macAddress?: string;
-    firmwareVersion?: string;
-    lastSeen?: Date;
+    protocol: DeviceProtocol;
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    brand: string;
+}
+
+export interface DeviceInfo {
+    name: string;
+    deviceId: string;
+    model: string;
+    serialNumber: string;
+    macAddress: string;
+    firmwareVersion: string;
+    firmwareReleasedDate?: string;
+    deviceType: string;
+    manufacturer: string;
     capabilities: DeviceCapability[];
+    status?: 'online' | 'offline' | 'unknown';
 }
 
 export interface DeviceCapability {
@@ -44,7 +56,7 @@ export interface DeviceAccessRule {
 }
 
 export interface DeviceCommand {
-    command: 'unlock_door' | 'lock_door' | 'reboot' | 'sync_users' | 'update_firmware';
+    command: 'unlock_door' | 'lock_door' | 'reboot' | 'sync_users' | 'update_firmware' | 'configure_webhook' | 'remove_webhook' | 'test_webhook';
     parameters?: Record<string, any>;
     timeout?: number; // seconds
 }

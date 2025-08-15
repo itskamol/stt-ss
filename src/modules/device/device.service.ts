@@ -4,7 +4,7 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { Device, DeviceProtocol } from '@prisma/client';
+import { Device, DeviceProtocol, DeviceType, ParameterFormatType } from '@prisma/client';
 import { DeviceRepository } from './device.repository';
 import { DeviceConfigurationService } from './device-configuration.service';
 import { EmployeeSyncService } from './employee-sync.service';
@@ -17,13 +17,17 @@ import {
     CreateDeviceTemplateDto,
     DeviceControlDto,
     DeviceSyncEmployeesDto,
+    NetworkScanResultDto,
+    PreScannedDeviceCreationDto,
+    SimplifiedDeviceCreationDto,
     UpdateDeviceConfigurationDto,
     UpdateDeviceDto,
     UpdateDeviceTemplateDto,
 } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 import { EncryptionService } from '@/shared/services/encryption.service';
-import { DeviceCommand } from '@/modules/integrations/adapters';
+import { DeviceCommand, DeviceDiscoveryConfig, DeviceInfo } from '@/modules/integrations/adapters';
+import { CreateWebhookDto } from '@/shared/dto/webhook.dto';
 
 @Injectable()
 export class DeviceService {
@@ -46,37 +50,44 @@ export class DeviceService {
         password: string;
         brand: string;
         protocol?: DeviceProtocol;
-    }) {
+    }): Promise<DeviceInfo> {
         try {
             this.logger.debug('Starting device auto-discovery', {
                 host: connectionDetails.host,
                 port: connectionDetails.port,
             });
 
-            // Create temporary device config for discovery
-            const tempDeviceConfig = {
-                type: 'ACCESS_CONTROL' as any,
-                protocol: connectionDetails.protocol || 'HTTP',
+            // Validate input parameters
+            if (!connectionDetails.host || !connectionDetails.port) {
+                throw new Error('Host and port are required for device discovery');
+            }
+
+            // Create type-safe device config for discovery
+            const discoveryConfig: DeviceDiscoveryConfig = {
+                type: DeviceType.ACCESS_CONTROL,
+                protocol: connectionDetails.protocol || DeviceProtocol.HTTP,
                 host: connectionDetails.host,
                 port: connectionDetails.port,
-                username: connectionDetails.username,
-                password: connectionDetails.password,
-                brand: connectionDetails.brand,
+                username: connectionDetails.username || '',
+                password: connectionDetails.password || '',
+                brand: connectionDetails.brand || 'unknown',
             };
 
             // Try to get device information using adapter
-            const deviceInfo =
-                await this.deviceAdapterStrategy.getDeviceInfoByConfig(tempDeviceConfig);
+            const deviceInfo = await this.deviceAdapterStrategy.getDeviceInfoByConfig(discoveryConfig);
 
-            // Extract device details
-            const discoveredInfo = {
-                manufacturer: this.extractManufacturer(deviceInfo),
-                model: deviceInfo.name || 'Unknown Model',
-                firmware: deviceInfo.firmwareVersion || 'Unknown',
-                macAddress: this.extractMacAddress(deviceInfo),
-                deviceIdentifier: deviceInfo.id || `${connectionDetails.host}_${Date.now()}`,
-                capabilities: deviceInfo.capabilities || [],
-                status: deviceInfo.status || 'UNKNOWN',
+            // Extract device details with fallbacks
+            const discoveredInfo: DeviceInfo = {
+                name: deviceInfo.name || `${connectionDetails.brand} Device`,
+                deviceId: deviceInfo.deviceId || deviceInfo.serialNumber || `${connectionDetails.host}_${Date.now()}`,
+                model: deviceInfo.model || 'Unknown Model',
+                serialNumber: deviceInfo.serialNumber || '',
+                macAddress: deviceInfo.macAddress || this.extractMacAddress(deviceInfo) || '',
+                firmwareVersion: deviceInfo.firmwareVersion || 'Unknown',
+                deviceType: deviceInfo.deviceType || 'ACCESS_CONTROL',
+                manufacturer: deviceInfo.manufacturer || this.extractManufacturer(deviceInfo),
+                capabilities: Array.isArray(deviceInfo.capabilities) ? deviceInfo.capabilities : [],
+                status: deviceInfo.status || 'unknown',
             };
 
             this.logger.debug('Device auto-discovery completed', {
@@ -93,13 +104,16 @@ export class DeviceService {
 
             // Return default values if discovery fails
             return {
-                manufacturer: 'Unknown',
+                name: `${connectionDetails.brand || 'Unknown'} Device`,
+                deviceId: `${connectionDetails.host}_${Date.now()}`,
                 model: 'Unknown Model',
-                firmware: 'Unknown',
-                macAddress: null,
-                deviceIdentifier: `${connectionDetails.host}_${Date.now()}`,
+                serialNumber: '',
+                macAddress: '',
+                firmwareVersion: 'Unknown',
+                deviceType: 'ACCESS_CONTROL',
+                manufacturer: connectionDetails.brand || 'Unknown',
                 capabilities: [],
-                status: 'UNKNOWN',
+                status: 'unknown',
             };
         }
     }
@@ -178,7 +192,7 @@ export class DeviceService {
                     username: deviceData.username,
                     password: deviceData.password,
                     protocol: deviceData.protocol,
-                    brand:deviceData.manufacturer
+                    brand: deviceData.manufacturer,
                 });
 
                 // Fill in missing information with discovered data
@@ -186,11 +200,9 @@ export class DeviceService {
                     ...deviceData,
                     manufacturer: deviceData.manufacturer || discoveredInfo.manufacturer,
                     model: deviceData.model || discoveredInfo.model,
-                    firmware: deviceData.firmware || discoveredInfo.firmware,
+                    firmware: deviceData.firmware || discoveredInfo.firmwareVersion,
                     macAddress: deviceData.macAddress || discoveredInfo.macAddress,
-                    deviceIdentifier:
-                        deviceData.deviceIdentifier || discoveredInfo.deviceIdentifier,
-                };
+                  };
 
                 this.logger.debug('Device information auto-filled', {
                     original: createDeviceDto,
@@ -210,19 +222,7 @@ export class DeviceService {
                 }
             }
 
-            // Check if device identifier already exists
-            if (deviceData.deviceIdentifier) {
-                const existingByIdentifier = await this.deviceRepository.findByDeviceIdentifier(
-                    deviceData.deviceIdentifier,
-                    scope
-                );
-
-                if (existingByIdentifier) {
-                    // Generate a unique identifier if the discovered one already exists
-                    deviceData.deviceIdentifier = `${deviceData.host}_${Date.now()}`;
-                }
-            }
-
+  
             deviceData.password = this.encryptionService.encrypt(deviceData.password);
 
             const device = await this.deviceRepository.create(deviceData, scope);
@@ -248,6 +248,141 @@ export class DeviceService {
             }
             throw error;
         }
+    }
+
+    /**
+     * Scan network for device information before creation
+     */
+    async scanDeviceForCreation(
+        scanInfo: SimplifiedDeviceCreationDto
+    ): Promise<NetworkScanResultDto> {
+        try {
+            this.logger.debug('Scanning device for creation', {
+                host: scanInfo.host,
+                port: scanInfo.port,
+                name: scanInfo.name,
+            });
+
+            const discoveredInfo = await this.discoverDeviceInfo({
+                host: scanInfo.host,
+                port: scanInfo.port || 80,
+                username: scanInfo.username || '',
+                password: scanInfo.password || '',
+                protocol: scanInfo.protocol,
+                brand: 'unknown',
+            });
+
+            return {
+                found: true,
+                deviceInfo: {
+                    name: discoveredInfo.name,
+                    manufacturer: discoveredInfo.manufacturer,
+                    model: discoveredInfo.model,
+                    firmware: discoveredInfo.firmwareVersion,
+                    macAddress: discoveredInfo.macAddress,
+                                        capabilities: discoveredInfo.capabilities.map(cap => cap.toString()),
+                    status: discoveredInfo.status,
+                },
+                scannedAt: new Date(),
+            };
+        } catch (error) {
+            this.logger.warn('Device scan failed', {
+                host: scanInfo.host,
+                port: scanInfo.port,
+                error: error.message,
+            });
+
+            return {
+                found: false,
+                error: error.message,
+                scannedAt: new Date(),
+            };
+        }
+    }
+
+    /**
+     * Create device with simplified information and auto-discovery
+     */
+    async createDeviceWithSimplifiedInfo(
+        simplifiedInfo: SimplifiedDeviceCreationDto,
+        scope: DataScope,
+        createdByUserId: string,
+        correlationId?: string
+    ): Promise<Device> {
+        this.logger.debug('Creating device with simplified info', {
+            name: simplifiedInfo.name,
+            host: simplifiedInfo.host,
+            port: simplifiedInfo.port,
+        });
+
+        // First scan the device to get its information
+        const scanResult = await this.scanDeviceForCreation(simplifiedInfo);
+
+        if (!scanResult.found) {
+            throw new BadRequestException(`Device not found at ${simplifiedInfo.host}:${simplifiedInfo.port}. ${scanResult.error || ''}`);
+        }
+
+        // Create full device DTO with discovered information
+        const createDeviceDto: CreateDeviceDto = {
+            name: simplifiedInfo.name,
+            type: simplifiedInfo.type || DeviceType.ACCESS_CONTROL,
+                        host: simplifiedInfo.host,
+            username: simplifiedInfo.username,
+            password: simplifiedInfo.password,
+            port: simplifiedInfo.port || 80,
+            protocol: simplifiedInfo.protocol || DeviceProtocol.HTTP,
+            macAddress: scanResult.deviceInfo.macAddress,
+            manufacturer: scanResult.deviceInfo.manufacturer,
+            model: scanResult.deviceInfo.model,
+            firmware: scanResult.deviceInfo.firmware,
+            description: simplifiedInfo.description || `Auto-discovered ${scanResult.deviceInfo.manufacturer} device`,
+            branchId: simplifiedInfo.branchId,
+            isActive: true,
+            timeout: 5000,
+            retryAttempts: 3,
+            keepAlive: true,
+        };
+
+        return this.createDevice(createDeviceDto, scope, createdByUserId, correlationId);
+    }
+
+    /**
+     * Create device with pre-scanned information
+     */
+    async createDeviceWithPreScannedInfo(
+        preScannedInfo: PreScannedDeviceCreationDto,
+        scope: DataScope,
+        createdByUserId: string,
+        correlationId?: string
+    ): Promise<Device> {
+        this.logger.debug('Creating device with pre-scanned info', {
+            name: preScannedInfo.name,
+            host: preScannedInfo.host,
+            hasDiscoveredInfo: !!preScannedInfo.discoveredInfo,
+        });
+
+        // Create full device DTO with pre-scanned information
+        const createDeviceDto: CreateDeviceDto = {
+            name: preScannedInfo.name,
+            type: preScannedInfo.type || DeviceType.ACCESS_CONTROL,
+                        host: preScannedInfo.host,
+            username: preScannedInfo.username,
+            password: preScannedInfo.password,
+            port: preScannedInfo.port || 80,
+            protocol: preScannedInfo.protocol || DeviceProtocol.HTTP,
+            macAddress: preScannedInfo.discoveredInfo?.macAddress,
+            manufacturer: preScannedInfo.discoveredInfo?.manufacturer,
+            model: preScannedInfo.discoveredInfo?.model,
+            firmware: preScannedInfo.discoveredInfo?.firmware,
+            description: preScannedInfo.description || `Device at ${preScannedInfo.host}`,
+            branchId: preScannedInfo.branchId,
+            isActive: true,
+            timeout: 5000,
+            retryAttempts: 3,
+            keepAlive: true,
+        };
+
+        return this.createDevice(createDeviceDto, scope, createdByUserId, correlationId);
     }
 
     /**
@@ -283,15 +418,14 @@ export class DeviceService {
             username: basicInfo.username,
             password: basicInfo.password,
             protocol: basicInfo.protocol as DeviceProtocol,
-            brand: 'unknown'
+            brand: 'unknown',
         });
 
         // Create full device DTO with discovered information
         const createDeviceDto: CreateDeviceDto = {
             name: basicInfo.name,
-            type: 'ACCESS_CONTROL' as any,
-            deviceIdentifier: discoveredInfo.deviceIdentifier,
-            host: basicInfo.host,
+            type: DeviceType.ACCESS_CONTROL,
+                        host: basicInfo.host,
             username: basicInfo.username,
             password: basicInfo.password,
             port: basicInfo.port,
@@ -299,7 +433,7 @@ export class DeviceService {
             macAddress: discoveredInfo.macAddress,
             manufacturer: discoveredInfo.manufacturer,
             model: discoveredInfo.model,
-            firmware: discoveredInfo.firmware,
+            firmware: discoveredInfo.firmwareVersion,
             description:
                 basicInfo.description || `Auto-discovered ${discoveredInfo.manufacturer} device`,
             branchId: basicInfo.branchId,
@@ -498,8 +632,7 @@ export class DeviceService {
             {
                 deviceId: id,
                 deviceName: existingDevice.name,
-                deviceIdentifier: existingDevice.deviceIdentifier,
-                previousStatus: existingDevice.isActive,
+                                previousStatus: existingDevice.isActive,
                 newStatus: isActive,
                 organizationId: scope.organizationId,
                 correlationId,
@@ -524,8 +657,7 @@ export class DeviceService {
             branchId: deviceWithStats.branchId,
             name: deviceWithStats.name,
             type: deviceWithStats.type,
-            deviceIdentifier: deviceWithStats.deviceIdentifier,
-            host: deviceWithStats.host,
+                        host: deviceWithStats.host,
             isActive: deviceWithStats.isActive,
             lastSeen: deviceWithStats.lastSeen,
             createdAt: deviceWithStats.createdAt,
@@ -599,11 +731,11 @@ export class DeviceService {
         } catch (error) {
             this.logger.error(`Failed to get device health for ${device.name}`, error, {
                 deviceId: id,
-                deviceIdentifier: device.deviceIdentifier,
+                deviceName: device.name,
             });
 
             return {
-                deviceId: device.deviceIdentifier,
+                deviceId: device.id,
                 status: 'critical' as const,
                 uptime: 0,
                 lastHealthCheck: new Date(),
@@ -631,17 +763,17 @@ export class DeviceService {
 
             return {
                 success: isConnected,
-                message: "Connected",
+                message: 'Connected',
             };
         } catch (error) {
             this.logger.error(`Device connection test failed for ${device.name}`, error, {
                 deviceId: id,
-                deviceIdentifier: device.deviceIdentifier,
+                deviceName: device.name,
             });
 
             return {
                 success: false,
-                message: error.message
+                message: error.message,
             };
         }
     }
@@ -752,10 +884,12 @@ export class DeviceService {
      * Get device configuration
      */
     async getDeviceConfiguration(id: string, scope: DataScope) {
-        const device = await this.deviceRepository.findById(id, scope);
+        const device = await this.findDeviceById(id, scope);
         if (!device) {
             throw new NotFoundException('Device not found');
         }
+
+        const result = await this.deviceAdapterStrategy.getDeviceConfiguration(device);
 
         return this.deviceConfigurationService.getConfiguration(id, scope);
     }
@@ -935,6 +1069,242 @@ export class DeviceService {
             appliedByUserId,
             correlationId
         );
+    }
+
+    /**
+     * Configure webhook for device events
+     */
+    async configureWebhook(
+        id: string,
+        webhookConfig: CreateWebhookDto,
+        scope: DataScope,
+        configuredByUserId: string,
+        correlationId?: string
+    ) {
+        const device = await this.deviceRepository.findById(id, scope);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+
+        if (!device.isActive) {
+            throw new BadRequestException('Cannot configure webhook for inactive device');
+        }
+
+        try {
+            const hostId = `webhook_${Date.now()}`;
+
+            // Configure webhook using the adapter
+            await this.deviceAdapterStrategy.executeCommand(device, {
+                command: 'configure_webhook',
+                parameters: {
+                    hostId,
+                    ...webhookConfig,
+                },
+            });
+
+            // Save webhook configuration using repository pattern
+            const webhookData = await this.deviceRepository.createWebhook({
+                deviceId: id,
+                hostId,
+                url: webhookConfig.url,
+                host: webhookConfig.host,
+                port: webhookConfig.port,
+                eventTypes: webhookConfig.eventTypes,
+                protocolType: webhookConfig.protocolType || 'HTTP',
+                parameterFormatType: webhookConfig.parameterFormatType || ParameterFormatType.JSON,
+                isActive: true,
+                createdByUserId: configuredByUserId,
+                organizationId: scope.organizationId,
+            });
+
+            this.logger.logUserAction(configuredByUserId, 'DEVICE_WEBHOOK_CONFIGURED', {
+                deviceId: id,
+                deviceName: device.name,
+                webhookUrl: webhookConfig.url,
+                eventTypes: webhookConfig.eventTypes,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
+
+            return {
+                id: webhookData.id,
+                hostId,
+                message: 'Webhook configured successfully',
+                configuredAt: new Date(),
+            };
+        } catch (error) {
+            this.logger.error('Failed to configure webhook', error, {
+                deviceId: id,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Get webhook configuration for device
+     */
+    async getWebhookConfiguration(id: string, scope: DataScope) {
+        const device = await this.deviceRepository.findById(id, scope);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+
+        const webhooks = await this.deviceRepository.findWebhooksByDevice(id, scope);
+
+        return {
+            deviceId: id,
+            deviceName: device.name,
+            webhooks: webhooks.map(webhook => ({
+                id: webhook.id,
+                hostId: webhook.hostId,
+                url: webhook.url,
+                host: webhook.host,
+                port: webhook.port,
+                eventTypes: webhook.eventTypes,
+                protocolType: webhook.protocolType,
+                parameterFormatType: webhook.parameterFormatType,
+                isActive: webhook.isActive,
+                triggerCount: webhook.triggerCount,
+                lastTriggered: webhook.lastTriggered,
+                lastError: webhook.lastError,
+                createdAt: webhook.createdAt,
+            })),
+        };
+    }
+
+    /**
+     * Remove webhook configuration
+     */
+    async removeWebhook(
+        id: string,
+        hostId: string,
+        scope: DataScope,
+        removedByUserId: string,
+        correlationId?: string
+    ) {
+        const device = await this.deviceRepository.findById(id, scope);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+
+        const webhook = await this.deviceRepository.findWebhookByHostId(id, hostId, scope);
+        if (!webhook) {
+            throw new NotFoundException('Webhook configuration not found');
+        }
+
+        try {
+            // Remove webhook from device
+            await this.deviceAdapterStrategy.executeCommand(device, {
+                command: 'remove_webhook',
+                parameters: { hostId },
+            });
+
+            // Mark as inactive using repository
+            await this.deviceRepository.updateWebhook(webhook.id, {
+                isActive: false,
+                updatedAt: new Date(),
+            });
+
+            this.logger.logUserAction(removedByUserId, 'DEVICE_WEBHOOK_REMOVED', {
+                deviceId: id,
+                deviceName: device.name,
+                hostId,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
+        } catch (error) {
+            this.logger.error('Failed to remove webhook', error, {
+                deviceId: id,
+                hostId,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Update webhook trigger statistics
+     */
+    async updateWebhookStats(deviceId: string, hostId: string, success: boolean, error?: string) {
+        try {
+            const webhook = await this.deviceRepository.findWebhookByHostId(deviceId, hostId, {
+                organizationId: '',
+            });
+            if (webhook) {
+                await this.deviceRepository.updateWebhook(webhook.id, {
+                    triggerCount: webhook.triggerCount + 1,
+                    lastTriggered: new Date(),
+                    lastError: success ? null : error,
+                    lastErrorAt: success ? webhook.lastErrorAt : new Date(),
+                });
+            }
+        } catch (error) {
+            this.logger.error('Failed to update webhook stats', error, {
+                deviceId,
+                hostId,
+            });
+        }
+    }
+
+    /**
+     * Test webhook configuration
+     */
+    async testWebhook(
+        id: string,
+        hostId: string,
+        scope: DataScope,
+        testedByUserId: string,
+        correlationId?: string
+    ) {
+        const device = await this.deviceRepository.findById(id, scope);
+        if (!device) {
+            throw new NotFoundException('Device not found');
+        }
+
+        const webhook = await this.deviceRepository.findWebhookByHostId(id, hostId, scope);
+        if (!webhook) {
+            throw new NotFoundException('Webhook configuration not found');
+        }
+
+        try {
+            // Test webhook connectivity using the adapter
+            const result = await this.deviceAdapterStrategy.executeCommand(device, {
+                command: 'test_webhook',
+                parameters: { hostId },
+            });
+
+            this.logger.logUserAction(testedByUserId, 'DEVICE_WEBHOOK_TESTED', {
+                deviceId: id,
+                deviceName: device.name,
+                hostId,
+                success: result.success,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
+
+            return {
+                success: result.success,
+                message: result.success ? 'Webhook test successful' : 'Webhook test failed',
+                data: result.data,
+                testedAt: new Date(),
+            };
+        } catch (error) {
+            this.logger.error('Failed to test webhook', error, {
+                deviceId: id,
+                hostId,
+                organizationId: scope.organizationId,
+                correlationId,
+            });
+
+            return {
+                success: false,
+                message: error.message,
+                testedAt: new Date(),
+            };
+        }
     }
 
     private async findDeviceById(id: string, scope: DataScope): Promise<Device> {

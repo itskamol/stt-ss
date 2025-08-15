@@ -24,14 +24,10 @@ import {
     CommandResponseDto,
     CreateDeviceDto,
     CreateDeviceTemplateDto,
-    DeviceAutoDiscoveryDto,
-    DeviceAutoDiscoveryResponseDto,
     DeviceCommandDto,
     DeviceConfigurationResponseDto,
     DeviceControlDto,
     DeviceCountResponseDto,
-    DeviceDiscoveryResponseDto,
-    DeviceDiscoveryTestDto,
     DeviceHealthResponseDto,
     DeviceResponseDto,
     DeviceStatsResponseDto,
@@ -40,11 +36,16 @@ import {
     PaginationDto,
     PaginationResponseDto,
     RetrySyncResponseDto,
+    SimplifiedDeviceCreationDto,
     SyncStatusResponseDto,
     TestConnectionResponseDto,
     UpdateDeviceDto,
     UpdateDeviceTemplateDto,
 } from '@/shared/dto';
+import {
+    CreateWebhookDto,
+    WebhookConfigurationResponseDto,
+} from '@/shared/dto/webhook.dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
@@ -76,14 +77,16 @@ export class DeviceController {
         return plainToClass(DeviceResponseDto, device);
     }
 
-    @Post('auto-discover')
+  
+  
+    
+    @Post('simplified')
     @Permissions(PERMISSIONS.DEVICE.CREATE)
     @ApiOperation({
-        summary: 'Create device with auto-discovery',
-        description:
-            'Create a device with minimal information. The system will automatically discover device details like manufacturer, model, firmware, and MAC address.',
+        summary: 'Create device with simplified information',
+        description: 'Create a device with minimal required fields. The system will automatically scan the device and populate its information.',
     })
-    @ApiBody({ type: DeviceAutoDiscoveryDto })
+    @ApiBody({ type: SimplifiedDeviceCreationDto })
     @ApiResponse({
         status: 201,
         description: 'The device has been successfully created with auto-discovered information.',
@@ -95,48 +98,20 @@ export class DeviceController {
         type: ErrorResponseDto,
     })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    async createDeviceWithAutoDiscovery(
-        @Body() basicInfo: DeviceAutoDiscoveryDto,
+    async createDeviceWithSimplifiedInfo(
+        @Body() simplifiedInfo: SimplifiedDeviceCreationDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.createDeviceWithAutoDiscovery(
-            basicInfo,
+        const device = await this.deviceService.createDeviceWithSimplifiedInfo(
+            simplifiedInfo,
             scope,
             user.sub
         );
         return plainToClass(DeviceResponseDto, device);
     }
 
-    @Post('discover-info')
-    @Permissions(PERMISSIONS.DEVICE.CREATE)
-    @ApiOperation({
-        summary: 'Discover device information',
-        description: 'Test connection and discover device information without creating the device.',
-    })
-    @ApiBody({ type: DeviceDiscoveryTestDto })
-    @ApiResponse({
-        status: 200,
-        description: 'Device information discovered successfully.',
-        type: DeviceAutoDiscoveryResponseDto,
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Invalid connection details.',
-        type: ErrorResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    async discoverDeviceInfo(
-        @Body() connectionDetails: DeviceDiscoveryTestDto
-    ): Promise<DeviceAutoDiscoveryResponseDto> {
-        const discoveredInfo = await this.deviceService.discoverDeviceInfo(connectionDetails);
-        return plainToClass(DeviceAutoDiscoveryResponseDto, {
-            ...discoveredInfo,
-            connected: discoveredInfo.status !== 'UNKNOWN',
-            discoveredAt: new Date(),
-        });
-    }
-
+    
     @Get()
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all devices with pagination' })
@@ -203,18 +178,7 @@ export class DeviceController {
         return { count };
     }
 
-    @Get('discover')
-    @Permissions(PERMISSIONS.DEVICE.CREATE)
-    @ApiOperation({ summary: 'Discover devices on the network' })
-    @ApiResponse({
-        status: 200,
-        description: 'A list of discovered devices.',
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    async discoverDevices(@Scope() scope: DataScope): Promise<DeviceDiscoveryResponseDto> {
-        return this.deviceService.discoverDevices(scope);
-    }
-
+    
     @Get('branch/:branchId')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all devices for a specific branch' })
@@ -705,5 +669,77 @@ export class DeviceController {
         @Scope() scope: DataScope
     ) {
         return this.deviceService.applyTemplateToDevice(templateId, id, scope, user.sub);
+    }
+
+    // Webhook Management Endpoints
+    @Post(':id/webhook')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
+    @ApiOperation({ summary: 'Configure webhook for device events' })
+    @ApiParam({ name: 'id', description: 'ID of the device' })
+    @ApiBody({ type: CreateWebhookDto })
+    @ApiResponse({ status: 201, description: 'Webhook configured successfully.' })
+    @ApiResponse({ status: 400, description: 'Invalid webhook configuration.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    async configureWebhook(
+        @Param('id') id: string,
+        @Body() webhookConfig: CreateWebhookDto,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ) {
+        return this.deviceService.configureWebhook(id, webhookConfig, scope, user.sub);
+    }
+
+    @Get(':id/webhooks')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
+    @ApiOperation({ summary: 'Get webhook configurations for device' })
+    @ApiParam({ name: 'id', description: 'ID of the device' })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'Webhook configurations retrieved.',
+        type: WebhookConfigurationResponseDto
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    async getWebhookConfiguration(
+        @Param('id') id: string,
+        @Scope() scope: DataScope
+    ): Promise<WebhookConfigurationResponseDto> {
+        return this.deviceService.getWebhookConfiguration(id, scope);
+    }
+
+    @Delete(':id/webhook/:hostId')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({ summary: 'Remove webhook configuration' })
+    @ApiParam({ name: 'id', description: 'ID of the device' })
+    @ApiParam({ name: 'hostId', description: 'ID of the webhook host' })
+    @ApiResponse({ status: 204, description: 'Webhook removed successfully.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    async removeWebhook(
+        @Param('id') id: string,
+        @Param('hostId') hostId: string,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ): Promise<void> {
+        await this.deviceService.removeWebhook(id, hostId, scope, user.sub);
+    }
+
+    @Post(':id/webhook/:hostId/test')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
+    @ApiOperation({ summary: 'Test webhook configuration' })
+    @ApiParam({ name: 'id', description: 'ID of the device' })
+    @ApiParam({ name: 'hostId', description: 'ID of the webhook host' })
+    @ApiResponse({ status: 200, description: 'Webhook test result.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    async testWebhook(
+        @Param('id') id: string,
+        @Param('hostId') hostId: string,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ) {
+        return this.deviceService.testWebhook(id, hostId, scope, user.sub);
     }
 }

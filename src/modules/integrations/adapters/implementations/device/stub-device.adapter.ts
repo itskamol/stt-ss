@@ -18,9 +18,7 @@ export class StubDeviceAdapter implements IDeviceAdapter {
     private configurations: Map<string, DeviceConfiguration> = new Map();
     private eventSubscriptions: Map<string, (event: DeviceEvent) => void> = new Map();
 
-    constructor(private readonly logger: LoggerService) {
-        this.initializeMockDevices();
-    }
+    constructor(private readonly logger: LoggerService) {}
 
     async discoverDevices(): Promise<DeviceInfo[]> {
         this.logger.log('Discovering devices (stub)');
@@ -39,14 +37,16 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         if (!device) {
             // For stub adapter, return mock device info based on context
             return {
-                id: context.device.id,
-                name: context.device.name,
-                type: context.device.type,
-                status: context.device.status,
-                host: context.config.host,
-                capabilities: [
-                    { type: context.device.type, enabled: true },
-                ],
+                name: context.device.name || 'Stub Device',
+                deviceId: context.device.id,
+                model: 'Stub Model',
+                serialNumber: '',
+                macAddress: '',
+                firmwareVersion: '1.0.0',
+                deviceType: DeviceType.ACCESS_CONTROL,
+                manufacturer: 'Stub Manufacturer',
+                capabilities: [],
+                status: 'online',
             };
         }
 
@@ -90,7 +90,10 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    async sendCommand(context: DeviceOperationContext, command: DeviceCommand): Promise<DeviceCommandResult> {
+    async sendCommand(
+        context: DeviceOperationContext,
+        command: DeviceCommand
+    ): Promise<DeviceCommandResult> {
         const deviceId = context.device.id;
         this.logger.log('Sending command to device (stub)', { deviceId, command: command.command });
 
@@ -226,10 +229,6 @@ export class StubDeviceAdapter implements IDeviceAdapter {
 
         // Update device status
         const device = this.devices.get(deviceId);
-        if (device) {
-            device.status = DeviceStatus.ONLINE;
-            device.lastSeen = new Date();
-        }
     }
 
     async updateFirmware(
@@ -258,7 +257,11 @@ export class StubDeviceAdapter implements IDeviceAdapter {
         };
     }
 
-    async getDeviceLogs(context: DeviceOperationContext, startDate?: Date, endDate?: Date): Promise<string[]> {
+    async getDeviceLogs(
+        context: DeviceOperationContext,
+        startDate?: Date,
+        endDate?: Date
+    ): Promise<string[]> {
         const deviceId = context.device.id;
         this.logger.log('Getting device logs (stub)', { deviceId, startDate, endDate });
 
@@ -280,54 +283,6 @@ export class StubDeviceAdapter implements IDeviceAdapter {
 
         // Simulate log clearing delay
         await new Promise(resolve => setTimeout(resolve, 100));
-    }
-
-    private initializeMockDevices() {
-        const mockDevices: DeviceInfo[] = [
-            {
-                id: 'device-001',
-                name: 'Main Entrance Card Reader',
-                type: DeviceType.CARD_READER,
-                status: DeviceStatus.ONLINE,
-                host: '192.168.1.100',
-                macAddress: '00:11:22:33:44:55',
-                firmwareVersion: 'v2.1.3',
-                lastSeen: new Date(),
-                capabilities: [
-                    { type: DeviceType.CARD_READER, enabled: true },
-                    { type: DeviceType.CAMERA, enabled: true },
-                ],
-            },
-            {
-                id: 'device-002',
-                name: 'Office Biometric Scanner',
-                type: DeviceType.FINGERPRINT,
-                status: DeviceStatus.ONLINE,
-                host: '192.168.1.101',
-                macAddress: '00:11:22:33:44:56',
-                firmwareVersion: 'v1.8.2',
-                lastSeen: new Date(),
-                capabilities: [
-                    { type: DeviceType.FINGERPRINT, enabled: true },
-                    { type: DeviceType.OTHER, enabled: true },
-                ],
-            },
-            {
-                id: 'device-003',
-                name: 'Visitor QR Scanner',
-                type: DeviceType.OTHER,
-                status: DeviceStatus.OFFLINE,
-                host: '192.168.1.102',
-                macAddress: '00:11:22:33:44:57',
-                firmwareVersion: 'v1.5.1',
-                lastSeen: new Date(Date.now() - 3600000), // 1 hour ago
-                capabilities: [{ type: DeviceType.OTHER, enabled: true }],
-            },
-        ];
-
-        mockDevices.forEach(device => {
-            this.devices.set(device.id, device);
-        });
     }
 
     private simulateDeviceEvents(deviceId: string) {

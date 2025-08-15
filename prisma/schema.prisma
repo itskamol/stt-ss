@@ -102,6 +102,25 @@ enum EventType {
   ACCESS_DENIED
 }
 
+enum ParameterFormatType {
+  JSON
+  XML
+  QUERY_STRING
+}
+
+enum EmployeeSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  RETRYING
+}
+
+enum EmployeeSyncType {
+  ADD
+  UPDATE
+  REMOVE
+}
+
 enum ReportStatus {
   PENDING
   PROCESSING
@@ -117,14 +136,15 @@ model Organization {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users       OrganizationUser[]
-  branches    Branch[]
-  employees   Employee[]
-  devices     Device[]
-  guestVisits GuestVisit[]
-  auditLogs   AuditLog[]
-  reports     Report[]
+  users           OrganizationUser[]
+  branches        Branch[]
+  employees       Employee[]
+  devices         Device[]
+  guestVisits     GuestVisit[]
+  auditLogs       AuditLog[]
+  reports         Report[]
   deviceTemplates DeviceTemplate[]
+  attendances     Attendance[]
 }
 
 // 2. Users and their roles  
@@ -174,6 +194,7 @@ model Branch {
   employees   Employee[]
   devices     Device[]
   guestVisits GuestVisit[]
+  attendances Attendance[]
 
   // This link shows which manager(s) manage this branch  
   managers ManagedBranch[]
@@ -210,7 +231,7 @@ model Department {
   updatedAt DateTime @updatedAt
 
   employees Employee[]
-  devices    Device[]
+  devices   Device[]
 
   @@unique([branchId, name])
   @@index([branchId])
@@ -237,7 +258,8 @@ model Employee {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  attendances Attendance[]
+  attendances         Attendance[]
+  responsibleForGuests GuestVisit[]
 
   @@unique([organizationId, employeeCode])
   @@index([organizationId])
@@ -256,24 +278,20 @@ model Device {
   departmentId   String?
 
   name             String
-  deviceIdentifier String?      @unique
   type             DeviceType
-  host        String?
+  host             String?
   username         String?
-  password         String?      // Encrypted
-  port             Int?         @default(80)
+  password         String? // Encrypted
+  port             Int?           @default(80)
   protocol         DeviceProtocol @default(HTTP)
-  macAddress       String?      @unique
+  macAddress       String?        @unique
   manufacturer     String?
   model            String?
   firmware         String?
   description      String?
-  status           DeviceStatus @default(OFFLINE)
-  isActive         Boolean      @default(true)
+  status           DeviceStatus   @default(OFFLINE)
+  isActive         Boolean        @default(true)
   lastSeen         DateTime?
-  timeout          Int          @default(5000)    // milliseconds
-  retryAttempts    Int          @default(3)
-  keepAlive        Boolean      @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -282,6 +300,7 @@ model Device {
   attendances     Attendance[]
   deviceTemplates DeviceTemplate[]
   configuration   DeviceConfiguration?
+  webhooks        DeviceWebhook[]
 
   @@unique([organizationId, name])
   @@index([branchId, status])
@@ -311,7 +330,8 @@ model GuestVisit {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  attendances Attendance[]
+  attendances           Attendance[]
+  responsibleEmployee   Employee? @relation(fields: [responsibleEmployeeId], references: [id], onDelete: SetNull)
 
   @@index([branchId, status])
   @@index([accessCredentialHash])
@@ -321,7 +341,9 @@ model GuestVisit {
 model Attendance {
   id             String @id @default(uuid())
   organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   employee   Employee?   @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   employeeId String?
@@ -351,7 +373,7 @@ model DeviceEventLog {
   timestamp     DateTime
   rawPayloadUrl String? // Reference to the raw data in S3/MinIO  
   metadata      Json? // Processed data  
-  isProcessed   Boolean  @default(false)
+  isProcessed   Boolean   @default(false)
 
   createdAt DateTime @default(now())
 
@@ -373,13 +395,13 @@ model AuditLog {
   url        String
   userAgent  String?
   ipAddress  String?
-  
+
   requestData  Json?
   responseData Json?
   status       String
   duration     Int
   timestamp    DateTime
-  
+
   errorMessage String?
   errorStack   String?
   oldValues    Json?
@@ -399,11 +421,11 @@ model Report {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String
 
-  name        String
-  type        ReportType
-  format      ReportFormat @default(CSV)
-  status      ReportStatus @default(PENDING)
-  parameters  Json?
+  name       String
+  type       ReportType
+  format     ReportFormat @default(CSV)
+  status     ReportStatus @default(PENDING)
+  parameters Json?
 
   createdByUser   User   @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
   createdByUserId String
@@ -446,9 +468,9 @@ model DeviceTemplate {
   // Communication protocol
   protocol Json?
 
-  isActive   Boolean @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   devices Device[]
 
@@ -462,32 +484,32 @@ model DeviceConfiguration {
   device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   // Network settings
-  networkDhcp       Boolean  @default(true)
-  networkStaticIp   String?
-  networkSubnet     String?
-  networkGateway    String?
-  networkDns        String[] // Array of DNS servers
+  networkDhcp     Boolean  @default(true)
+  networkStaticIp String?
+  networkSubnet   String?
+  networkGateway  String?
+  networkDns      String[] // Array of DNS servers
 
   // Time settings
-  timezone      String  @default("UTC")
-  ntpServer     String?
-  syncInterval  Int     @default(60) // minutes
+  timezone     String  @default("UTC")
+  ntpServer    String?
+  syncInterval Int     @default(60) // minutes
 
   // Access control
-  defaultAccessLevel  Int     @default(1)
-  allowUnknownCards   Boolean @default(false)
-  offlineMode         Boolean @default(true)
-  maxUsers            Int     @default(1000)
+  defaultAccessLevel Int     @default(1)
+  allowUnknownCards  Boolean @default(false)
+  offlineMode        Boolean @default(true)
+  maxUsers           Int     @default(1000)
 
   // Biometric settings
-  biometricThreshold        Int?    @default(5) // 1-9
-  duressFingerEnabled       Boolean @default(false)
-  antiPassbackEnabled       Boolean @default(false)
+  biometricThreshold  Int?    @default(5) // 1-9
+  duressFingerEnabled Boolean @default(false)
+  antiPassbackEnabled Boolean @default(false)
 
   // Event settings
-  eventBufferSize  Int @default(1000)
-  uploadInterval   Int @default(30) // seconds
-  retryAttempts    Int @default(3)
+  eventBufferSize Int @default(1000)
+  uploadInterval  Int @default(30) // seconds
+  retryAttempts   Int @default(3)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -495,20 +517,50 @@ model DeviceConfiguration {
 
 // 13. Employee Device Sync
 model EmployeeDeviceSync {
-  id             String   @id @default(uuid())
+  id             String @id @default(uuid())
   deviceId       String
   employeeId     String
   organizationId String
 
-  syncStatus     String   @default("PENDING") // PENDING, SYNCED, FAILED
-  syncType       String   @default("ADD") // ADD, UPDATE, REMOVE
-  errorMessage   String?
-  syncAttempted  DateTime?
-  syncedAt       DateTime?
+  syncStatus    EmployeeSyncStatus @default(PENDING)
+  syncType      EmployeeSyncType   @default(ADD)
+  errorMessage  String?
+  syncAttempted DateTime?
+  syncedAt      DateTime?
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([deviceId, employeeId])
   @@index([organizationId, syncStatus])
+}
+
+// 14. Device Webhook Configuration
+model DeviceWebhook {
+  id             String @id @default(uuid())
+  device         Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId       String
+  organizationId String
+
+  hostId              String // Unique identifier for the webhook host on device
+  url                 String // Webhook endpoint URL
+  host                String // IP address or hostname
+  port                Int // Port number
+  eventTypes          String[] // Array of event types to subscribe to
+  protocolType        DeviceProtocol      @default(HTTP)
+  parameterFormatType ParameterFormatType @default(JSON)
+
+  isActive        Boolean   @default(true)
+  createdByUserId String
+  lastTriggered   DateTime?
+  triggerCount    Int       @default(0)
+  lastError       String?
+  lastErrorAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([deviceId, hostId])
+  @@index([organizationId, isActive])
+  @@index([deviceId, isActive])
 }
