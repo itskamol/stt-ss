@@ -5,19 +5,26 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { Employee } from '@prisma/client';
+import { Employee, Prisma } from '@prisma/client';
 import { EmployeeRepository } from './employee.repository';
 import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
-import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
+import {
+    CreateEmployeeDto,
+    EmployeeResponseDto,
+    PaginationResponseDto,
+    UpdateEmployeeDto,
+} from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 import { IStorageAdapter } from '@/modules/integrations/adapters/interfaces/storage.adapter';
+import { PaginationService } from '@/shared/services/pagination.service';
 
 @Injectable()
 export class EmployeeService {
     constructor(
         private readonly employeeRepository: EmployeeRepository,
         private readonly logger: LoggerService,
+        private readonly paginationService: PaginationService,
         @Inject('IStorageAdapter')
         private readonly storageAdapter: IStorageAdapter
     ) {}
@@ -74,8 +81,23 @@ export class EmployeeService {
     /**
      * Get all employees (scoped to managed branches)
      */
-    async getEmployees(scope: DataScope): Promise<Employee[]> {
-        return this.employeeRepository.findMany({}, scope);
+    async getEmployees(filters: Prisma.EmployeeWhereInput, scope: DataScope): Promise<Employee[]> {
+        return this.employeeRepository.findMany(filters, scope);
+    }
+
+    async getPaginatedEmployees(
+        filters: Prisma.EmployeeWhereInput,
+        scope: DataScope,
+        page: number = 1,
+        limit: number = 10
+    ): Promise<PaginationResponseDto<EmployeeResponseDto>> {
+        return this.paginationService.paginate<Employee, EmployeeResponseDto>(
+            this.employeeRepository.findManyPaginated(filters, scope, page, limit),
+            this.employeeRepository.count(filters, scope),
+            page,
+            limit,
+            EmployeeResponseDto
+        );
     }
 
     /**
@@ -295,7 +317,13 @@ export class EmployeeService {
         }
 
         // Validate file type (only allow images)
-        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const allowedMimeTypes = [
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+        ];
         if (!allowedMimeTypes.includes(file.mimetype)) {
             throw new BadRequestException('Only image files are allowed (JPEG, PNG, GIF, WebP)');
         }

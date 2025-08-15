@@ -5,6 +5,7 @@ import { EmployeeRepository } from './employee.repository';
 import { DatabaseModule } from '@/core/database/database.module';
 import { LoggerModule } from '@/core/logger/logger.module';
 import { StubStorageAdapter } from '@/modules/integrations/adapters/implementations/storage/stub-storage.adapter';
+import { PaginationService } from '@/shared/services/pagination.service';
 
 @Module({
     imports: [DatabaseModule, LoggerModule],
@@ -12,6 +13,7 @@ import { StubStorageAdapter } from '@/modules/integrations/adapters/implementati
     providers: [
         EmployeeService, 
         EmployeeRepository, 
+        PaginationService,
         {
             provide: 'IStorageAdapter',
             useClass: StubStorageAdapter,

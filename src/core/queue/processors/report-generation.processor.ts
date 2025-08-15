@@ -280,7 +280,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
 
         await this.updateProgress(job, 20, 'Fetching employee data');
 
-        const employees = await this.employeeService.getEmployees(scope);
+        const employees = await this.employeeService.getEmployees({}, scope);
 
         // Apply filters
         let filteredEmployees = employees;

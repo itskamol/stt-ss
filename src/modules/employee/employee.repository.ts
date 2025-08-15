@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Employee } from '@prisma/client';
+import { Employee, Prisma } from '@prisma/client';
 import { PrismaService } from '@/core/database/prisma.service';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto/employee.dto';
 import { DataScope } from '@/shared/interfaces/data-scope.interface';
@@ -24,7 +24,7 @@ export class EmployeeRepository {
         return this.prisma.employee.findFirst({
             where: {
                 id,
-                ...whereClause,
+                branch: whereClause,
             },
             include: {
                 branch: true,
@@ -39,24 +39,49 @@ export class EmployeeRepository {
         return this.prisma.employee.findFirst({
             where: {
                 employeeCode,
-                ...whereClause,
+                branch: whereClause,
             },
         });
     }
 
     async findMany(filters: any = {}, scope: DataScope): Promise<Employee[]> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+        const branchScope = QueryBuilder.buildBranchScope(scope);
 
         return this.prisma.employee.findMany({
             where: {
                 ...filters,
-                ...whereClause,
+                branch: branchScope,
             },
             include: {
                 branch: true,
                 department: true,
             },
             orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    // Pagination bilan findMany
+    async findManyPaginated(
+        filters: any = {},
+        scope: DataScope,
+        page: number,
+        limit: number
+    ): Promise<Employee[]> {
+        const branchScope = QueryBuilder.buildBranchScope(scope);
+        const skip = (page - 1) * limit;
+
+        return this.prisma.employee.findMany({
+            where: {
+                ...filters,
+                branch: branchScope,
+            },
+            include: {
+                branch: true,
+                department: true,
+            },
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
         });
     }
 
@@ -83,7 +108,7 @@ export class EmployeeRepository {
         return this.prisma.employee.count({
             where: {
                 ...filters,
-                ...whereClause,
+                branch: whereClause,
             },
         });
     }
@@ -94,7 +119,7 @@ export class EmployeeRepository {
         return this.prisma.employee.findMany({
             where: {
                 branchId,
-                ...whereClause,
+                branch: whereClause,
             },
             include: {
                 department: true,
@@ -109,7 +134,7 @@ export class EmployeeRepository {
         return this.prisma.employee.findMany({
             where: {
                 departmentId,
-                ...whereClause,
+                branch: whereClause,
             },
             include: {
                 branch: true,
@@ -123,7 +148,7 @@ export class EmployeeRepository {
 
         return this.prisma.employee.findMany({
             where: {
-                ...whereClause,
+                branch: whereClause,
                 OR: [
                     { firstName: { contains: searchTerm, mode: 'insensitive' } },
                     { lastName: { contains: searchTerm, mode: 'insensitive' } },

@@ -90,19 +90,9 @@ export class EmployeeController {
         @Scope() scope: DataScope,
         @Query() paginationDto: PaginationDto
     ): Promise<PaginationResponseDto<EmployeeResponseDto>> {
-        const employees = await this.employeeService.getEmployees(scope);
-
-        // Simple pagination (in a real app, you'd do this at the database level)
         const { page = 1, limit = 10 } = paginationDto;
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginatedEmployees = employees.slice(startIndex, endIndex);
 
-        const responseEmployees = paginatedEmployees.map(employee =>
-            plainToClass(EmployeeResponseDto, employee)
-        );
-
-        return new PaginationResponseDto(responseEmployees, employees.length, page, limit);
+        return this.employeeService.getPaginatedEmployees({}, scope, page, limit);
     }
 
     @Get('search')
@@ -374,7 +364,11 @@ export class EmployeeController {
         description: 'The employee photo has been successfully uploaded.',
         type: EmployeePhotoUploadResponseDto,
     })
-    @ApiResponse({ status: 400, description: 'Invalid file format or size.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 400,
+        description: 'Invalid file format or size.',
+        type: ErrorResponseDto,
+    })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
     async uploadEmployeePhoto(
@@ -383,12 +377,7 @@ export class EmployeeController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<EmployeePhotoUploadResponseDto> {
-        const result = await this.employeeService.uploadEmployeePhoto(
-            id,
-            file,
-            scope,
-            user.sub
-        );
+        const result = await this.employeeService.uploadEmployeePhoto(id, file, scope, user.sub);
         return plainToClass(EmployeePhotoUploadResponseDto, result);
     }
 
@@ -403,7 +392,11 @@ export class EmployeeController {
     @ApiOperation({ summary: 'Delete employee photo' })
     @ApiParam({ name: 'id', description: 'ID of the employee' })
     @ApiResponse({ status: 204, description: 'The employee photo has been successfully deleted.' })
-    @ApiResponse({ status: 400, description: 'Employee does not have a photo.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 400,
+        description: 'Employee does not have a photo.',
+        type: ErrorResponseDto,
+    })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
     @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
     async deleteEmployeePhoto(
