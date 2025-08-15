@@ -51,4 +51,6 @@ config/environments/docker.env
 
 # Prisma
 /prisma/migrations/dev.db*
-node_modules
+
+# Uploads
+uploads/

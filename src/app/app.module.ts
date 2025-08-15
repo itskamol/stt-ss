@@ -15,7 +15,7 @@ import { BranchModule } from '@/modules/branch/branch.module';
 import { DepartmentModule } from '@/modules/department/department.module';
 import { EmployeeModule } from '@/modules/employee/employee.module';
 import { QueueModule } from '@/core/queue/queue.module';
-import { AdapterModule } from '@/modules/integrations/adapters/adapter.module';
+import { IntegrationsModule } from '@/modules/integrations/integrations.module';
 import { DeviceModule } from '@/modules/device/device.module';
 import { EventModule } from '@/modules/events/event.module';
 import { AttendanceModule } from '@/modules/attendance/attendance.module';
@@ -40,7 +40,7 @@ import { AuditModule } from '@/modules/audit/audit.module';
         DepartmentModule,
         EmployeeModule,
         QueueModule,
-        AdapterModule,
+        IntegrationsModule,
         DeviceModule,
         EventModule,
         AttendanceModule,

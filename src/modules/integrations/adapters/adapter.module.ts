@@ -8,10 +8,11 @@ import { XmlJsonService } from '@/shared/services/xml-json.service';
 import {
     HikvisionAdapter,
     HikvisionHttpClient,
+    LocalStorageAdapter,
     StubMatchingAdapter,
     StubNotificationAdapter,
-    StubStorageAdapter,
 } from './implementations';
+import { FileController } from '../controllers/file.controller';
 
 /**
  * Hikvision qurilmasi bilan ishlash uchun zarur bo'lgan
@@ -25,6 +26,7 @@ import {
         DatabaseModule,
         HttpModule,
     ],
+    controllers: [FileController],
     providers: [
         // Hikvision adapteri va unga kerakli yordamchi servislarni ro'yxatdan o'tkazish
         HikvisionAdapter,
@@ -33,7 +35,7 @@ import {
         XmlJsonService,
         {
             provide: 'IStorageAdapter',
-            useClass: StubStorageAdapter,
+            useClass: LocalStorageAdapter,
         },
 
         // Notification adapter
@@ -51,7 +53,6 @@ import {
     exports: [
         HikvisionHttpClient,
 
-        // Boshqa modullar HikvisionAdapter'dan foydalana olishi uchun uni eksport qilish
         HikvisionAdapter,
         'IStorageAdapter',
         'INotificationAdapter',

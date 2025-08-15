@@ -315,7 +315,7 @@ export class EmployeeService {
         if (!employee) {
             throw new NotFoundException('Employee not found');
         }
-
+        console.log(file);
         // Validate file type (only allow images)
         const allowedMimeTypes = [
             'image/jpeg',
