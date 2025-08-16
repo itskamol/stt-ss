@@ -38,9 +38,6 @@ describe('EmployeeController', () => {
         photoKey: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        createdById: 'user-123',
-        updatedById: 'user-123',
-        accessGroupId: null,
     };
 
     beforeEach(async () => {
@@ -119,8 +116,9 @@ describe('EmployeeController', () => {
                 total: 1,
                 page: 1,
                 limit: 10,
+                totalPages: 1,
             };
-            employeeService.getPaginatedEmployees.mockResolvedValue(paginatedResult);
+            employeeService.getPaginatedEmployees.mockResolvedValue(paginatedResult as any);
             const paginationDto = { page: 1, limit: 10 };
             const result = await controller.getEmployees(mockDataScope, paginationDto);
 

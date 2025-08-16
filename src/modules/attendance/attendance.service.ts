@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { AttendanceRepository } from './attendance.repository';
 import {
     CreateAttendanceDto,
+    AttendanceFiltersDto,
     PaginationDto,
     PaginationResponseDto,
 } from '@/shared/dto';

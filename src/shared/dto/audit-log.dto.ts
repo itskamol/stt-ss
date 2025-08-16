@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsIn, IsOptional, IsString } from 'class-validator';
+import {
+    IsDateString,
+    IsIn,
+    IsOptional,
+    IsString,
+    IsDate,
+    IsNumber,
+    IsObject,
+} from 'class-validator';
 
 class UserForAuditLogDto {
     @ApiProperty({
@@ -166,6 +174,72 @@ export class AuditLogResponseDto {
         required: false,
     })
     updatedAt?: Date;
+}
+
+export class CreateAuditLogDto {
+    @IsString()
+    action: string;
+
+    @IsString()
+    resource: string;
+
+    @IsOptional()
+    @IsString()
+    resourceId?: string;
+
+    @IsOptional()
+    @IsString()
+    userId?: string;
+
+    @IsString()
+    organizationId: string;
+
+    @IsString()
+    method: string;
+
+    @IsString()
+    url: string;
+
+    @IsOptional()
+    @IsString()
+    userAgent?: string;
+
+    @IsOptional()
+    @IsString()
+    ipAddress?: string;
+
+    @IsString()
+    status: 'SUCCESS' | 'FAILED';
+
+    @IsNumber()
+    duration: number;
+
+    @IsDate()
+    timestamp: Date;
+
+    @IsOptional()
+    @IsObject()
+    oldValues?: any;
+
+    @IsOptional()
+    @IsObject()
+    newValues?: any;
+
+    @IsOptional()
+    @IsObject()
+    requestData?: any;
+
+    @IsOptional()
+    @IsObject()
+    responseData?: any;
+
+    @IsOptional()
+    @IsString()
+    errorMessage?: string;
+
+    @IsOptional()
+    @IsString()
+    errorStack?: string;
 }
 
 export class AuditLogFiltersDto {

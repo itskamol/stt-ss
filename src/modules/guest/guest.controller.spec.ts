@@ -39,9 +39,6 @@ describe('GuestController', () => {
         createdByUserId: 'user-123',
         createdAt: new Date(),
         updatedAt: new Date(),
-        actualEntryTime: null,
-        actualExitTime: null,
-        notes: null,
         rejectionReason: null,
         approvedByUserId: null,
     };
@@ -115,10 +112,11 @@ describe('GuestController', () => {
                 total: 1,
                 page: 1,
                 limit: 10,
+                totalPages: 1,
             };
             const filtersDto = { status: 'PENDING_APPROVAL' as any };
             const paginationDto = { page: 1, limit: 10 };
-            guestService.getGuestVisits.mockResolvedValue(paginatedResult);
+            guestService.getGuestVisits.mockResolvedValue(paginatedResult as any);
 
             const result = await controller.getGuestVisits(
                 mockDataScope,
@@ -217,7 +215,7 @@ describe('GuestController', () => {
                 mockUserContext.sub
             );
             expect(result.status).toBe('APPROVED');
-            expect(result.accessCredentials).toBe('base64-encoded-qr-data');
+            expect((result as any).accessCredentials).toBe('base64-encoded-qr-data');
         });
     });
 

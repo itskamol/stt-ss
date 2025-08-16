@@ -32,8 +32,6 @@ describe('DepartmentController', () => {
         parentId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        createdById: 'user-123',
-        updatedById: 'user-123',
     };
 
     beforeEach(async () => {
@@ -108,9 +106,10 @@ describe('DepartmentController', () => {
                 total: 1,
                 page: 1,
                 limit: 10,
+                totalPages: 1,
             };
             const paginationDto = { page: 1, limit: 10 };
-            departmentService.getDepartments.mockResolvedValue(paginatedResult);
+            departmentService.getDepartments.mockResolvedValue(paginatedResult as any);
 
             const result = await controller.getDepartments(mockDataScope, paginationDto);
 
@@ -178,7 +177,7 @@ describe('DepartmentController', () => {
                 ],
             };
 
-            departmentService.getDepartmentHierarchy.mockResolvedValue([hierarchyDepartment]);
+            departmentService.getDepartmentHierarchy.mockResolvedValue([hierarchyDepartment] as any);
 
             const result = await controller.getDepartmentHierarchy('branch-123', mockDataScope);
 
@@ -187,8 +186,8 @@ describe('DepartmentController', () => {
                 mockDataScope
             );
             expect(result).toHaveLength(1);
-            expect(result[0].children).toHaveLength(1);
-            expect(result[0].children[0].name).toBe('Frontend Team');
+            expect((result[0] as any).children).toHaveLength(1);
+            expect((result[0] as any).children[0].name).toBe('Frontend Team');
         });
     });
 

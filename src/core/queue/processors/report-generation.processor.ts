@@ -283,7 +283,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
         const employees = await this.employeeService.getEmployees({}, scope);
 
         // Apply filters
-        let filteredEmployees = employees;
+        let filteredEmployees = employees; // getEmployees returns an array directly
         if (branchId) {
             filteredEmployees = filteredEmployees.filter(emp => emp.branchId === branchId);
         }
@@ -322,10 +322,10 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
 
         await this.updateProgress(job, 20, 'Fetching device data');
 
-        const devices = await this.deviceService.getDevices(scope);
+        const devices = await this.deviceService.getDevices(scope, { page: 1, limit: 10000 });
 
         // Apply filters
-        let filteredDevices = devices;
+        let filteredDevices = devices.data;
         if (branchId) {
             filteredDevices = filteredDevices.filter(device => device.branchId === branchId);
         }
@@ -371,7 +371,10 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
             endDate: new Date(endDate),
         };
 
-        const guestVisits = await this.guestService.getGuestVisits(filters, scope);
+        const guestVisits = await this.guestService.getGuestVisits(filters, scope, {
+            page: 1,
+            limit: 10000,
+        });
 
         await this.updateProgress(job, 50, 'Formatting report data');
 
@@ -379,7 +382,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
         let fileName: string;
 
         if (data.format === 'CSV') {
-            reportData = this.formatGuestVisitsCSV(guestVisits);
+            reportData = this.formatGuestVisitsCSV(guestVisits.data);
             fileName = `guest-visits-${startDate}-to-${endDate}.csv`;
         } else {
             throw new Error(`Format ${data.format} not supported for guest visits reports`);
@@ -388,7 +391,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
         return {
             reportData,
             fileName,
-            recordCount: guestVisits.length,
+            recordCount: guestVisits.data.length,
         };
     }
 

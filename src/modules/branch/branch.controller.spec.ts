@@ -37,8 +37,6 @@ describe('BranchController', () => {
         address: '123 Main St',
         createdAt: new Date(),
         updatedAt: new Date(),
-        createdById: 'user-123',
-        updatedById: 'user-123',
     };
 
     const mockManagedBranch: ManagedBranch & { manager: any } = {
@@ -46,7 +44,6 @@ describe('BranchController', () => {
         managerId: 'user-123',
         branchId: 'branch-123',
         assignedAt: new Date(),
-        assignedById: 'user-123',
         manager: {
             id: 'org-user-123',
             createdAt: new Date(),
@@ -134,9 +131,10 @@ describe('BranchController', () => {
                 total: 1,
                 page: 1,
                 limit: 10,
+                totalPages: 1,
             };
             const paginationDto = { page: 1, limit: 10 };
-            branchService.getBranches.mockResolvedValue(paginatedResult);
+            branchService.getBranches.mockResolvedValue(paginatedResult as any);
 
             const result = await controller.getBranches(mockDataScope, paginationDto);
 
@@ -291,8 +289,10 @@ describe('BranchController', () => {
         it('should return branch with statistics', async () => {
             const branchWithStats: any = {
                 ...mockBranch,
-                employeeCount: 25,
-                deviceCount: 3,
+                statistics: {
+                    totalEmployees: 25,
+                    totalDevices: 3,
+                },
             };
 
             branchService.getBranchWithStats.mockResolvedValue(branchWithStats);
@@ -303,7 +303,7 @@ describe('BranchController', () => {
                 'branch-123',
                 mockDataScope
             );
-            expect(result.employeeCount).toBe(25);
+            expect(result.statistics.totalEmployees).toBe(25);
         });
     });
 });

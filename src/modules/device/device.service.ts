@@ -1056,4 +1056,21 @@ export class DeviceService {
 
         return { status: 'received', timestamp: new Date() };
     }
+
+    private extractDeviceId(eventData: any, clientIp: string): string | undefined {
+        if (eventData?.EventNotificationAlert?.serialNo) {
+            return eventData.EventNotificationAlert.serialNo;
+        }
+        if (eventData?.serialNo) {
+            return eventData.serialNo;
+        }
+        return clientIp;
+    }
+
+    private extractHostId(eventData: any): string | undefined {
+        if (eventData?.hostId) {
+            return eventData.hostId;
+        }
+        return undefined;
+    }
 }

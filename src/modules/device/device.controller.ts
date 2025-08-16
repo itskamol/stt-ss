@@ -43,7 +43,6 @@ import {
     TestConnectionResponseDto,
     UpdateDeviceDto,
     UpdateDeviceTemplateDto,
-    DeviceTemplateResponseDto,
 } from '@/shared/dto';
 import {
     CreateWebhookDto,
@@ -58,7 +57,7 @@ import { Device, DeviceTemplate } from '@prisma/client';
 @ApiTags('Devices')
 @ApiBearerAuth()
 @Controller('devices')
-@ApiExtraModels(ApiSuccessResponse, DeviceResponseDto, DeviceStatsResponseDto, DeviceHealthResponseDto, TestConnectionResponseDto, CommandResponseDto, SyncStatusResponseDto, RetrySyncResponseDto, DeviceConfigurationResponseDto, DeviceTemplateResponseDto, WebhookConfigurationResponseDto, DeviceCountResponseDto)
+@ApiExtraModels(ApiSuccessResponse, DeviceResponseDto, DeviceStatsResponseDto, DeviceHealthResponseDto, TestConnectionResponseDto, CommandResponseDto, SyncStatusResponseDto, RetrySyncResponseDto, DeviceConfigurationResponseDto, WebhookConfigurationResponseDto, DeviceCountResponseDto)
 export class DeviceController {
     constructor(private readonly deviceService: DeviceService) {}
 
@@ -398,7 +397,11 @@ export class DeviceController {
         @Param('id') id: string,
         @Scope() scope: DataScope
     ): Promise<SyncStatusResponseDto> {
-        return this.deviceService.getEmployeeSyncStatus(id, scope);
+        const status = await this.deviceService.getEmployeeSyncStatus(id, scope);
+        return {
+            status: 'COMPLETED',
+            ...status
+        } as SyncStatusResponseDto;
     }
 
     @Post(':id/retry-failed-syncs')
@@ -413,7 +416,12 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<RetrySyncResponseDto> {
-        return this.deviceService.retryFailedSyncs(id, scope, user.sub);
+        const result = await this.deviceService.retryFailedSyncs(id, scope, user.sub);
+        return {
+            success: true,
+            message: 'Retried failed syncs',
+            ...result,
+        };
     }
 
     @Get(':id/configuration')
@@ -521,7 +529,7 @@ export class DeviceController {
                 { $ref: getSchemaPath(ApiSuccessResponse) },
                 {
                     properties: {
-                        data: { $ref: getSchemaPath(DeviceTemplateResponseDto) },
+                        data: { $ref: getSchemaPath(UpdateDeviceTemplateDto) },
                     },
                 },
             ],
@@ -540,7 +548,7 @@ export class DeviceController {
     @Get('templates')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all device templates' })
-    @ApiOkResponsePaginated(DeviceTemplateResponseDto)
+    @ApiOkResponsePaginated(UpdateDeviceTemplateDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getTemplates(@Scope() scope: DataScope): Promise<DeviceTemplate[]> {
         return this.deviceService.getDeviceTemplates(scope);
@@ -550,7 +558,7 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get a specific device template' })
     @ApiParam({ name: 'id', description: 'ID of the template' })
-    @ApiOkResponseData(DeviceTemplateResponseDto)
+    @ApiOkResponseData(UpdateDeviceTemplateDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Template not found.', type: ApiErrorResponse })
     async getTemplateById(@Param('id') id: string, @Scope() scope: DataScope): Promise<DeviceTemplate> {
@@ -562,7 +570,7 @@ export class DeviceController {
     @ApiOperation({ summary: 'Update a device template' })
     @ApiParam({ name: 'id', description: 'ID of the template' })
     @ApiBody({ type: UpdateDeviceTemplateDto })
-    @ApiOkResponseData(DeviceTemplateResponseDto)
+    @ApiOkResponseData(UpdateDeviceTemplateDto)
     @ApiResponse({ status: 400, description: 'Invalid template data.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Template not found.', type: ApiErrorResponse })

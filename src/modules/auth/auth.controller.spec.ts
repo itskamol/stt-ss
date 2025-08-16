@@ -77,7 +77,11 @@ describe('AuthController', () => {
 
             const result = await controller.login(loginDto, mockRequest as RequestWithCorrelation);
 
-            expect(mockAuthService.login).toHaveBeenCalledWith(loginDto);
+            expect(mockAuthService.login).toHaveBeenCalledWith(
+                loginDto,
+                expect.any(Object),
+                undefined
+            );
             expect(result).toEqual(mockLoginResponse);
         });
 
@@ -110,7 +114,7 @@ describe('AuthController', () => {
             );
 
             expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
-                refreshTokenDto
+                refreshTokenDto.refreshToken
             );
             expect(result).toEqual(mockRefreshResponse);
         });
@@ -136,8 +140,7 @@ describe('AuthController', () => {
             await controller.logout(logoutDto, mockUser, mockRequest as RequestWithCorrelation);
 
             expect(mockAuthService.logout).toHaveBeenCalledWith(
-                'refresh-token-to-logout',
-                mockUser.sub
+                logoutDto.refreshToken
             );
         });
 
