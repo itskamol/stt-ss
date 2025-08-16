@@ -39,8 +39,6 @@ describe('GuestController', () => {
         createdByUserId: 'user-123',
         createdAt: new Date(),
         updatedAt: new Date(),
-        rejectionReason: null,
-        approvedByUserId: null,
     };
 
     beforeEach(async () => {

@@ -75,7 +75,7 @@ describe('AuthController', () => {
         it('should login successfully', async () => {
             mockAuthService.login.mockResolvedValue(mockLoginResponse);
 
-            const result = await controller.login(loginDto, mockRequest as RequestWithCorrelation);
+            const result = await controller.login(loginDto);
 
             expect(mockAuthService.login).toHaveBeenCalledWith(
                 loginDto,
@@ -90,7 +90,7 @@ describe('AuthController', () => {
             mockAuthService.login.mockRejectedValue(loginError);
 
             await expect(
-                controller.login(loginDto, mockRequest as RequestWithCorrelation)
+                controller.login(loginDto)
             ).rejects.toThrow(UnauthorizedException);
         });
     });
@@ -109,8 +109,7 @@ describe('AuthController', () => {
             mockAuthService.refreshToken.mockResolvedValue(mockRefreshResponse);
 
             const result = await controller.refreshToken(
-                refreshTokenDto,
-                mockRequest as RequestWithCorrelation
+                refreshTokenDto
             );
 
             expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
@@ -124,7 +123,7 @@ describe('AuthController', () => {
             mockAuthService.refreshToken.mockRejectedValue(refreshError);
 
             await expect(
-                controller.refreshToken(refreshTokenDto, mockRequest as RequestWithCorrelation)
+                controller.refreshToken(refreshTokenDto)
             ).rejects.toThrow(UnauthorizedException);
         });
     });
@@ -137,7 +136,7 @@ describe('AuthController', () => {
         it('should logout successfully', async () => {
             mockAuthService.logout.mockResolvedValue(undefined);
 
-            await controller.logout(logoutDto, mockUser, mockRequest as RequestWithCorrelation);
+            await controller.logout(logoutDto, mockUser);
 
             expect(mockAuthService.logout).toHaveBeenCalledWith(
                 logoutDto.refreshToken
@@ -149,7 +148,7 @@ describe('AuthController', () => {
             mockAuthService.logout.mockRejectedValue(logoutError);
 
             await expect(
-                controller.logout(logoutDto, mockUser, mockRequest as RequestWithCorrelation)
+                controller.logout(logoutDto, mockUser)
             ).rejects.toThrow(Error);
         });
     });
@@ -157,8 +156,7 @@ describe('AuthController', () => {
     describe('validateToken', () => {
         it('should validate token successfully', async () => {
             const result = await controller.validateToken(
-                mockUser,
-                mockRequest as RequestWithCorrelation
+                mockUser
             );
 
             expect(result).toEqual({
