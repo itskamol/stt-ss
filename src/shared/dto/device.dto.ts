@@ -48,7 +48,7 @@ export class CreateDeviceDto {
     })
     @IsOptional()
     @IsString()
-    serialNumber?: string;
+    deviceIdentifier?: string;
 
     @ApiProperty({
         description: 'The IP address of the device.',
@@ -167,6 +167,40 @@ export class CreateDeviceDto {
     @IsOptional()
     @IsBoolean()
     isActive?: boolean;
+
+    @ApiProperty({
+        description: 'The timeout for device communication in milliseconds.',
+        default: 5000,
+        example: 5000,
+        required: false,
+    })
+    @IsOptional()
+    @IsNumber()
+    @Min(1000)
+    @Max(60000)
+    timeout?: number;
+
+    @ApiProperty({
+        description: 'The number of retry attempts for failed communications.',
+        default: 3,
+        example: 3,
+        required: false,
+    })
+    @IsOptional()
+    @IsNumber()
+    @Min(1)
+    @Max(10)
+    retryAttempts?: number;
+
+    @ApiProperty({
+        description: 'Indicates if keep-alive is enabled for the device.',
+        default: true,
+        example: true,
+        required: false,
+    })
+    @IsOptional()
+    @IsBoolean()
+    keepAlive?: boolean;
 
     @ApiProperty({
         description: 'The last time the device was seen online.',
@@ -410,7 +444,7 @@ export class DeviceResponseDto {
         example: 'SN123456789',
         required: false,
     })
-    serialNumber?: string;
+    deviceIdentifier?: string;
 
     @ApiProperty({
         description: 'The type of the device.',

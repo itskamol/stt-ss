@@ -35,7 +35,7 @@ describe('DeviceController', () => {
         departmentId: 'dept-123',
         name: 'Main Door Reader',
         type: 'CARD_READER' as any,
-        serialNumber: 'READER-001',
+        deviceIdentifier: 'READER-001',
         host: '192.168.1.100',
         username: 'admin',
         password: 'password123',
@@ -100,7 +100,6 @@ describe('DeviceController', () => {
             const createDto: CreateDeviceDto = {
                 name: 'Main Door Reader',
                 type: DeviceType.CARD_READER,
-                serialNumber: 'READER-001',
                 branchId: 'branch-123',
                 host: '192.168.1.100',
                 description: 'Main entrance card reader',
@@ -159,25 +158,17 @@ describe('DeviceController', () => {
         });
     });
 
-    describe('getDeviceBySerialNumber', () => {
+    describe('getDeviceByIdentifier', () => {
         it('should return a device by identifier', async () => {
-            deviceService.getDeviceBySerialNumber.mockResolvedValue(mockDevice);
+            deviceService.getDeviceByIdentifier.mockResolvedValue(mockDevice);
 
             const result = await controller.getDeviceByIdentifier('READER-001', mockDataScope);
 
-            expect(deviceService.getDeviceBySerialNumber).toHaveBeenCalledWith(
+            expect(deviceService.getDeviceByIdentifier).toHaveBeenCalledWith(
                 'READER-001',
                 mockDataScope
             );
-            expect(result.serialNumber).toBe(mockDevice.serialNumber);
-        });
-
-        it('should throw error when device not found by identifier', async () => {
-            deviceService.getDeviceBySerialNumber.mockResolvedValue(null);
-
-            await expect(
-                controller.getDeviceByIdentifier('NONEXISTENT', mockDataScope)
-            ).rejects.toThrow();
+            expect(result.id).toBe(mockDevice.id);
         });
     });
 

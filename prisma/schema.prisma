@@ -252,14 +252,13 @@ model Employee {
   employeeCode String // Must be unique within the organization  
   email        String? @unique
   phone        String?
-  position     String?
   photoKey     String?
   isActive     Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  attendances          Attendance[]
+  attendances         Attendance[]
   responsibleForGuests GuestVisit[]
 
   @@unique([organizationId, employeeCode])
@@ -278,22 +277,21 @@ model Device {
   department     Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   departmentId   String?
 
-  name         String
-  type         DeviceType
-  host         String?
-  username     String?
-  password     String? // Encrypted
-  port         Int?           @default(80)
-  protocol     DeviceProtocol @default(HTTP)
-  macAddress   String?        @unique
-  manufacturer String?
-  model        String?
-  serialNumber String?        @unique
-  firmware     String?
-  description  String?
-  status       DeviceStatus   @default(OFFLINE)
-  isActive     Boolean        @default(true)
-  lastSeen     DateTime?
+  name             String
+  type             DeviceType
+  host             String?
+  username         String?
+  password         String? // Encrypted
+  port             Int?           @default(80)
+  protocol         DeviceProtocol @default(HTTP)
+  macAddress       String?        @unique
+  manufacturer     String?
+  model            String?
+  firmware         String?
+  description      String?
+  status           DeviceStatus   @default(OFFLINE)
+  isActive         Boolean        @default(true)
+  lastSeen         DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -332,8 +330,8 @@ model GuestVisit {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  attendances         Attendance[]
-  responsibleEmployee Employee?    @relation(fields: [responsibleEmployeeId], references: [id], onDelete: SetNull)
+  attendances           Attendance[]
+  responsibleEmployee   Employee? @relation(fields: [responsibleEmployeeId], references: [id], onDelete: SetNull)
 
   @@index([branchId, status])
   @@index([accessCredentialHash])
@@ -341,7 +339,7 @@ model GuestVisit {
 
 // 8. Attendance  
 model Attendance {
-  id             String       @id @default(uuid())
+  id             String @id @default(uuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   branchId       String

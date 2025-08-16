@@ -41,16 +41,24 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiSuccessResp
                     return new ApiSuccessResponse(null);
                 }
 
-                // Handle paginated data
-                if (data instanceof PaginationResponseDto) {
+                // Handle paginated data by checking for pagination properties
+                if (
+                    data &&
+                    typeof data === 'object' &&
+                    'data' in data &&
+                    'total' in data &&
+                    'page' in data &&
+                    'limit' in data
+                ) {
+                    const paginatedData = data as PaginationResponseDto<any>;
                     const meta = new ApiMetaDto();
-                    meta.itemCount = data.data.length;
-                    meta.totalItems = data.total;
-                    meta.itemsPerPage = data.limit;
-                    meta.totalPages = Math.ceil(data.total / data.limit);
-                    meta.currentPage = data.page;
+                    meta.itemCount = Array.isArray(paginatedData.data) ? paginatedData.data.length : 1;
+                    meta.totalItems = paginatedData.total;
+                    meta.itemsPerPage = paginatedData.limit;
+                    meta.totalPages = Math.ceil(paginatedData.total / paginatedData.limit);
+                    meta.currentPage = paginatedData.page;
 
-                    return new ApiSuccessResponse(data.data as any, meta);
+                    return new ApiSuccessResponse(paginatedData.data, meta);
                 }
 
                 // Handle all other successful responses

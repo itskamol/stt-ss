@@ -14,7 +14,7 @@ export class FileController {
         private readonly storageAdapter: IStorageAdapter
     ) {}
 
-    @Get(':key')
+    @Get(':key(*)')
     @Public()
     @BypassResponseInterceptor()
     @ApiOperation({ summary: 'Get a file by its key' })

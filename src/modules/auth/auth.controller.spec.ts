@@ -77,11 +77,7 @@ describe('AuthController', () => {
 
             const result = await controller.login(loginDto);
 
-            expect(mockAuthService.login).toHaveBeenCalledWith(
-                loginDto,
-                expect.any(Object),
-                undefined
-            );
+            expect(mockAuthService.login).toHaveBeenCalledWith(loginDto);
             expect(result).toEqual(mockLoginResponse);
         });
 
@@ -89,9 +85,9 @@ describe('AuthController', () => {
             const loginError = new UnauthorizedException('Invalid credentials');
             mockAuthService.login.mockRejectedValue(loginError);
 
-            await expect(
-                controller.login(loginDto)
-            ).rejects.toThrow(UnauthorizedException);
+            await expect(controller.login(loginDto)).rejects.toThrow(
+                UnauthorizedException
+            );
         });
     });
 
@@ -108,13 +104,9 @@ describe('AuthController', () => {
         it('should refresh token successfully', async () => {
             mockAuthService.refreshToken.mockResolvedValue(mockRefreshResponse);
 
-            const result = await controller.refreshToken(
-                refreshTokenDto
-            );
+            const result = await controller.refreshToken(refreshTokenDto);
 
-            expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
-                refreshTokenDto.refreshToken
-            );
+            expect(mockAuthService.refreshToken).toHaveBeenCalledWith(refreshTokenDto);
             expect(result).toEqual(mockRefreshResponse);
         });
 
@@ -122,9 +114,9 @@ describe('AuthController', () => {
             const refreshError = new UnauthorizedException('Invalid refresh token');
             mockAuthService.refreshToken.mockRejectedValue(refreshError);
 
-            await expect(
-                controller.refreshToken(refreshTokenDto)
-            ).rejects.toThrow(UnauthorizedException);
+            await expect(controller.refreshToken(refreshTokenDto)).rejects.toThrow(
+                UnauthorizedException
+            );
         });
     });
 
@@ -139,7 +131,8 @@ describe('AuthController', () => {
             await controller.logout(logoutDto, mockUser);
 
             expect(mockAuthService.logout).toHaveBeenCalledWith(
-                logoutDto.refreshToken
+                logoutDto.refreshToken,
+                mockUser.sub
             );
         });
 
@@ -147,17 +140,15 @@ describe('AuthController', () => {
             const logoutError = new Error('Logout failed');
             mockAuthService.logout.mockRejectedValue(logoutError);
 
-            await expect(
-                controller.logout(logoutDto, mockUser)
-            ).rejects.toThrow(Error);
+            await expect(controller.logout(logoutDto, mockUser)).rejects.toThrow(
+                Error
+            );
         });
     });
 
     describe('validateToken', () => {
         it('should validate token successfully', async () => {
-            const result = await controller.validateToken(
-                mockUser
-            );
+            const result = await controller.validateToken(mockUser);
 
             expect(result).toEqual({
                 valid: true,

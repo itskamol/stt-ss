@@ -25,7 +25,6 @@
     "db:push": "dotenv -e config/environments/local.env -- prisma db push",
     "db:studio": "dotenv -e config/environments/local.env -- prisma studio",
     "db:seed": "dotenv -e config/environments/local.env -- ts-node prisma/seed.ts",
-    "db:reset": "dotenv -e config/environments/local.env -- prisma migrate reset",
     "permissions:migrate": "node scripts/migrate-permissions.js",
     "permissions:migrate:tests": "node scripts/migrate-test-permissions.js",
     "permissions:validate": "node scripts/validate-permissions.js",

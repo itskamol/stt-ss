@@ -44,30 +44,20 @@ import {
     UpdateDeviceDto,
     UpdateDeviceTemplateDto,
 } from '@/shared/dto';
-import { CreateWebhookDto, WebhookConfigurationResponseDto } from '@/shared/dto/webhook.dto';
+import {
+    CreateWebhookDto,
+    WebhookConfigurationResponseDto,
+} from '@/shared/dto/webhook.dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
-import { Device, DeviceConfiguration, DeviceTemplate } from '@prisma/client';
-import { plainToClass } from 'class-transformer';
+import { Device, DeviceTemplate } from '@prisma/client';
 
 @ApiTags('Devices')
 @ApiBearerAuth()
 @Controller('devices')
-@ApiExtraModels(
-    ApiSuccessResponse,
-    DeviceResponseDto,
-    DeviceStatsResponseDto,
-    DeviceHealthResponseDto,
-    TestConnectionResponseDto,
-    CommandResponseDto,
-    SyncStatusResponseDto,
-    RetrySyncResponseDto,
-    DeviceConfigurationResponseDto,
-    WebhookConfigurationResponseDto,
-    DeviceCountResponseDto
-)
+@ApiExtraModels(ApiSuccessResponse, DeviceResponseDto, DeviceStatsResponseDto, DeviceHealthResponseDto, TestConnectionResponseDto, CommandResponseDto, SyncStatusResponseDto, RetrySyncResponseDto, DeviceConfigurationResponseDto, WebhookConfigurationResponseDto, DeviceCountResponseDto)
 export class DeviceController {
     constructor(private readonly deviceService: DeviceService) {}
 
@@ -87,7 +77,7 @@ export class DeviceController {
                     },
                 },
             ],
-        },
+        }
     })
     @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -103,8 +93,7 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.CREATE)
     @ApiOperation({
         summary: 'Create device with simplified information',
-        description:
-            'Create a device with minimal required fields. The system will automatically scan the device and populate its information.',
+        description: 'Create a device with minimal required fields. The system will automatically scan the device and populate its information.',
     })
     @ApiBody({ type: SimplifiedDeviceCreationDto })
     @ApiResponse({
@@ -119,7 +108,7 @@ export class DeviceController {
                     },
                 },
             ],
-        },
+        }
     })
     @ApiResponse({
         status: 400,
@@ -131,11 +120,12 @@ export class DeviceController {
         @Body() simplifiedInfo: SimplifiedDeviceCreationDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.createDevice(simplifiedInfo, scope, user.sub, {
-            preScan: true,
-        });
-        return plainToClass(DeviceResponseDto, device);
+    ): Promise<Device> {
+        return this.deviceService.createDeviceWithSimplifiedInfo(
+            simplifiedInfo,
+            scope,
+            user.sub
+        );
     }
 
     @Get()
@@ -144,7 +134,10 @@ export class DeviceController {
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(DeviceResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
-    async getDevices(@Scope() scope: DataScope, @Query() paginationDto: PaginationDto) {
+    async getDevices(
+        @Scope() scope: DataScope,
+        @Query() paginationDto: PaginationDto
+    ) {
         return this.deviceService.getDevices(scope, paginationDto);
     }
 
@@ -213,12 +206,8 @@ export class DeviceController {
     async getDeviceByIdentifier(
         @Param('identifier') identifier: string,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.getDeviceBySerialNumber(identifier, scope);
-        if (!device) {
-            throw new Error('Device not found');
-        }
-        return plainToClass(DeviceResponseDto, device);
+    ): Promise<Device> {
+        return this.deviceService.getDeviceByIdentifier(identifier, scope);
     }
 
     @Get(':id')
@@ -228,7 +217,10 @@ export class DeviceController {
     @ApiOkResponseData(DeviceResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
-    async getDeviceById(@Param('id') id: string, @Scope() scope: DataScope): Promise<Device> {
+    async getDeviceById(
+        @Param('id') id: string,
+        @Scope() scope: DataScope
+    ): Promise<Device> {
         return this.deviceService.getDeviceById(id, scope);
     }
 
@@ -239,7 +231,10 @@ export class DeviceController {
     @ApiOkResponseData(DeviceStatsResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
-    async getDeviceWithStats(@Param('id') id: string, @Scope() scope: DataScope) {
+    async getDeviceWithStats(
+        @Param('id') id: string,
+        @Scope() scope: DataScope
+    ) {
         return this.deviceService.getDeviceWithStats(id, scope);
     }
 
@@ -403,10 +398,10 @@ export class DeviceController {
         @Scope() scope: DataScope
     ): Promise<SyncStatusResponseDto> {
         const status = await this.deviceService.getEmployeeSyncStatus(id, scope);
-        return plainToClass(SyncStatusResponseDto, {
+        return {
             status: 'COMPLETED',
-            ...status,
-        });
+            ...status
+        } as SyncStatusResponseDto;
     }
 
     @Post(':id/retry-failed-syncs')
@@ -459,7 +454,7 @@ export class DeviceController {
                     },
                 },
             ],
-        },
+        }
     })
     @ApiResponse({ status: 400, description: 'Invalid configuration.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -538,7 +533,7 @@ export class DeviceController {
                     },
                 },
             ],
-        },
+        }
     })
     @ApiResponse({ status: 400, description: 'Invalid template data.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -566,10 +561,7 @@ export class DeviceController {
     @ApiOkResponseData(UpdateDeviceTemplateDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Template not found.', type: ApiErrorResponse })
-    async getTemplateById(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ): Promise<DeviceTemplate> {
+    async getTemplateById(@Param('id') id: string, @Scope() scope: DataScope): Promise<DeviceTemplate> {
         return this.deviceService.getDeviceTemplateById(id, scope);
     }
 
@@ -624,7 +616,7 @@ export class DeviceController {
         @Param('templateId') templateId: string,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<DeviceConfiguration> {
+    ): Promise<Device> {
         return this.deviceService.applyTemplateToDevice(templateId, id, scope, user.sub);
     }
 
@@ -635,11 +627,7 @@ export class DeviceController {
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiBody({ type: CreateWebhookDto })
     @ApiResponse({ status: 201, description: 'Webhook configured successfully.' })
-    @ApiResponse({
-        status: 400,
-        description: 'Invalid webhook configuration.',
-        type: ApiErrorResponse,
-    })
+    @ApiResponse({ status: 400, description: 'Invalid webhook configuration.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async configureWebhook(
