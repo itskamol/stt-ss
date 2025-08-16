@@ -34,8 +34,6 @@ export class AuditLogController {
     @Get()
     @Permissions('audit:read:all')
     @ApiOperation({ summary: 'Get all audit logs with filters and pagination' })
-    @ApiQuery({ name: 'filtersDto', type: AuditLogFiltersDto })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(AuditLogResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getAuditLogs(
@@ -109,7 +107,6 @@ export class AuditLogController {
     @ApiOperation({ summary: 'Get the history of a specific resource' })
     @ApiParam({ name: 'resource', description: 'The type of the resource (e.g., "employee")' })
     @ApiParam({ name: 'resourceId', description: 'The ID of the resource' })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(AuditLogResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Resource not found.', type: ApiErrorResponse })
@@ -130,8 +127,6 @@ export class AuditLogController {
     @Get('security-events')
     @Permissions('audit:read:security')
     @ApiOperation({ summary: 'Get security-related audit events' })
-    @ApiQuery({ name: 'filtersDto', type: AuditLogFiltersDto })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(AuditLogResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getSecurityEvents(

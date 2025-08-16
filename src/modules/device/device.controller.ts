@@ -141,7 +141,6 @@ export class DeviceController {
     @Get()
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all devices with pagination' })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(DeviceResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getDevices(@Scope() scope: DataScope, @Query() paginationDto: PaginationDto) {
