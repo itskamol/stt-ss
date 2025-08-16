@@ -98,6 +98,7 @@ export class NetworkScanResultDto {
         required: false,
     })
     deviceInfo?: {
+        type: DeviceType;
         name: string;
         manufacturer: string;
         model: string;
@@ -105,6 +106,7 @@ export class NetworkScanResultDto {
         macAddress: string;
         capabilities: string[];
         status: string;
+        serialNumber: string;
     };
 
     @ApiProperty({

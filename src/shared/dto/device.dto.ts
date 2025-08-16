@@ -48,7 +48,7 @@ export class CreateDeviceDto {
     })
     @IsOptional()
     @IsString()
-    deviceIdentifier?: string;
+    serialNumber?: string;
 
     @ApiProperty({
         description: 'The IP address of the device.',
@@ -444,7 +444,7 @@ export class DeviceResponseDto {
         example: 'SN123456789',
         required: false,
     })
-    deviceIdentifier?: string;
+    serialNumber?: string;
 
     @ApiProperty({
         description: 'The type of the device.',

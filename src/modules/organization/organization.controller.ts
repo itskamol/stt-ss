@@ -81,7 +81,6 @@ export class OrganizationController {
     @NoScoping()
     @Permissions(PERMISSIONS.ORGANIZATION.READ_ALL)
     @ApiOperation({ summary: 'Get all organizations with pagination' })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(OrganizationResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getAllOrganizations(@Query() paginationDto: PaginationDto) {

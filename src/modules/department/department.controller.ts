@@ -81,7 +81,6 @@ export class DepartmentController {
     @Get()
     @Permissions(PERMISSIONS.DEPARTMENT.MANAGE_ALL)
     @ApiOperation({ summary: 'Get all departments with pagination' })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(DepartmentResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getDepartments(

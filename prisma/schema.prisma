@@ -286,6 +286,7 @@ model Device {
   protocol         DeviceProtocol @default(HTTP)
   macAddress       String?        @unique
   manufacturer     String?
+  serialNumber     String?        @unique
   model            String?
   firmware         String?
   description      String?

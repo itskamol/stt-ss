@@ -70,8 +70,6 @@ export class ReportingController {
     @Get()
     @Permissions(PERMISSIONS.REPORT.READ_ALL)
     @ApiOperation({ summary: 'Get all reports with filters and pagination' })
-    @ApiQuery({ name: 'filtersDto', type: ReportFiltersDto })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(ReportResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getReports(

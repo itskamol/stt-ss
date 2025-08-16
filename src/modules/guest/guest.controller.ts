@@ -82,8 +82,6 @@ export class GuestController {
     @Get('visits')
     @Permissions(PERMISSIONS.GUEST.READ_ALL)
     @ApiOperation({ summary: 'Get all guest visits with filters and pagination' })
-    @ApiQuery({ name: 'filtersDto', type: GuestVisitFiltersDto })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(GuestVisitResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getGuestVisits(

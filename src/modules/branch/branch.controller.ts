@@ -81,7 +81,6 @@ export class BranchController {
     @Get()
     @Permissions(PERMISSIONS.BRANCH.READ_ALL)
     @ApiOperation({ summary: 'Get all branches with pagination' })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(BranchResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getBranches(

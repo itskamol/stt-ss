@@ -78,8 +78,6 @@ export class AttendanceController {
     @Get()
     @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get all attendance records with filters and pagination' })
-    @ApiQuery({ name: 'filtersDto', type: AttendanceFiltersDto })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(AttendanceResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getAttendanceRecords(

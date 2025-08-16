@@ -102,7 +102,6 @@ export class UserController {
     @Get()
     @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Get all users in the current organization' })
-    @ApiQuery({ name: 'paginationDto', type: PaginationDto })
     @ApiOkResponsePaginated(OrganizationUserResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getOrganizationUsers(
