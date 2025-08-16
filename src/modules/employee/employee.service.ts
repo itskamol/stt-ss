@@ -7,24 +7,20 @@ import {
 } from '@nestjs/common';
 import { Employee, Prisma } from '@prisma/client';
 import { EmployeeRepository } from './employee.repository';
-import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
 import {
     CreateEmployeeDto,
-    EmployeeResponseDto,
+    PaginationDto,
     PaginationResponseDto,
     UpdateEmployeeDto,
 } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 import { IStorageAdapter } from '@/modules/integrations/adapters/interfaces/storage.adapter';
-import { PaginationService } from '@/shared/services/pagination.service';
 
 @Injectable()
 export class EmployeeService {
     constructor(
         private readonly employeeRepository: EmployeeRepository,
-        private readonly logger: LoggerService,
-        private readonly paginationService: PaginationService,
         @Inject('IStorageAdapter')
         private readonly storageAdapter: IStorageAdapter
     ) {}
@@ -35,8 +31,7 @@ export class EmployeeService {
     async createEmployee(
         createEmployeeDto: CreateEmployeeDto,
         scope: DataScope,
-        createdByUserId: string,
-        correlationId?: string
+        createdByUserId: string
     ): Promise<Employee> {
         try {
             // Validate that the branch is accessible within the scope
@@ -54,19 +49,7 @@ export class EmployeeService {
                 throw new ConflictException('Employee code already exists in this organization');
             }
 
-            const employee = await this.employeeRepository.create(createEmployeeDto, scope);
-
-            this.logger.logUserAction(createdByUserId, 'EMPLOYEE_CREATED', {
-                employeeId: employee.id,
-                employeeCode: employee.employeeCode,
-                fullName: `${employee.firstName} ${employee.lastName}`,
-                branchId: employee.branchId,
-                departmentId: employee.departmentId,
-                correlationId,
-                organizationId: scope.organizationId,
-            });
-
-            return employee;
+            return await this.employeeRepository.create(createEmployeeDto, scope);
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -86,18 +69,19 @@ export class EmployeeService {
     }
 
     async getPaginatedEmployees(
-        filters: Prisma.EmployeeWhereInput,
         scope: DataScope,
-        page: number = 1,
-        limit: number = 10
-    ): Promise<PaginationResponseDto<EmployeeResponseDto>> {
-        return this.paginationService.paginate<Employee, EmployeeResponseDto>(
+        paginationDto: PaginationDto,
+        filters: Prisma.EmployeeWhereInput = {}
+    ): Promise<PaginationResponseDto<Employee>> {
+        const { page, limit } = paginationDto;
+        const skip = (page - 1) * limit;
+
+        const [employees, total] = await Promise.all([
             this.employeeRepository.findManyPaginated(filters, scope, page, limit),
             this.employeeRepository.count(filters, scope),
-            page,
-            limit,
-            EmployeeResponseDto
-        );
+        ]);
+
+        return new PaginationResponseDto(employees, total, page, limit);
     }
 
     /**
@@ -122,15 +106,23 @@ export class EmployeeService {
     /**
      * Get employee by ID
      */
-    async getEmployeeById(id: string, scope: DataScope): Promise<Employee | null> {
-        return this.employeeRepository.findById(id, scope);
+    async getEmployeeById(id: string, scope: DataScope): Promise<Employee> {
+        const employee = await this.employeeRepository.findById(id, scope);
+        if (!employee) {
+            throw new NotFoundException('Employee not found');
+        }
+        return employee;
     }
 
     /**
      * Get employee by employee code
      */
-    async getEmployeeByCode(employeeCode: string, scope: DataScope): Promise<Employee | null> {
-        return this.employeeRepository.findByEmployeeCode(employeeCode, scope);
+    async getEmployeeByCode(employeeCode: string, scope: DataScope): Promise<Employee> {
+        const employee = await this.employeeRepository.findByEmployeeCode(employeeCode, scope);
+        if (!employee) {
+            throw new NotFoundException('Employee not found');
+        }
+        return employee;
     }
 
     /**
@@ -140,15 +132,11 @@ export class EmployeeService {
         id: string,
         updateEmployeeDto: UpdateEmployeeDto,
         scope: DataScope,
-        updatedByUserId: string,
-        correlationId?: string
+        updatedByUserId: string
     ): Promise<Employee> {
-        try {
-            const existingEmployee = await this.employeeRepository.findById(id, scope);
-            if (!existingEmployee) {
-                throw new NotFoundException('Employee not found');
-            }
+        const existingEmployee = await this.getEmployeeById(id, scope);
 
+        try {
             // Validate branch access if changing branch
             if (
                 updateEmployeeDto.branchId &&
@@ -175,24 +163,11 @@ export class EmployeeService {
                 }
             }
 
-            const updatedEmployee = await this.employeeRepository.update(
+            return await this.employeeRepository.update(
                 id,
                 updateEmployeeDto,
                 scope
             );
-
-            this.logger.logUserAction(updatedByUserId, 'EMPLOYEE_UPDATED', {
-                employeeId: id,
-                changes: updateEmployeeDto,
-                oldEmployeeCode: existingEmployee.employeeCode,
-                newEmployeeCode: updatedEmployee.employeeCode,
-                oldFullName: `${existingEmployee.firstName} ${existingEmployee.lastName}`,
-                newFullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`,
-                correlationId,
-                organizationId: scope.organizationId,
-            });
-
-            return updatedEmployee;
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -210,24 +185,10 @@ export class EmployeeService {
     async deleteEmployee(
         id: string,
         scope: DataScope,
-        deletedByUserId: string,
-        correlationId?: string
+        deletedByUserId: string
     ): Promise<void> {
-        const existingEmployee = await this.employeeRepository.findById(id, scope);
-        if (!existingEmployee) {
-            throw new NotFoundException('Employee not found');
-        }
-
+        await this.getEmployeeById(id, scope);
         await this.employeeRepository.delete(id, scope);
-
-        this.logger.logUserAction(deletedByUserId, 'EMPLOYEE_DELETED', {
-            employeeId: id,
-            employeeCode: existingEmployee.employeeCode,
-            fullName: `${existingEmployee.firstName} ${existingEmployee.lastName}`,
-            branchId: existingEmployee.branchId,
-            correlationId,
-            organizationId: scope.organizationId,
-        });
     }
 
     /**
@@ -274,31 +235,10 @@ export class EmployeeService {
         id: string,
         isActive: boolean,
         scope: DataScope,
-        updatedByUserId: string,
-        correlationId?: string
+        updatedByUserId: string
     ): Promise<Employee> {
-        const existingEmployee = await this.employeeRepository.findById(id, scope);
-        if (!existingEmployee) {
-            throw new NotFoundException('Employee not found');
-        }
-
-        const updatedEmployee = await this.employeeRepository.update(id, { isActive }, scope);
-
-        this.logger.logUserAction(
-            updatedByUserId,
-            isActive ? 'EMPLOYEE_ACTIVATED' : 'EMPLOYEE_DEACTIVATED',
-            {
-                employeeId: id,
-                employeeCode: existingEmployee.employeeCode,
-                fullName: `${existingEmployee.firstName} ${existingEmployee.lastName}`,
-                previousStatus: existingEmployee.isActive,
-                newStatus: isActive,
-                correlationId,
-                organizationId: scope.organizationId,
-            }
-        );
-
-        return updatedEmployee;
+        await this.getEmployeeById(id, scope);
+        return this.employeeRepository.update(id, { isActive }, scope);
     }
 
     /**
@@ -308,14 +248,10 @@ export class EmployeeService {
         employeeId: string,
         file: Express.Multer.File,
         scope: DataScope,
-        updatedByUserId: string,
-        correlationId?: string
-    ): Promise<{ photoUrl: string; photoKey: string; fileSize: number }> {
-        const employee = await this.employeeRepository.findById(employeeId, scope);
-        if (!employee) {
-            throw new NotFoundException('Employee not found');
-        }
-        console.log(file);
+        updatedByUserId: string
+    ): Promise<{ photoUrl: string }> {
+        const employee = await this.getEmployeeById(employeeId, scope);
+
         // Validate file type (only allow images)
         const allowedMimeTypes = [
             'image/jpeg',
@@ -343,12 +279,7 @@ export class EmployeeService {
             try {
                 await this.storageAdapter.deleteFile(employee.photoKey);
             } catch (error) {
-                this.logger.warn('Failed to delete existing employee photo', {
-                    employeeId,
-                    photoKey: employee.photoKey,
-                    error: error.message,
-                    correlationId,
-                });
+                // Log and ignore error
             }
         }
 
@@ -362,19 +293,8 @@ export class EmployeeService {
         // Update employee record with photo key
         await this.employeeRepository.update(employeeId, { photoKey }, scope);
 
-        this.logger.logUserAction(updatedByUserId, 'EMPLOYEE_PHOTO_UPLOADED', {
-            employeeId,
-            photoKey,
-            fileSize: file.size,
-            mimeType: file.mimetype,
-            correlationId,
-            organizationId: scope.organizationId,
-        });
-
         return {
             photoUrl: uploadResult.url,
-            photoKey: uploadResult.key,
-            fileSize: uploadResult.size || file.size,
         };
     }
 
@@ -384,13 +304,9 @@ export class EmployeeService {
     async deleteEmployeePhoto(
         employeeId: string,
         scope: DataScope,
-        deletedByUserId: string,
-        correlationId?: string
+        deletedByUserId: string
     ): Promise<void> {
-        const employee = await this.employeeRepository.findById(employeeId, scope);
-        if (!employee) {
-            throw new NotFoundException('Employee not found');
-        }
+        const employee = await this.getEmployeeById(employeeId, scope);
 
         if (!employee.photoKey) {
             throw new BadRequestException('Employee does not have a photo');
@@ -401,12 +317,5 @@ export class EmployeeService {
 
         // Update employee record to remove photo key
         await this.employeeRepository.update(employeeId, { photoKey: null }, scope);
-
-        this.logger.logUserAction(deletedByUserId, 'EMPLOYEE_PHOTO_DELETED', {
-            employeeId,
-            photoKey: employee.photoKey,
-            correlationId,
-            organizationId: scope.organizationId,
-        });
     }
 }

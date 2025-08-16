@@ -7,7 +7,7 @@ import { CacheService } from '@/core/cache/cache.service';
 import { LoginDto } from '@/shared/dto';
 import { Role } from '@/shared/enums';
 import { PasswordUtil } from '@/shared/utils/password.util';
-import { MockLoggerProvider, mockLoggerService } from '@/testing/mocks/logger.mock';
+import { MockLoggerProvider } from '@/testing/mocks/logger.mock';
 
 // Mock PasswordUtil
 jest.mock('@/shared/utils/password.util');
@@ -101,66 +101,29 @@ describe('AuthService', () => {
                 refreshToken: 'refresh-token',
             });
 
-            const result = await service.login(loginDto, 'correlation-123');
+            const result = await service.login(loginDto);
 
             expect(result.accessToken).toBe('access-token');
-            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'LOGIN_SUCCESS',
-                expect.objectContaining({
-                    email: 'test@example.com',
-                    organizationId: 'org-456',
-                })
-            );
         });
 
         it('should throw UnauthorizedException for non-existent user', async () => {
             mockUserRepository.findByEmail.mockResolvedValue(null);
 
-            await expect(service.login(loginDto, 'correlation-123')).rejects.toThrow(
-                UnauthorizedException
-            );
-            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
-                undefined,
-                'LOGIN_FAILED_USER_NOT_FOUND',
-                { email: 'test@example.com', correlationId: 'correlation-123' }
-            );
+            await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
         });
 
         it('should throw UnauthorizedException for inactive user', async () => {
             const inactiveUser = { ...mockUser, isActive: false };
             mockUserRepository.findByEmail.mockResolvedValue(inactiveUser);
 
-            await expect(service.login(loginDto, 'correlation-123')).rejects.toThrow(
-                UnauthorizedException
-            );
-            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'LOGIN_FAILED_USER_INACTIVE',
-                {
-                    email: 'test@example.com',
-                    userId: 'user-123',
-                    correlationId: 'correlation-123',
-                }
-            );
+            await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
         });
 
         it('should throw UnauthorizedException for invalid password', async () => {
             mockUserRepository.findByEmail.mockResolvedValue(mockUser);
             (PasswordUtil.compare as jest.Mock).mockResolvedValue(false);
 
-            await expect(service.login(loginDto, 'correlation-123')).rejects.toThrow(
-                UnauthorizedException
-            );
-            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'LOGIN_FAILED_INVALID_PASSWORD',
-                {
-                    email: 'test@example.com',
-                    userId: 'user-123',
-                    correlationId: 'correlation-123',
-                }
-            );
+            await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
         });
     });
 
@@ -203,31 +166,21 @@ describe('AuthService', () => {
                 refreshToken: 'new-refresh-token',
             });
 
-            const result = await service.refreshToken(refreshTokenDto, 'correlation-123');
+            const result = await service.refreshToken(refreshTokenDto);
 
             expect(result).toEqual({
                 accessToken: 'new-access-token',
                 refreshToken: 'new-refresh-token',
             });
-            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'TOKEN_REFRESH_SUCCESS',
-                expect.any(Object)
-            );
         });
 
         it('should throw UnauthorizedException for invalid refresh token', async () => {
             mockJwtService.verifyRefreshToken.mockImplementation(() => {
-                throw new Error('Invalid token');
+                throw new UnauthorizedException('Invalid token');
             });
 
-            await expect(service.refreshToken(refreshTokenDto, 'correlation-123')).rejects.toThrow(
-                'Invalid refresh token'
-            );
-            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
-                undefined,
-                'REFRESH_TOKEN_FAILED',
-                { error: 'Invalid token', correlationId: 'correlation-123' }
+            await expect(service.refreshToken(refreshTokenDto)).rejects.toThrow(
+                UnauthorizedException
             );
         });
 
@@ -237,13 +190,8 @@ describe('AuthService', () => {
             mockCacheService.isRefreshTokenDenied.mockResolvedValue(false);
             mockUserRepository.findById.mockResolvedValue(inactiveUser);
 
-            await expect(service.refreshToken(refreshTokenDto, 'correlation-123')).rejects.toThrow(
+            await expect(service.refreshToken(refreshTokenDto)).rejects.toThrow(
                 'Invalid refresh token'
-            );
-            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'REFRESH_TOKEN_FAILED_USER_INVALID',
-                { userId: 'user-123', correlationId: 'correlation-123' }
             );
         });
     });

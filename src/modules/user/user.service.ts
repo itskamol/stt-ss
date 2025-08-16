@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { User } from '@prisma/client';
+import { OrganizationUser, User } from '@prisma/client';
 import { UserRepository } from './user.repository';
 import { LoggerService } from '@/core/logger';
 import { DatabaseUtil, PasswordUtil } from '@/shared/utils';
@@ -7,6 +7,8 @@ import {
     AssignUserToOrganizationDto,
     ChangePasswordDto,
     CreateUserDto,
+    PaginationDto,
+    PaginationResponseDto,
     UpdateUserDto,
 } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
@@ -58,8 +60,12 @@ export class UserService {
     /**
      * Find user by ID
      */
-    async findById(id: string): Promise<User | null> {
-        return this.userRepository.findById(id);
+    async findById(id: string): Promise<User> {
+        const user = await this.userRepository.findById(id);
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+        return user;
     }
 
     /**
@@ -191,8 +197,19 @@ export class UserService {
     /**
      * Get organization users (scoped)
      */
-    async getOrganizationUsers(scope: DataScope) {
-        return this.userRepository.findOrganizationUsers(scope.organizationId, scope);
+    async getOrganizationUsers(
+        scope: DataScope,
+        paginationDto: PaginationDto
+    ): Promise<PaginationResponseDto<OrganizationUser>> {
+        const { page, limit } = paginationDto;
+        const skip = (page - 1) * limit;
+
+        const [users, total] = await Promise.all([
+            this.userRepository.findOrganizationUsers(scope.organizationId, scope, skip, limit),
+            this.userRepository.countOrganizationUsers(scope.organizationId, scope),
+        ]);
+
+        return new PaginationResponseDto(users, total, page, limit);
     }
 
     /**

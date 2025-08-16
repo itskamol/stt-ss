@@ -2,17 +2,20 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from 
 import {
     ApiBearerAuth,
     ApiBody,
+    ApiExtraModels,
     ApiOperation,
     ApiParam,
     ApiQuery,
     ApiResponse,
     ApiTags,
+    getSchemaPath,
 } from '@nestjs/swagger';
 import { ReportingService } from './reporting.service';
 import {
+    ApiErrorResponse,
+    ApiSuccessResponse,
     CreateReportDto,
     PaginationDto,
-    PaginationResponseDto,
     ReportFiltersDto,
     ReportResponseDto,
 } from '@/shared/dto';
@@ -20,10 +23,13 @@ import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { AuditLog } from '@/shared/interceptors/audit-log.interceptor';
+import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
+import { Report } from '@prisma/client';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
 @Controller('reports')
+@ApiExtraModels(ApiSuccessResponse, ReportResponseDto)
 export class ReportingController {
     constructor(private readonly reportingService: ReportingService) {}
 
@@ -40,35 +46,25 @@ export class ReportingController {
     @ApiResponse({
         status: 201,
         description: 'The report generation has been successfully queued.',
-        type: ReportResponseDto,
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(ReportResponseDto) },
+                    },
+                },
+            ],
+        }
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async generateReport(
         @Body() createReportDto: CreateReportDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<ReportResponseDto> {
-        const report = await this.reportingService.generateReport(createReportDto, scope, user.sub);
-
-        return {
-            id: report.id,
-            name: report.name,
-            type: report.type,
-            status: report.status,
-            parameters: report.parameters,
-            organizationId: report.organizationId,
-            createdByUserId: report.createdByUserId,
-            fileUrl: report.fileUrl,
-            filePath: report.filePath,
-            fileSize: report.fileSize,
-            recordCount: report.recordCount,
-            startedAt: report.startedAt,
-            completedAt: report.completedAt,
-            errorMessage: report.errorMessage,
-            createdAt: report.createdAt,
-            updatedAt: report.updatedAt,
-        };
+    ): Promise<Report> {
+        return this.reportingService.generateReport(createReportDto, scope, user.sub);
     }
 
     @Get()
@@ -76,17 +72,13 @@ export class ReportingController {
     @ApiOperation({ summary: 'Get all reports with filters and pagination' })
     @ApiQuery({ name: 'filtersDto', type: ReportFiltersDto })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
-    @ApiResponse({
-        status: 200,
-        description: 'A paginated list of reports.',
-        type: PaginationResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiOkResponsePaginated(ReportResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getReports(
         @Scope() scope: DataScope,
         @Query() filtersDto: ReportFiltersDto,
         @Query() paginationDto: PaginationDto
-    ): Promise<PaginationResponseDto<ReportResponseDto>> {
+    ) {
         const filters = {
             type: filtersDto.type,
             status: filtersDto.status,
@@ -97,55 +89,15 @@ export class ReportingController {
 
         const { page = 1, limit = 20 } = paginationDto;
 
-        const result = await this.reportingService.getReports(filters, scope, { page, limit });
-
-        const responseData = result.data.map(report => ({
-            id: report.id,
-            name: report.name,
-            type: report.type,
-            status: report.status,
-            parameters: report.parameters,
-            organizationId: report.organizationId,
-            createdByUserId: report.createdByUserId,
-            fileUrl: report.fileUrl,
-            filePath: report.filePath,
-            fileSize: report.fileSize,
-            recordCount: report.recordCount,
-            startedAt: report.startedAt,
-            completedAt: report.completedAt,
-            errorMessage: report.errorMessage,
-            createdAt: report.createdAt,
-            updatedAt: report.updatedAt,
-            createdByUser: report.createdByUser
-                ? {
-                      id: report.createdByUser.id,
-                      email: report.createdByUser.email,
-                      fullName: report.createdByUser.fullName,
-                  }
-                : undefined,
-        }));
-
-        return new PaginationResponseDto(responseData, result.total, result.page, result.limit);
+        return this.reportingService.getReports(filters, scope, { page, limit });
     }
 
     @Get('types')
     @Permissions(PERMISSIONS.REPORT.READ_ALL)
     @ApiOperation({ summary: 'Get a list of available report types' })
     @ApiResponse({ status: 200, description: 'A list of report types.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    async getReportTypes(): Promise<
-        Array<{
-            type: string;
-            name: string;
-            description: string;
-            parameters: Array<{
-                name: string;
-                type: string;
-                required: boolean;
-                description: string;
-            }>;
-        }>
-    > {
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    async getReportTypes() {
         return this.reportingService.getAvailableReportTypes();
     }
 
@@ -153,44 +105,14 @@ export class ReportingController {
     @Permissions(PERMISSIONS.REPORT.READ_ALL)
     @ApiOperation({ summary: 'Get a specific report by ID' })
     @ApiParam({ name: 'id', description: 'ID of the report' })
-    @ApiResponse({ status: 200, description: 'The report details.', type: ReportResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Report not found.' })
+    @ApiOkResponseData(ReportResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Report not found.', type: ApiErrorResponse })
     async getReportById(
         @Param('id') id: string,
         @Scope() scope: DataScope
-    ): Promise<ReportResponseDto> {
-        const report = await this.reportingService.getReportById(id, scope);
-
-        if (!report) {
-            throw new Error('Report not found');
-        }
-
-        return {
-            id: report.id,
-            name: report.name,
-            type: report.type,
-            status: report.status,
-            parameters: report.parameters,
-            organizationId: report.organizationId,
-            createdByUserId: report.createdByUserId,
-            fileUrl: report.fileUrl,
-            filePath: report.filePath,
-            fileSize: report.fileSize,
-            recordCount: report.recordCount,
-            startedAt: report.startedAt,
-            completedAt: report.completedAt,
-            errorMessage: report.errorMessage,
-            createdAt: report.createdAt,
-            updatedAt: report.updatedAt,
-            createdByUser: report.createdByUser
-                ? {
-                      id: report.createdByUser.id,
-                      email: report.createdByUser.email,
-                      fullName: report.createdByUser.fullName,
-                  }
-                : undefined,
-        };
+    ): Promise<Report> {
+        return this.reportingService.getReportById(id, scope);
     }
 
     @Get(':id/download')
@@ -198,8 +120,8 @@ export class ReportingController {
     @ApiOperation({ summary: 'Get a download URL for a report' })
     @ApiParam({ name: 'id', description: 'ID of the report' })
     @ApiResponse({ status: 200, description: 'A temporary download URL for the report.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Report not found or not completed.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Report not found or not completed.', type: ApiErrorResponse })
     async downloadReport(
         @Param('id') id: string,
         @Scope() scope: DataScope
@@ -221,38 +143,15 @@ export class ReportingController {
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Regenerate an existing report' })
     @ApiParam({ name: 'id', description: 'ID of the report to regenerate' })
-    @ApiResponse({
-        status: 200,
-        description: 'The report regeneration has been successfully queued.',
-        type: ReportResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Report not found.' })
+    @ApiOkResponseData(ReportResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Report not found.', type: ApiErrorResponse })
     async regenerateReport(
         @Param('id') id: string,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<ReportResponseDto> {
-        const report = await this.reportingService.regenerateReport(id, scope, user.sub);
-
-        return {
-            id: report.id,
-            name: report.name,
-            type: report.type,
-            status: report.status,
-            parameters: report.parameters,
-            organizationId: report.organizationId,
-            createdByUserId: report.createdByUserId,
-            fileUrl: report.fileUrl,
-            filePath: report.filePath,
-            fileSize: report.fileSize,
-            recordCount: report.recordCount,
-            startedAt: report.startedAt,
-            completedAt: report.completedAt,
-            errorMessage: report.errorMessage,
-            createdAt: report.createdAt,
-            updatedAt: report.updatedAt,
-        };
+    ): Promise<Report> {
+        return this.reportingService.regenerateReport(id, scope, user.sub);
     }
 
     @Post('attendance/daily')
@@ -274,7 +173,20 @@ export class ReportingController {
             },
         },
     })
-    @ApiResponse({ status: 201, description: 'Report generation queued.', type: ReportResponseDto })
+    @ApiResponse({
+        status: 201,
+        description: 'Report generation queued.',
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(ReportResponseDto) },
+                    },
+                },
+            ],
+        }
+    })
     async generateDailyAttendanceReport(
         @Body()
         params: {
@@ -285,7 +197,7 @@ export class ReportingController {
         },
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<ReportResponseDto> {
+    ): Promise<Report> {
         const createReportDto: CreateReportDto = {
             name: `Daily Attendance Report - ${params.date}`,
             type: 'DAILY_ATTENDANCE',
@@ -297,26 +209,7 @@ export class ReportingController {
             },
         };
 
-        const report = await this.reportingService.generateReport(createReportDto, scope, user.sub);
-
-        return {
-            id: report.id,
-            name: report.name,
-            type: report.type,
-            status: report.status,
-            parameters: report.parameters,
-            organizationId: report.organizationId,
-            createdByUserId: report.createdByUserId,
-            fileUrl: report.fileUrl,
-            filePath: report.filePath,
-            fileSize: report.fileSize,
-            recordCount: report.recordCount,
-            startedAt: report.startedAt,
-            completedAt: report.completedAt,
-            errorMessage: report.errorMessage,
-            createdAt: report.createdAt,
-            updatedAt: report.updatedAt,
-        };
+        return this.reportingService.generateReport(createReportDto, scope, user.sub);
     }
 
     @Post('attendance/monthly')
@@ -339,7 +232,20 @@ export class ReportingController {
             },
         },
     })
-    @ApiResponse({ status: 201, description: 'Report generation queued.', type: ReportResponseDto })
+    @ApiResponse({
+        status: 201,
+        description: 'Report generation queued.',
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(ReportResponseDto) },
+                    },
+                },
+            ],
+        }
+    })
     async generateMonthlyAttendanceReport(
         @Body()
         params: {
@@ -351,7 +257,7 @@ export class ReportingController {
         },
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<ReportResponseDto> {
+    ): Promise<Report> {
         const createReportDto: CreateReportDto = {
             name: `Monthly Attendance Report - ${params.year}-${params.month.toString().padStart(2, '0')}`,
             type: 'MONTHLY_ATTENDANCE',
@@ -364,26 +270,7 @@ export class ReportingController {
             },
         };
 
-        const report = await this.reportingService.generateReport(createReportDto, scope, user.sub);
-
-        return {
-            id: report.id,
-            name: report.name,
-            type: report.type,
-            status: report.status,
-            parameters: report.parameters,
-            organizationId: report.organizationId,
-            createdByUserId: report.createdByUserId,
-            fileUrl: report.fileUrl,
-            filePath: report.filePath,
-            fileSize: report.fileSize,
-            recordCount: report.recordCount,
-            startedAt: report.startedAt,
-            completedAt: report.completedAt,
-            errorMessage: report.errorMessage,
-            createdAt: report.createdAt,
-            updatedAt: report.updatedAt,
-        };
+        return this.reportingService.generateReport(createReportDto, scope, user.sub);
     }
 
     @Post('employees/list')
@@ -406,7 +293,20 @@ export class ReportingController {
             },
         },
     })
-    @ApiResponse({ status: 201, description: 'Report generation queued.', type: ReportResponseDto })
+    @ApiResponse({
+        status: 201,
+        description: 'Report generation queued.',
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(ReportResponseDto) },
+                    },
+                },
+            ],
+        }
+    })
     async generateEmployeeListReport(
         @Body()
         params: {
@@ -418,7 +318,7 @@ export class ReportingController {
         },
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<ReportResponseDto> {
+    ): Promise<Report> {
         const createReportDto: CreateReportDto = {
             name: 'Employee List Report',
             type: 'EMPLOYEE_LIST',
@@ -431,26 +331,7 @@ export class ReportingController {
             },
         };
 
-        const report = await this.reportingService.generateReport(createReportDto, scope, user.sub);
-
-        return {
-            id: report.id,
-            name: report.name,
-            type: report.type,
-            status: report.status,
-            parameters: report.parameters,
-            organizationId: report.organizationId,
-            createdByUserId: report.createdByUserId,
-            fileUrl: report.fileUrl,
-            filePath: report.filePath,
-            fileSize: report.fileSize,
-            recordCount: report.recordCount,
-            startedAt: report.startedAt,
-            completedAt: report.completedAt,
-            errorMessage: report.errorMessage,
-            createdAt: report.createdAt,
-            updatedAt: report.updatedAt,
-        };
+        return this.reportingService.generateReport(createReportDto, scope, user.sub);
     }
 
     @Post('audit/security')
@@ -473,7 +354,20 @@ export class ReportingController {
             },
         },
     })
-    @ApiResponse({ status: 201, description: 'Report generation queued.', type: ReportResponseDto })
+    @ApiResponse({
+        status: 201,
+        description: 'Report generation queued.',
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(ReportResponseDto) },
+                    },
+                },
+            ],
+        }
+    })
     async generateSecurityAuditReport(
         @Body()
         params: {
@@ -485,7 +379,7 @@ export class ReportingController {
         },
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<ReportResponseDto> {
+    ): Promise<Report> {
         const createReportDto: CreateReportDto = {
             name: `Security Audit Report - ${params.startDate} to ${params.endDate}`,
             type: 'SECURITY_AUDIT',
@@ -498,25 +392,6 @@ export class ReportingController {
             },
         };
 
-        const report = await this.reportingService.generateReport(createReportDto, scope, user.sub);
-
-        return {
-            id: report.id,
-            name: report.name,
-            type: report.type,
-            status: report.status,
-            parameters: report.parameters,
-            organizationId: report.organizationId,
-            createdByUserId: report.createdByUserId,
-            fileUrl: report.fileUrl,
-            filePath: report.filePath,
-            fileSize: report.fileSize,
-            recordCount: report.recordCount,
-            startedAt: report.startedAt,
-            completedAt: report.completedAt,
-            errorMessage: report.errorMessage,
-            createdAt: report.createdAt,
-            updatedAt: report.updatedAt,
-        };
+        return this.reportingService.generateReport(createReportDto, scope, user.sub);
     }
 }

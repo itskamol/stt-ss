@@ -2,16 +2,20 @@ import crypto from 'crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { GuestStatus, GuestVisit } from '@prisma/client';
 import { GuestRepository } from './guest.repository';
-import { LoggerService } from '@/core/logger';
 import { QueueProducer } from '@/core/queue/queue.producer';
-import { ApproveGuestVisitDto, CreateGuestVisitDto, UpdateGuestVisitDto } from '@/shared/dto';
+import {
+    ApproveGuestVisitDto,
+    CreateGuestVisitDto,
+    PaginationDto,
+    PaginationResponseDto,
+    UpdateGuestVisitDto,
+} from '@/shared/dto';
 import { DataScope, GuestVisitWithCredentials } from '@/shared/interfaces';
 
 @Injectable()
 export class GuestService {
     constructor(
         private readonly guestRepository: GuestRepository,
-        private readonly logger: LoggerService,
         private readonly queueProducer: QueueProducer
     ) {}
 
@@ -21,52 +25,30 @@ export class GuestService {
     async createGuestVisit(
         createGuestVisitDto: CreateGuestVisitDto,
         scope: DataScope,
-        createdByUserId: string,
-        correlationId?: string
+        createdByUserId: string
     ): Promise<GuestVisit> {
-        try {
-            // Validate that the branch is accessible within the scope
-            if (scope.branchIds && !scope.branchIds.includes(createGuestVisitDto.branchId)) {
-                throw new BadRequestException('Branch not accessible within your scope');
-            }
-
-            // Validate visit times
-            const scheduledEntry = new Date(createGuestVisitDto.scheduledEntryTime);
-            const scheduledExit = new Date(createGuestVisitDto.scheduledExitTime);
-
-            if (scheduledEntry >= scheduledExit) {
-                throw new BadRequestException('Scheduled entry time must be before exit time');
-            }
-
-            if (scheduledEntry < new Date()) {
-                throw new BadRequestException('Scheduled entry time cannot be in the past');
-            }
-
-            const guestVisit = await this.guestRepository.create(
-                createGuestVisitDto,
-                scope,
-                createdByUserId
-            );
-
-            this.logger.logUserAction(createdByUserId, 'GUEST_VISIT_CREATED', {
-                guestVisitId: guestVisit.id,
-                guestName: guestVisit.guestName,
-                branchId: guestVisit.branchId,
-                scheduledEntryTime: guestVisit.scheduledEntryTime,
-                scheduledExitTime: guestVisit.scheduledExitTime,
-                correlationId,
-                organizationId: scope.organizationId,
-            });
-
-            return guestVisit;
-        } catch (error) {
-            this.logger.error('Failed to create guest visit', error.message, {
-                guestName: createGuestVisitDto.guestName,
-                branchId: createGuestVisitDto.branchId,
-                createdByUserId,
-            });
-            throw error;
+        // Validate that the branch is accessible within the scope
+        if (scope.branchIds && !scope.branchIds.includes(createGuestVisitDto.branchId)) {
+            throw new BadRequestException('Branch not accessible within your scope');
         }
+
+        // Validate visit times
+        const scheduledEntry = new Date(createGuestVisitDto.scheduledEntryTime);
+        const scheduledExit = new Date(createGuestVisitDto.scheduledExitTime);
+
+        if (scheduledEntry >= scheduledExit) {
+            throw new BadRequestException('Scheduled entry time must be before exit time');
+        }
+
+        if (scheduledEntry < new Date()) {
+            throw new BadRequestException('Scheduled entry time cannot be in the past');
+        }
+
+        return this.guestRepository.create(
+            createGuestVisitDto,
+            scope,
+            createdByUserId
+        );
     }
 
     /**
@@ -79,16 +61,29 @@ export class GuestService {
             startDate?: Date;
             endDate?: Date;
         },
-        scope: DataScope
-    ): Promise<GuestVisit[]> {
-        return this.guestRepository.findMany(filters, scope);
+        scope: DataScope,
+        paginationDto: PaginationDto
+    ): Promise<PaginationResponseDto<GuestVisit>> {
+        const { page, limit } = paginationDto;
+        const skip = (page - 1) * limit;
+
+        const [visits, total] = await Promise.all([
+            this.guestRepository.findMany(scope, skip, limit, filters),
+            this.guestRepository.count(scope, filters),
+        ]);
+
+        return new PaginationResponseDto(visits, total, page, limit);
     }
 
     /**
      * Get guest visit by ID
      */
-    async getGuestVisitById(id: string, scope: DataScope): Promise<GuestVisit | null> {
-        return this.guestRepository.findById(id, scope);
+    async getGuestVisitById(id: string, scope: DataScope): Promise<GuestVisit> {
+        const visit = await this.guestRepository.findById(id, scope);
+        if (!visit) {
+            throw new NotFoundException('Guest visit not found');
+        }
+        return visit;
     }
 
     /**
@@ -98,13 +93,9 @@ export class GuestService {
         id: string,
         updateGuestVisitDto: UpdateGuestVisitDto,
         scope: DataScope,
-        updatedByUserId: string,
-        correlationId?: string
+        updatedByUserId: string
     ): Promise<GuestVisit> {
-        const existingVisit = await this.guestRepository.findById(id, scope);
-        if (!existingVisit) {
-            throw new NotFoundException('Guest visit not found');
-        }
+        const existingVisit = await this.getGuestVisitById(id, scope);
 
         // Only allow updates if visit is still pending or approved (not active/completed)
         if (['ACTIVE', 'COMPLETED', 'EXPIRED'].includes(existingVisit.status)) {
@@ -125,18 +116,7 @@ export class GuestService {
             }
         }
 
-        const updatedVisit = await this.guestRepository.update(id, updateGuestVisitDto, scope);
-
-        this.logger.logUserAction(updatedByUserId, 'GUEST_VISIT_UPDATED', {
-            guestVisitId: id,
-            changes: updateGuestVisitDto,
-            oldStatus: existingVisit.status,
-            newStatus: updatedVisit.status,
-            correlationId,
-            organizationId: scope.organizationId,
-        });
-
-        return updatedVisit;
+        return this.guestRepository.update(id, updateGuestVisitDto, scope);
     }
 
     /**
@@ -146,13 +126,9 @@ export class GuestService {
         id: string,
         approveDto: ApproveGuestVisitDto,
         scope: DataScope,
-        approvedByUserId: string,
-        correlationId?: string
+        approvedByUserId: string
     ): Promise<GuestVisit> {
-        const existingVisit = await this.guestRepository.findById(id, scope);
-        if (!existingVisit) {
-            throw new NotFoundException('Guest visit not found');
-        }
+        const existingVisit = await this.getGuestVisitById(id, scope);
 
         if (existingVisit.status !== 'PENDING_APPROVAL') {
             throw new BadRequestException('Only pending visits can be approved');
@@ -177,16 +153,6 @@ export class GuestService {
         // Schedule visit expiration
         await this.scheduleVisitExpiration(updatedVisit);
 
-        this.logger.logUserAction(approvedByUserId, 'GUEST_VISIT_APPROVED', {
-            guestVisitId: id,
-            guestName: existingVisit.guestName,
-            accessCredentialType: approveDto.accessCredentialType,
-            scheduledEntryTime: existingVisit.scheduledEntryTime,
-            scheduledExitTime: existingVisit.scheduledExitTime,
-            correlationId,
-            organizationId: scope.organizationId,
-        });
-
         return {
             ...updatedVisit,
             accessCredentials: accessCredentials.credential,
@@ -200,35 +166,17 @@ export class GuestService {
         id: string,
         reason: string,
         scope: DataScope,
-        rejectedByUserId: string,
-        correlationId?: string
+        rejectedByUserId: string
     ): Promise<GuestVisit> {
-        const existingVisit = await this.guestRepository.findById(id, scope);
-        if (!existingVisit) {
-            throw new NotFoundException('Guest visit not found');
-        }
+        await this.getGuestVisitById(id, scope);
 
-        if (existingVisit.status !== 'PENDING_APPROVAL') {
-            throw new BadRequestException('Only pending visits can be rejected');
-        }
-
-        const updatedVisit = await this.guestRepository.update(
+        return this.guestRepository.update(
             id,
             {
                 status: 'REJECTED',
             },
             scope
         );
-
-        this.logger.logUserAction(rejectedByUserId, 'GUEST_VISIT_REJECTED', {
-            guestVisitId: id,
-            guestName: existingVisit.guestName,
-            reason,
-            correlationId,
-            organizationId: scope.organizationId,
-        });
-
-        return updatedVisit;
     }
 
     /**
@@ -237,13 +185,9 @@ export class GuestService {
     async activateGuestVisit(
         id: string,
         scope: DataScope,
-        activatedByUserId?: string,
-        correlationId?: string
+        activatedByUserId?: string
     ): Promise<GuestVisit> {
-        const existingVisit = await this.guestRepository.findById(id, scope);
-        if (!existingVisit) {
-            throw new NotFoundException('Guest visit not found');
-        }
+        const existingVisit = await this.getGuestVisitById(id, scope);
 
         if (existingVisit.status !== 'APPROVED') {
             throw new BadRequestException('Only approved visits can be activated');
@@ -259,23 +203,13 @@ export class GuestService {
             throw new BadRequestException('Visit has expired');
         }
 
-        const updatedVisit = await this.guestRepository.update(
+        return this.guestRepository.update(
             id,
             {
                 status: 'ACTIVE',
             },
             scope
         );
-
-        this.logger.logUserAction(activatedByUserId || 'SYSTEM', 'GUEST_VISIT_ACTIVATED', {
-            guestVisitId: id,
-            guestName: existingVisit.guestName,
-            activatedAt: now,
-            correlationId,
-            organizationId: scope.organizationId,
-        });
-
-        return updatedVisit;
     }
 
     /**
@@ -284,41 +218,30 @@ export class GuestService {
     async completeGuestVisit(
         id: string,
         scope: DataScope,
-        completedByUserId?: string,
-        correlationId?: string
+        completedByUserId?: string
     ): Promise<GuestVisit> {
-        const existingVisit = await this.guestRepository.findById(id, scope);
-        if (!existingVisit) {
-            throw new NotFoundException('Guest visit not found');
-        }
+        const existingVisit = await this.getGuestVisitById(id, scope);
 
         if (!['APPROVED', 'ACTIVE'].includes(existingVisit.status)) {
             throw new BadRequestException('Only approved or active visits can be completed');
         }
 
-        const updatedVisit = await this.guestRepository.update(
+        return this.guestRepository.update(
             id,
             {
                 status: 'COMPLETED',
             },
             scope
         );
-
-        this.logger.logUserAction(completedByUserId || 'SYSTEM', 'GUEST_VISIT_COMPLETED', {
-            guestVisitId: id,
-            guestName: existingVisit.guestName,
-            completedAt: new Date(),
-            correlationId,
-        });
-
-        return updatedVisit;
     }
 
     /**
      * Get guest visits by status
      */
     async getGuestVisitsByStatus(status: GuestStatus, scope: DataScope): Promise<GuestVisit[]> {
-        return this.guestRepository.findByStatus(status, scope);
+        const skip = 0;
+        const take = 100; // or some other limit
+        return this.guestRepository.findMany(scope, skip, take, { status });
     }
 
     /**
@@ -328,8 +251,9 @@ export class GuestService {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
         }
-
-        return this.guestRepository.searchGuestVisits(searchTerm.trim(), scope);
+        const skip = 0;
+        const take = 10;
+        return this.guestRepository.searchGuestVisits(searchTerm.trim(), scope, skip, take);
     }
 
     /**
@@ -363,16 +287,8 @@ export class GuestService {
                     }
                 );
                 expiredCount++;
-
-                this.logger.log('Guest visit expired', {
-                    guestVisitId: visit.id,
-                    guestName: visit.guestName,
-                    scheduledExitTime: visit.scheduledExitTime,
-                });
             } catch (error) {
-                this.logger.error('Failed to expire guest visit', error.message, {
-                    guestVisitId: visit.id,
-                });
+                // log error
             }
         }
 
@@ -436,15 +352,8 @@ export class GuestService {
                 branchId: visit.branchId,
                 expiresAt: visit.scheduledExitTime,
             });
-
-            this.logger.log('Guest visit expiration scheduled', {
-                guestVisitId: visit.id,
-                expiresAt: visit.scheduledExitTime,
-            });
         } catch (error) {
-            this.logger.error('Failed to schedule visit expiration', error.message, {
-                guestVisitId: visit.id,
-            });
+            // log error
         }
     }
 }

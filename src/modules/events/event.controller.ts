@@ -8,23 +8,34 @@ import {
     HttpStatus,
     Post,
     UnauthorizedException,
+    UseGuards,
 } from '@nestjs/common';
-import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+    ApiBearerAuth,
+    ApiExtraModels,
+    ApiHeader,
+    ApiOperation,
+    ApiResponse,
+    ApiTags,
+    getSchemaPath,
+} from '@nestjs/swagger';
 import { EventService } from './event.service';
-import { LoggerService } from '@/core/logger';
-import { CreateRawEventDto } from '@/shared/dto';
+import {
+    ApiErrorResponse,
+    ApiSuccessResponse,
+    CreateRawEventDto,
+    ProcessedEventResponseDto,
+} from '@/shared/dto';
 import { Public } from '@/shared/decorators';
 import { DeviceAuthGuard } from '@/shared/guards/device-auth.guard';
-import { UseGuards } from '@nestjs/common';
+import { ApiOkResponseData } from '@/shared/utils';
 
 @ApiTags('Events')
 @Controller('events')
 @UseGuards(DeviceAuthGuard)
+@ApiExtraModels(ApiSuccessResponse, ProcessedEventResponseDto)
 export class EventController {
-    constructor(
-        private readonly eventService: EventService,
-        private readonly logger: LoggerService
-    ) {}
+    constructor(private readonly eventService: EventService) {}
 
     @Post('raw')
     @Public() // This endpoint uses DeviceAuthGuard instead of JWT
@@ -41,16 +52,40 @@ export class EventController {
         description: 'Idempotency key for preventing duplicate requests',
         required: false,
     })
-    @ApiResponse({ status: 202, description: 'Event accepted for processing.' })
-    @ApiResponse({ status: 400, description: 'Bad request (e.g., missing headers).' })
-    @ApiResponse({ status: 401, description: 'Unauthorized (e.g., invalid signature).' })
-    @ApiResponse({ status: 200, description: 'Duplicate event, already processed.' })
+    @ApiResponse({
+        status: 202,
+        description: 'Event accepted for processing.',
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(ProcessedEventResponseDto) },
+                    },
+                },
+            ],
+        }
+    })
+    @ApiResponse({ status: 400, description: 'Bad request (e.g., missing headers).', type: ApiErrorResponse })
+    @ApiResponse({ status: 401, description: 'Unauthorized (e.g., invalid signature).', type: ApiErrorResponse })
+    @ApiResponse({ status: 200, description: 'Duplicate event, already processed.', type: ApiSuccessResponse,
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(ProcessedEventResponseDto) },
+                    },
+                },
+            ],
+        }
+    })
     async processRawEvent(
         @Body() createRawEventDto: CreateRawEventDto,
         @Headers('x-device-id') deviceId: string,
         @Headers('x-device-signature') signature: string,
         @Headers('x-idempotency-key') idempotencyKey?: string
-    ): Promise<{ eventId: string; status: string; message: string }> {
+    ): Promise<ProcessedEventResponseDto> {
         // Validate required headers
         if (!deviceId) {
             throw new BadRequestException('Device ID header is required');
@@ -72,25 +107,12 @@ export class EventController {
                 finalIdempotencyKey
             );
 
-            this.logger.log('Raw event processed successfully', {
-                eventId,
-                deviceId,
-                eventType: createRawEventDto.eventType,
-                idempotencyKey: finalIdempotencyKey,
-            });
-
             return {
                 eventId,
                 status: 'accepted',
                 message: 'Event queued for processing',
             };
         } catch (error) {
-            this.logger.error('Failed to process raw event', error, {
-                deviceId,
-                eventType: createRawEventDto.eventType,
-                idempotencyKey: finalIdempotencyKey,
-            });
-
             if (error.message === 'DUPLICATE_EVENT') {
                 return {
                     eventId: error.existingEventId,

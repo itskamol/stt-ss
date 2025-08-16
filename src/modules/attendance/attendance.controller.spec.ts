@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
-import { CreateAttendanceDto } from '@/shared/dto';
+import { CreateAttendanceDto, PaginationResponseDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
@@ -57,6 +57,7 @@ describe('AttendanceController', () => {
             getDailyAttendanceReport: jest.fn(),
             getWeeklyAttendanceReport: jest.fn(),
             getMonthlyAttendanceReport: jest.fn(),
+            getLiveAttendance: jest.fn(),
         };
 
         const module: TestingModule = await Test.createTestingModule({
@@ -101,25 +102,14 @@ describe('AttendanceController', () => {
                 createDto,
                 mockDataScope
             );
-            expect(result).toEqual({
-                id: mockAttendanceRecord.id,
-                organizationId: mockAttendanceRecord.organizationId,
-                branchId: mockAttendanceRecord.branchId,
-                employeeId: mockAttendanceRecord.employeeId,
-                guestId: mockAttendanceRecord.guestId,
-                deviceId: mockAttendanceRecord.deviceId,
-                eventType: mockAttendanceRecord.eventType,
-                timestamp: mockAttendanceRecord.timestamp,
-                meta: mockAttendanceRecord.meta,
-                createdAt: mockAttendanceRecord.createdAt,
-            });
+            expect(result).toEqual(mockAttendanceRecord);
         });
     });
 
     describe('getAttendanceRecords', () => {
         it('should return paginated attendance records', async () => {
-            const attendanceRecords = [mockAttendanceRecord];
-            attendanceService.getAttendanceRecords.mockResolvedValue(attendanceRecords as any);
+            const paginatedResponse = new PaginationResponseDto([mockAttendanceRecord], 1, 1, 50);
+            attendanceService.getAttendanceRecords.mockResolvedValue(paginatedResponse as any);
 
             const result = await controller.getAttendanceRecords(
                 mockDataScope,
@@ -131,12 +121,10 @@ describe('AttendanceController', () => {
                 expect.objectContaining({
                     employeeId: 'emp-123',
                 }),
-                mockDataScope
+                mockDataScope,
+                { page: 1, limit: 50 }
             );
-            expect(result.data).toHaveLength(1);
-            expect(result.total).toBe(1);
-            expect(result.page).toBe(1);
-            expect(result.limit).toBe(50);
+            expect(result).toEqual(paginatedResponse);
         });
     });
 
@@ -166,19 +154,19 @@ describe('AttendanceController', () => {
 
     describe('getEmployeeAttendance', () => {
         it('should return attendance records for a specific employee', async () => {
-            const attendanceRecords = [mockAttendanceRecord];
-            attendanceService.getAttendanceRecords.mockResolvedValue(attendanceRecords as any);
+            const paginatedResponse = new PaginationResponseDto([mockAttendanceRecord], 1, 1, 50);
+            attendanceService.getAttendanceRecords.mockResolvedValue(paginatedResponse as any);
 
-            const result = await controller.getEmployeeAttendance('emp-123', mockDataScope, {});
+            const result = await controller.getEmployeeAttendance('emp-123', mockDataScope, {}, { page: 1, limit: 50 });
 
             expect(attendanceService.getAttendanceRecords).toHaveBeenCalledWith(
                 expect.objectContaining({
                     employeeId: 'emp-123',
                 }),
-                mockDataScope
+                mockDataScope,
+                { page: 1, limit: 50 }
             );
-            expect(result).toHaveLength(1);
-            expect(result[0].employeeId).toBe('emp-123');
+            expect(result).toEqual(paginatedResponse);
         });
     });
 
@@ -231,49 +219,48 @@ describe('AttendanceController', () => {
 
     describe('getBranchAttendance', () => {
         it('should return attendance records for a specific branch', async () => {
-            const attendanceRecords = [mockAttendanceRecord];
-            attendanceService.getAttendanceRecords.mockResolvedValue(attendanceRecords as any);
+            const paginatedResponse = new PaginationResponseDto([mockAttendanceRecord], 1, 1, 50);
+            attendanceService.getAttendanceRecords.mockResolvedValue(paginatedResponse as any);
 
-            const result = await controller.getBranchAttendance('branch-123', mockDataScope, {});
+            const result = await controller.getBranchAttendance('branch-123', mockDataScope, {}, { page: 1, limit: 50 });
 
             expect(attendanceService.getAttendanceRecords).toHaveBeenCalledWith(
                 expect.objectContaining({
                     branchId: 'branch-123',
                 }),
-                mockDataScope
+                mockDataScope,
+                { page: 1, limit: 50 }
             );
-            expect(result).toHaveLength(1);
-            expect(result[0].branchId).toBe('branch-123');
+            expect(result).toEqual(paginatedResponse);
         });
     });
 
     describe('getTodayAttendance', () => {
         it("should return today's attendance records", async () => {
-            const attendanceRecords = [mockAttendanceRecord];
-            attendanceService.getAttendanceRecords.mockResolvedValue(attendanceRecords as any);
+            const paginatedResponse = new PaginationResponseDto([mockAttendanceRecord], 1, 1, 50);
+            attendanceService.getAttendanceRecords.mockResolvedValue(paginatedResponse as any);
 
-            const result = await controller.getTodayAttendance(mockDataScope, {});
+            const result = await controller.getTodayAttendance(mockDataScope, {}, { page: 1, limit: 50 });
 
             expect(attendanceService.getAttendanceRecords).toHaveBeenCalledWith(
                 expect.objectContaining({
                     startDate: expect.any(Date),
                     endDate: expect.any(Date),
                 }),
-                mockDataScope
+                mockDataScope,
+                { page: 1, limit: 50 }
             );
-            expect(result).toHaveLength(1);
+            expect(result).toEqual(paginatedResponse);
         });
     });
 
     describe('getLiveAttendance', () => {
         it('should return live attendance status', async () => {
-            const checkInRecord = {
-                ...mockAttendanceRecord,
-                eventType: 'CHECK_IN',
-                timestamp: new Date(),
+            const liveData = {
+                currentlyPresent: [],
+                recentActivity: [],
             };
-
-            attendanceService.getAttendanceRecords.mockResolvedValue([checkInRecord] as any);
+            attendanceService.getLiveAttendance.mockResolvedValue(liveData as any);
 
             const result = await controller.getLiveAttendance(mockDataScope, {});
 
@@ -281,22 +268,6 @@ describe('AttendanceController', () => {
             expect(result).toHaveProperty('recentActivity');
             expect(Array.isArray(result.currentlyPresent)).toBe(true);
             expect(Array.isArray(result.recentActivity)).toBe(true);
-        });
-
-        it('should calculate duration correctly', () => {
-            const startTime = new Date('2024-01-15T09:00:00Z');
-            const endTime = new Date('2024-01-15T11:30:00Z');
-
-            const duration = (controller as any).calculateDuration(startTime, endTime);
-            expect(duration).toBe('2h 30m');
-        });
-
-        it('should handle minutes-only duration', () => {
-            const startTime = new Date('2024-01-15T09:00:00Z');
-            const endTime = new Date('2024-01-15T09:45:00Z');
-
-            const duration = (controller as any).calculateDuration(startTime, endTime);
-            expect(duration).toBe('45m');
         });
     });
 

@@ -1,41 +1,29 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AttendanceRepository } from './attendance.repository';
-import { LoggerService } from '@/core/logger';
-import { CreateAttendanceDto } from '@/shared/dto';
+import {
+    CreateAttendanceDto,
+    PaginationDto,
+    PaginationResponseDto,
+} from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
+import { Attendance } from '@prisma/client';
 
 @Injectable()
 export class AttendanceService {
     constructor(
-        private readonly attendanceRepository: AttendanceRepository,
-        private readonly logger: LoggerService
+        private readonly attendanceRepository: AttendanceRepository
     ) {}
 
-    async createAttendanceRecord(createAttendanceDto: CreateAttendanceDto, scope: DataScope) {
-        try {
-            const attendance = await this.attendanceRepository.create(createAttendanceDto, scope);
-
-            this.logger.log('Attendance record created', {
-                attendanceId: attendance.id,
-                employeeId: createAttendanceDto.employeeId,
-                eventType: createAttendanceDto.eventType,
-                timestamp: createAttendanceDto.timestamp,
-                organizationId: scope.organizationId,
-            });
-
-            return attendance;
-        } catch (error) {
-            this.logger.error('Failed to create attendance record', error, {
-                employeeId: createAttendanceDto.employeeId,
-                eventType: createAttendanceDto.eventType,
-                organizationId: scope.organizationId,
-            });
-            throw error;
-        }
+    async createAttendanceRecord(createAttendanceDto: CreateAttendanceDto, scope: DataScope): Promise<Attendance> {
+        return this.attendanceRepository.create(createAttendanceDto, scope);
     }
 
-    async getLastAttendanceForEmployee(employeeId: string, date: Date, scope: DataScope) {
-        return this.attendanceRepository.findLastAttendanceForEmployee(employeeId, date, scope);
+    async getLastAttendanceForEmployee(employeeId: string, date: Date, scope: DataScope): Promise<Attendance> {
+        const attendance = await this.attendanceRepository.findLastAttendanceForEmployee(employeeId, date, scope);
+        if (!attendance) {
+            throw new NotFoundException('Attendance record not found');
+        }
+        return attendance;
     }
 
     async getAttendanceRecords(
@@ -45,12 +33,21 @@ export class AttendanceService {
             startDate?: Date;
             endDate?: Date;
         },
-        scope: DataScope
-    ) {
-        return this.attendanceRepository.findMany(filters, scope);
+        scope: DataScope,
+        paginationDto: PaginationDto
+    ): Promise<PaginationResponseDto<Attendance>> {
+        const { page, limit } = paginationDto;
+        const skip = (page - 1) * limit;
+
+        const [records, total] = await Promise.all([
+            this.attendanceRepository.findMany(scope, skip, limit, filters),
+            this.attendanceRepository.count(scope, filters),
+        ]);
+
+        return new PaginationResponseDto(records, total, page, limit);
     }
 
-    async getAttendanceById(id: string, scope: DataScope) {
+    async getAttendanceById(id: string, scope: DataScope): Promise<Attendance> {
         const attendance = await this.attendanceRepository.findById(id, scope);
         if (!attendance) {
             throw new NotFoundException('Attendance record not found');
@@ -64,14 +61,11 @@ export class AttendanceService {
         endDate: Date,
         scope: DataScope
     ) {
-        const attendanceRecords = await this.attendanceRepository.findMany(
-            {
-                employeeId,
-                startDate,
-                endDate,
-            },
-            scope
-        );
+        const attendanceRecords = await this.attendanceRepository.findMany(scope, 0, 1000, { // Assuming a reasonable limit for summary
+            employeeId,
+            startDate,
+            endDate,
+        });
 
         // Group by date and calculate hours
         const dailySummary = new Map<
@@ -135,18 +129,8 @@ export class AttendanceService {
     }
 
     async deleteAttendanceRecord(id: string, scope: DataScope) {
-        const attendance = await this.attendanceRepository.findById(id, scope);
-        if (!attendance) {
-            throw new NotFoundException('Attendance record not found');
-        }
-
+        await this.getAttendanceById(id, scope);
         await this.attendanceRepository.delete(id, scope);
-
-        this.logger.log('Attendance record deleted', {
-            attendanceId: id,
-            employeeId: attendance.employeeId,
-            organizationId: scope.organizationId,
-        });
     }
 
     async getAttendanceStats(
@@ -172,7 +156,7 @@ export class AttendanceService {
             endDate: endOfDay,
         };
 
-        const attendanceRecords = await this.attendanceRepository.findMany(filters, scope);
+        const attendanceRecords = await this.attendanceRepository.findMany(scope, 0, 10000, filters); // Large limit for report
 
         // Group by employee
         const employeeAttendance = new Map<
@@ -318,7 +302,7 @@ export class AttendanceService {
             endDate,
         };
 
-        const attendanceRecords = await this.attendanceRepository.findMany(filters, scope);
+        const attendanceRecords = await this.attendanceRepository.findMany(scope, 0, 10000, filters); // Large limit for report
 
         // Group by employee and date
         const employeeMonthlyData = new Map<
@@ -396,5 +380,103 @@ export class AttendanceService {
                 a.employee.employeeCode.localeCompare(b.employee.employeeCode)
             ),
         };
+    }
+
+    async getLiveAttendance(
+        scope: DataScope,
+        filtersDto: Pick<AttendanceFiltersDto, 'branchId'>
+    ) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const filters = {
+            branchId: filtersDto.branchId,
+            startDate: today,
+            endDate: new Date(),
+        };
+
+        const todayRecords = await this.attendanceRepository.findMany(scope, 0, 1000, filters);
+
+        // Group by employee to find current status
+        const employeeStatus = new Map<
+            string,
+            {
+                employee: any;
+                lastCheckIn?: Date;
+                lastCheckOut?: Date;
+                isPresent: boolean;
+            }
+        >();
+
+        todayRecords.forEach(record => {
+            if (!record.employeeId || !record.employee) return;
+
+            const employeeId = record.employeeId;
+            if (!employeeStatus.has(employeeId)) {
+                employeeStatus.set(employeeId, {
+                    employee: record.employee,
+                    isPresent: false,
+                });
+            }
+
+            const status = employeeStatus.get(employeeId)!;
+
+            if (record.eventType === 'CHECK_IN') {
+                if (!status.lastCheckIn || record.timestamp > status.lastCheckIn) {
+                    status.lastCheckIn = record.timestamp;
+                }
+            } else if (record.eventType === 'CHECK_OUT') {
+                if (!status.lastCheckOut || record.timestamp > status.lastCheckOut) {
+                    status.lastCheckOut = record.timestamp;
+                }
+            }
+
+            // Determine if currently present
+            if (
+                status.lastCheckIn &&
+                (!status.lastCheckOut || status.lastCheckIn > status.lastCheckOut)
+            ) {
+                status.isPresent = true;
+            } else {
+                status.isPresent = false;
+            }
+        });
+
+        // Build currently present list
+        const currentlyPresent = Array.from(employeeStatus.values())
+            .filter(status => status.isPresent && status.lastCheckIn)
+            .map(status => {
+                const duration = this.calculateDuration(status.lastCheckIn!, new Date());
+                return {
+                    employeeId: status.employee.id,
+                    employeeName: `${status.employee.firstName} ${status.employee.lastName}`,
+                    employeeCode: status.employee.employeeCode,
+                    checkInTime: status.lastCheckIn!,
+                    duration,
+                };
+            })
+            .sort((a, b) => a.checkInTime.getTime() - b.checkInTime.getTime());
+
+        // Get recent activity (last 20 records)
+        const recentActivity = todayRecords
+            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+            .slice(0, 20);
+
+        return {
+            currentlyPresent,
+            recentActivity,
+        };
+    }
+
+    private calculateDuration(startTime: Date, endTime: Date): string {
+        const diffMs = endTime.getTime() - startTime.getTime();
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        } else {
+            return `${minutes}m`;
+        }
     }
 }

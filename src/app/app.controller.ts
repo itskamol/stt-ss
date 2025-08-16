@@ -3,7 +3,6 @@ import { AppService } from './app.service';
 import { Public } from '@/shared/decorators';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheckResponseDto } from './health/health.dto';
-import { plainToClass } from 'class-transformer';
 
 @ApiTags('App')
 @Controller()
@@ -27,11 +26,11 @@ export class AppController {
         type: HealthCheckResponseDto,
     })
     getHealth(): HealthCheckResponseDto {
-        return plainToClass(HealthCheckResponseDto, {
+        return {
             status: 'ok',
             timestamp: new Date().toISOString(),
             service: 'sector-staff-v2',
             version: '2.1.0',
-        });
+        };
     }
 }

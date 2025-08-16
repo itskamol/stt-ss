@@ -10,7 +10,10 @@ export interface RequestWithCorrelation extends Request {
 export class CorrelationIdMiddleware implements NestMiddleware {
     use(req: RequestWithCorrelation, res: Response, next: NextFunction) {
         // Check if correlation ID is provided in headers, otherwise generate one
-        const correlationId = (req.headers['x-correlation-id'] as string) || UuidUtil.generate();
+        let correlationId = (req.headers['x-correlation-id'] as string | string[]) || UuidUtil.generate();
+        if (Array.isArray(correlationId)) {
+            correlationId = correlationId[0];
+        }
 
         // Add correlation ID to request object
         req.correlationId = correlationId;

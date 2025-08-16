@@ -77,18 +77,7 @@ describe('AuthController', () => {
 
             const result = await controller.login(loginDto, mockRequest as RequestWithCorrelation);
 
-            expect(mockAuthService.login).toHaveBeenCalledWith(loginDto, 'test-correlation-id');
-            expect(mockLoggerService.log).toHaveBeenCalledWith(
-                'Login successful',
-                expect.objectContaining({
-                    email: 'test@example.com',
-                    userId: 'user-123',
-                    organizationId: 'org-456',
-                    roles: [Role.ORG_ADMIN],
-                    correlationId: 'test-correlation-id',
-                    module: 'auth-controller',
-                })
-            );
+            expect(mockAuthService.login).toHaveBeenCalledWith(loginDto);
             expect(result).toEqual(mockLoginResponse);
         });
 
@@ -99,19 +88,6 @@ describe('AuthController', () => {
             await expect(
                 controller.login(loginDto, mockRequest as RequestWithCorrelation)
             ).rejects.toThrow(UnauthorizedException);
-
-            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
-                'LOGIN_ATTEMPT_FAILED',
-                expect.objectContaining({
-                    email: 'test@example.com',
-                    error: 'Invalid credentials',
-                    userAgent: 'test-agent',
-                    ip: '127.0.0.1',
-                }),
-                undefined,
-                undefined,
-                'test-correlation-id'
-            );
         });
     });
 
@@ -134,15 +110,7 @@ describe('AuthController', () => {
             );
 
             expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
-                refreshTokenDto,
-                'test-correlation-id'
-            );
-            expect(mockLoggerService.log).toHaveBeenCalledWith(
-                'Token refresh successful',
-                expect.objectContaining({
-                    correlationId: 'test-correlation-id',
-                    module: 'auth-controller',
-                })
+                refreshTokenDto
             );
             expect(result).toEqual(mockRefreshResponse);
         });
@@ -154,18 +122,6 @@ describe('AuthController', () => {
             await expect(
                 controller.refreshToken(refreshTokenDto, mockRequest as RequestWithCorrelation)
             ).rejects.toThrow(UnauthorizedException);
-
-            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
-                'TOKEN_REFRESH_FAILED',
-                expect.objectContaining({
-                    error: 'Invalid refresh token',
-                    userAgent: 'test-agent',
-                    ip: '127.0.0.1',
-                }),
-                undefined,
-                undefined,
-                'test-correlation-id'
-            );
         });
     });
 
@@ -181,14 +137,7 @@ describe('AuthController', () => {
 
             expect(mockAuthService.logout).toHaveBeenCalledWith(
                 'refresh-token-to-logout',
-                'test-correlation-id'
-            );
-            expect(mockLoggerService.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'LOGOUT_SUCCESS',
-                {},
-                'org-456',
-                'test-correlation-id'
+                mockUser.sub
             );
         });
 
@@ -199,19 +148,6 @@ describe('AuthController', () => {
             await expect(
                 controller.logout(logoutDto, mockUser, mockRequest as RequestWithCorrelation)
             ).rejects.toThrow(Error);
-
-            expect(mockLoggerService.logSecurityEvent).toHaveBeenCalledWith(
-                'LOGOUT_FAILED',
-                expect.objectContaining({
-                    userId: 'user-123',
-                    error: 'Logout failed',
-                    userAgent: 'test-agent',
-                    ip: '127.0.0.1',
-                }),
-                'user-123',
-                'org-456',
-                'test-correlation-id'
-            );
         });
     });
 
@@ -220,17 +156,6 @@ describe('AuthController', () => {
             const result = await controller.validateToken(
                 mockUser,
                 mockRequest as RequestWithCorrelation
-            );
-
-            expect(mockLoggerService.debug).toHaveBeenCalledWith(
-                'Token validation successful',
-                expect.objectContaining({
-                    userId: 'user-123',
-                    organizationId: 'org-456',
-                    roles: [Role.ORG_ADMIN],
-                    correlationId: 'test-correlation-id',
-                    module: 'auth-controller',
-                })
             );
 
             expect(result).toEqual({

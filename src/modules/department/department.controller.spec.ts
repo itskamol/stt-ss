@@ -2,18 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DepartmentController } from './department.controller';
 import { DepartmentService } from './department.service';
 import { LoggerService } from '@/core/logger';
-import {
-    CreateDepartmentDto,
-    DepartmentResponseDto,
-    UpdateDepartmentDto,
-} from '@/shared/dto';
+import { CreateDepartmentDto, UpdateDepartmentDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { Department } from '@prisma/client';
+import { NotFoundException } from '@nestjs/common';
 
 describe('DepartmentController', () => {
     let controller: DepartmentController;
     let departmentService: jest.Mocked<DepartmentService>;
-    let loggerService: jest.Mocked<LoggerService>;
 
     const mockUserContext: UserContext = {
         sub: 'user-123',
@@ -28,13 +25,15 @@ describe('DepartmentController', () => {
         branchIds: ['branch-123'],
     };
 
-    const mockDepartment = {
+    const mockDepartment: Department = {
         id: 'dept-123',
         branchId: 'branch-123',
         name: 'Engineering',
         parentId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        createdById: 'user-123',
+        updatedById: 'user-123',
     };
 
     beforeEach(async () => {
@@ -51,14 +50,6 @@ describe('DepartmentController', () => {
             getDepartmentCount: jest.fn(),
         };
 
-        const mockLoggerService = {
-            log: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
-            logUserAction: jest.fn(),
-        };
-
         const module: TestingModule = await Test.createTestingModule({
             controllers: [DepartmentController],
             providers: [
@@ -68,14 +59,18 @@ describe('DepartmentController', () => {
                 },
                 {
                     provide: LoggerService,
-                    useValue: mockLoggerService,
+                    useValue: {
+                        log: jest.fn(),
+                        error: jest.fn(),
+                        warn: jest.fn(),
+                        debug: jest.fn(),
+                    },
                 },
             ],
         }).compile();
 
         controller = module.get<DepartmentController>(DepartmentController);
         departmentService = module.get(DepartmentService);
-        loggerService = module.get(LoggerService);
     });
 
     it('should be defined', () => {
@@ -102,23 +97,51 @@ describe('DepartmentController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(DepartmentResponseDto);
-            expect(result.id).toBe(mockDepartment.id);
+            expect(result).toEqual(mockDepartment);
         });
     });
 
     describe('getDepartments', () => {
         it('should return paginated departments', async () => {
-            const departments = [mockDepartment];
-            departmentService.getDepartments.mockResolvedValue(departments);
+            const paginatedResult = {
+                data: [mockDepartment],
+                total: 1,
+                page: 1,
+                limit: 10,
+            };
+            const paginationDto = { page: 1, limit: 10 };
+            departmentService.getDepartments.mockResolvedValue(paginatedResult);
 
-            const result = await controller.getDepartments(mockDataScope, { page: 1, limit: 10 });
+            const result = await controller.getDepartments(mockDataScope, paginationDto);
 
-            expect(departmentService.getDepartments).toHaveBeenCalledWith(mockDataScope);
+            expect(departmentService.getDepartments).toHaveBeenCalledWith(
+                mockDataScope,
+                paginationDto
+            );
             expect(result.data).toHaveLength(1);
             expect(result.total).toBe(1);
-            expect(result.page).toBe(1);
-            expect(result.limit).toBe(10);
+        });
+    });
+
+    describe('getDepartmentById', () => {
+        it('should return a department by ID', async () => {
+            departmentService.getDepartmentById.mockResolvedValue(mockDepartment);
+
+            const result = await controller.getDepartmentById('dept-123', mockDataScope);
+
+            expect(departmentService.getDepartmentById).toHaveBeenCalledWith(
+                'dept-123',
+                mockDataScope
+            );
+            expect(result).toEqual(mockDepartment);
+        });
+
+        it('should throw error when department not found', async () => {
+            departmentService.getDepartmentById.mockResolvedValue(null);
+
+            await expect(
+                controller.getDepartmentById('nonexistent', mockDataScope)
+            ).rejects.toThrow(NotFoundException);
         });
     });
 
@@ -191,14 +214,13 @@ describe('DepartmentController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(DepartmentResponseDto);
-            expect(result.name).toBe('Updated Engineering');
+            expect(result).toEqual(updatedDepartment);
         });
     });
 
     describe('deleteDepartment', () => {
         it('should delete a department successfully', async () => {
-            departmentService.deleteDepartment.mockResolvedValue();
+            departmentService.deleteDepartment.mockResolvedValue(undefined);
 
             await controller.deleteDepartment('dept-123', mockUserContext, mockDataScope);
 
@@ -226,7 +248,7 @@ describe('DepartmentController', () => {
 
             expect(departmentService.searchDepartments).toHaveBeenCalledWith('eng', mockDataScope);
             expect(result).toHaveLength(1);
-            expect(result[0]).toBeInstanceOf(DepartmentResponseDto);
+            expect(result[0]).toEqual(mockDepartment);
         });
     });
 
@@ -237,7 +259,7 @@ describe('DepartmentController', () => {
             const result = await controller.getDepartmentCount(mockDataScope);
 
             expect(departmentService.getDepartmentCount).toHaveBeenCalledWith(mockDataScope);
-            expect(result.count).toBe(5);
+            expect(result).toEqual({ count: 5 });
         });
     });
 });

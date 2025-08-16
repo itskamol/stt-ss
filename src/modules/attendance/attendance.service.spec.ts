@@ -9,7 +9,6 @@ import { DataScope } from '@/shared/interfaces';
 describe('AttendanceService', () => {
     let service: AttendanceService;
     let attendanceRepository: jest.Mocked<AttendanceRepository>;
-    let loggerService: jest.Mocked<LoggerService>;
 
     const mockDataScope: DataScope = {
         organizationId: 'org-123',
@@ -23,7 +22,7 @@ describe('AttendanceService', () => {
         employeeId: 'emp-123',
         guestId: null,
         deviceId: 'device-123',
-        eventType: 'CHECK_IN',
+        eventType: 'CHECK_IN' as any,
         timestamp: new Date('2024-01-15T09:00:00Z'),
         meta: { location: 'main_entrance' },
         createdAt: new Date(),
@@ -40,17 +39,11 @@ describe('AttendanceService', () => {
             create: jest.fn(),
             findById: jest.fn(),
             findMany: jest.fn(),
+            count: jest.fn(),
             findLastAttendanceForEmployee: jest.fn(),
             delete: jest.fn(),
             getAttendanceStats: jest.fn(),
             getAttendanceByDateRange: jest.fn(),
-        };
-
-        const mockLoggerService = {
-            log: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
         };
 
         const module: TestingModule = await Test.createTestingModule({
@@ -62,14 +55,18 @@ describe('AttendanceService', () => {
                 },
                 {
                     provide: LoggerService,
-                    useValue: mockLoggerService,
+                    useValue: {
+                        log: jest.fn(),
+                        error: jest.fn(),
+                        warn: jest.fn(),
+                        debug: jest.fn(),
+                    },
                 },
             ],
         }).compile();
 
         service = module.get<AttendanceService>(AttendanceService);
         attendanceRepository = module.get(AttendanceRepository);
-        loggerService = module.get(LoggerService);
     });
 
     it('should be defined', () => {
@@ -93,10 +90,6 @@ describe('AttendanceService', () => {
             const result = await service.createAttendanceRecord(createDto, mockDataScope);
 
             expect(attendanceRepository.create).toHaveBeenCalledWith(createDto, mockDataScope);
-            expect(loggerService.log).toHaveBeenCalledWith(
-                'Attendance record created',
-                expect.any(Object)
-            );
             expect(result).toEqual(mockAttendanceRecord);
         });
 
@@ -116,11 +109,6 @@ describe('AttendanceService', () => {
 
             await expect(service.createAttendanceRecord(createDto, mockDataScope)).rejects.toThrow(
                 'Database error'
-            );
-            expect(loggerService.error).toHaveBeenCalledWith(
-                'Failed to create attendance record',
-                error,
-                expect.any(Object)
             );
         });
     });
@@ -155,13 +143,19 @@ describe('AttendanceService', () => {
                 startDate: new Date('2024-01-01'),
                 endDate: new Date('2024-01-31'),
             };
-
+            const paginationDto = { page: 1, limit: 10 };
             attendanceRepository.findMany.mockResolvedValue([mockAttendanceRecord] as any);
+            attendanceRepository.count.mockResolvedValue(1);
 
-            const result = await service.getAttendanceRecords(filters, mockDataScope);
+            const result = await service.getAttendanceRecords(
+                filters,
+                mockDataScope,
+                paginationDto
+            );
 
-            expect(attendanceRepository.findMany).toHaveBeenCalledWith(filters, mockDataScope);
-            expect(result).toEqual([mockAttendanceRecord]);
+            expect(attendanceRepository.findMany).toHaveBeenCalledWith(mockDataScope, 0, 10, filters);
+            expect(result.data).toEqual([mockAttendanceRecord]);
+            expect(result.total).toBe(1);
         });
     });
 
@@ -254,10 +248,6 @@ describe('AttendanceService', () => {
             expect(attendanceRepository.delete).toHaveBeenCalledWith(
                 'attendance-123',
                 mockDataScope
-            );
-            expect(loggerService.log).toHaveBeenCalledWith(
-                'Attendance record deleted',
-                expect.any(Object)
             );
         });
 

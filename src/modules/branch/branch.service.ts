@@ -1,17 +1,19 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Branch } from '@prisma/client';
 import { BranchRepository } from './branch.repository';
-import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
-import { AssignBranchManagerDto, CreateBranchDto, UpdateBranchDto } from '@/shared/dto';
+import {
+    AssignBranchManagerDto,
+    CreateBranchDto,
+    UpdateBranchDto,
+    PaginationDto,
+    PaginationResponseDto,
+} from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 
 @Injectable()
 export class BranchService {
-    constructor(
-        private readonly branchRepository: BranchRepository,
-        private readonly logger: LoggerService
-    ) {}
+    constructor(private readonly branchRepository: BranchRepository) {}
 
     /**
      * Create a new branch
@@ -19,20 +21,10 @@ export class BranchService {
     async createBranch(
         createBranchDto: CreateBranchDto,
         scope: DataScope,
-        createdByUserId: string,
-        correlationId?: string
+        createdByUserId: string
     ): Promise<Branch> {
         try {
-            const branch = await this.branchRepository.create(createBranchDto, scope);
-
-            this.logger.logUserAction(createdByUserId, 'BRANCH_CREATED', {
-                branchId: branch.id,
-                branchName: branch.name,
-                organizationId: scope.organizationId,
-                correlationId,
-            });
-
-            return branch;
+            return await this.branchRepository.create(createBranchDto, scope);
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -47,15 +39,30 @@ export class BranchService {
     /**
      * Get all branches (scoped to organization/managed branches)
      */
-    async getBranches(scope: DataScope): Promise<Branch[]> {
-        return this.branchRepository.findManagedBranches(scope);
+    async getBranches(
+        scope: DataScope,
+        paginationDto: PaginationDto
+    ): Promise<PaginationResponseDto<Branch>> {
+        const { page, limit } = paginationDto;
+        const skip = (page - 1) * limit;
+
+        const [branches, total] = await Promise.all([
+            this.branchRepository.findMany(scope, skip, limit),
+            this.branchRepository.count(scope),
+        ]);
+
+        return new PaginationResponseDto(branches, total, page, limit);
     }
 
     /**
      * Get branch by ID
      */
-    async getBranchById(id: string, scope: DataScope): Promise<Branch | null> {
-        return this.branchRepository.findById(id, scope);
+    async getBranchById(id: string, scope: DataScope): Promise<Branch> {
+        const branch = await this.branchRepository.findById(id, scope);
+        if (!branch) {
+            throw new NotFoundException('Branch not found');
+        }
+        return branch;
     }
 
     /**
@@ -65,27 +72,12 @@ export class BranchService {
         id: string,
         updateBranchDto: UpdateBranchDto,
         scope: DataScope,
-        updatedByUserId: string,
-        correlationId?: string
+        updatedByUserId: string
     ): Promise<Branch> {
+        await this.getBranchById(id, scope); // Ensure branch exists and is in scope
+
         try {
-            const existingBranch = await this.branchRepository.findById(id, scope);
-            if (!existingBranch) {
-                throw new NotFoundException('Branch not found');
-            }
-
-            const updatedBranch = await this.branchRepository.update(id, updateBranchDto, scope);
-
-            this.logger.logUserAction(updatedByUserId, 'BRANCH_UPDATED', {
-                branchId: id,
-                changes: updateBranchDto,
-                oldName: existingBranch.name,
-                newName: updatedBranch.name,
-                correlationId,
-                organizationId: scope.organizationId,
-            });
-
-            return updatedBranch;
+            return await this.branchRepository.update(id, updateBranchDto, scope);
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -103,22 +95,10 @@ export class BranchService {
     async deleteBranch(
         id: string,
         scope: DataScope,
-        deletedByUserId: string,
-        correlationId?: string
+        deletedByUserId: string
     ): Promise<void> {
-        const existingBranch = await this.branchRepository.findById(id, scope);
-        if (!existingBranch) {
-            throw new NotFoundException('Branch not found');
-        }
-
+        await this.getBranchById(id, scope); // Ensure branch exists and is in scope
         await this.branchRepository.delete(id, scope);
-
-        this.logger.logUserAction(deletedByUserId, 'BRANCH_DELETED', {
-            branchId: id,
-            branchName: existingBranch.name,
-            correlationId,
-            organizationId: scope.organizationId,
-        });
     }
 
     /**
@@ -152,22 +132,15 @@ export class BranchService {
      */
     async assignBranchManager(
         assignDto: AssignBranchManagerDto,
-        assignedByUserId: string,
-        correlationId?: string
+        assignedByUserId: string
     ) {
+        // Here you might want to add validation to ensure the user and branch exist
+        // and belong to the same organization before assigning.
         try {
-            const managedBranch = await this.branchRepository.assignManager(
+            return await this.branchRepository.assignManager(
                 assignDto.managerId,
                 assignDto.branchId
             );
-
-            this.logger.logUserAction(assignedByUserId, 'BRANCH_MANAGER_ASSIGNED', {
-                managerId: assignDto.managerId,
-                branchId: assignDto.branchId,
-                correlationId,
-            });
-
-            return managedBranch;
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 throw new ConflictException('Manager is already assigned to this branch');
@@ -182,16 +155,9 @@ export class BranchService {
     async removeBranchManager(
         managerId: string,
         branchId: string,
-        removedByUserId: string,
-        correlationId?: string
+        removedByUserId: string
     ): Promise<void> {
         await this.branchRepository.removeManager(managerId, branchId);
-
-        this.logger.logUserAction(removedByUserId, 'BRANCH_MANAGER_REMOVED', {
-            managerId,
-            branchId,
-            correlationId,
-        });
     }
 
     /**
@@ -208,14 +174,15 @@ export class BranchService {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
         }
-
-        return this.branchRepository.searchBranches(searchTerm.trim(), scope);
+        const skip = 0;
+        const take = 10;
+        return this.branchRepository.searchBranches(searchTerm.trim(), scope, skip, take);
     }
 
     /**
      * Get branch count
      */
     async getBranchCount(scope: DataScope): Promise<number> {
-        return this.branchRepository.count({}, scope);
+        return this.branchRepository.count(scope);
     }
 }

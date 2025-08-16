@@ -1,6 +1,5 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { LoggerService } from '@/core/logger';
 import { UserContext } from '../interfaces/data-scope.interface';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 
@@ -10,10 +9,7 @@ export interface RequestWithUser extends RequestWithCorrelation {
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-    constructor(
-        private readonly reflector: Reflector,
-        private readonly logger: LoggerService
-    ) {}
+    constructor(private readonly reflector: Reflector) {}
 
     canActivate(context: ExecutionContext): boolean {
         const request = context.switchToHttp().getRequest<RequestWithUser>();
@@ -40,28 +36,24 @@ export class RolesGuard implements CanActivate {
             context.getClass(),
         ]);
 
-        // If no permissions are required, allow access
-        if (!requiredPermissions || requiredPermissions.length === 0) {
-            return true;
-        }
-
         // Get required roles from decorator (alternative to permissions)
         const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
             context.getHandler(),
             context.getClass(),
         ]);
 
+        // If no permissions or roles are required, allow access.
+        if (
+            (!requiredPermissions || requiredPermissions.length === 0) &&
+            (!requiredRoles || requiredRoles.length === 0)
+        ) {
+            return true;
+        }
+
         // Check role-based access
         if (requiredRoles && requiredRoles.length > 0) {
             const hasRole = requiredRoles.some(role => user.roles.includes(role));
             if (!hasRole) {
-                this.logger.logUserAction(user.sub, 'ROLE_ACCESS_DENIED', {
-                    userId: user.sub,
-                    userRoles: user.roles,
-                    requiredRoles,
-                    url: request.url,
-                    method: request.method,
-                });
                 throw new ForbiddenException('Insufficient role privileges');
             }
         }
@@ -69,38 +61,13 @@ export class RolesGuard implements CanActivate {
         // Check permission-based access
         if (requiredPermissions && requiredPermissions.length > 0) {
             const hasAllPermissions = requiredPermissions.every(permission =>
-                user.permissions.includes(permission)
+                user.permissions?.includes(permission)
             );
 
             if (!hasAllPermissions) {
-                const missingPermissions = requiredPermissions.filter(
-                    permission => !user.permissions.includes(permission)
-                );
-
-                this.logger.logUserAction(user.sub, 'PERMISSION_ACCESS_DENIED', {
-                    userId: user.sub,
-                    userPermissions: user.permissions,
-                    requiredPermissions,
-                    missingPermissions,
-                    url: request.url,
-                    method: request.method,
-                });
-
                 throw new ForbiddenException('Insufficient permissions');
             }
         }
-
-        this.logger.debug('Role/permission check passed', {
-            userId: user.sub,
-            userRoles: user.roles,
-            userPermissions: user.permissions,
-            requiredRoles,
-            requiredPermissions,
-            url: request.url,
-            method: request.method,
-            correlationId: request.correlationId,
-            module: 'roles-guard',
-        });
 
         return true;
     }

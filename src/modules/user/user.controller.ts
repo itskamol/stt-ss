@@ -9,26 +9,29 @@ import {
     Patch,
     Post,
     Query,
+    NotFoundException,
 } from '@nestjs/common';
 import {
     ApiBearerAuth,
     ApiBody,
+    ApiExtraModels,
     ApiOperation,
     ApiParam,
     ApiQuery,
     ApiResponse,
     ApiTags,
+    getSchemaPath,
 } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { LoggerService } from '@/core/logger';
 import {
+    ApiErrorResponse,
+    ApiSuccessResponse,
     AssignUserToOrganizationDto,
     ChangePasswordDto,
     CreateUserDto,
-    ErrorResponseDto,
     OrganizationUserResponseDto,
     PaginationDto,
-    PaginationResponseDto,
     UpdateUserDto,
     UserResponseDto,
     UserWithOrganizationsResponseDto,
@@ -36,12 +39,13 @@ import {
 import { NoScoping, Permissions, Roles, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
-import { Role } from '@prisma/client';
-import { plainToClass } from 'class-transformer';
+import { OrganizationUser, Role, User as UserModel } from '@prisma/client';
+import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
 
 @ApiTags('Users')
 @ApiBearerAuth()
 @Controller('users')
+@ApiExtraModels(ApiSuccessResponse, UserResponseDto, OrganizationUserResponseDto, UserWithOrganizationsResponseDto)
 export class UserController {
     constructor(
         private readonly userService: UserService,
@@ -56,71 +60,56 @@ export class UserController {
     @ApiResponse({
         status: 201,
         description: 'The user has been successfully created.',
-        type: UserResponseDto,
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(UserResponseDto) },
+                    },
+                },
+            ],
+        }
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 409, description: 'Conflict.', type: ApiErrorResponse })
     async createUser(
         @Body() createUserDto: CreateUserDto,
         @User() user: UserContext
-    ): Promise<UserResponseDto> {
-        const createdUser = await this.userService.createUser(createUserDto, user.sub);
-        return plainToClass(UserResponseDto, createdUser);
+    ): Promise<UserModel> {
+        return this.userService.createUser(createUserDto, user.sub);
     }
 
     @Get(':id')
     @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Get a specific user by ID' })
     @ApiParam({ name: 'id', description: 'ID of the user' })
-    @ApiResponse({ status: 200, description: 'The user details.', type: UserResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'User not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(UserResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
     async getUserById(
         @Param('id') id: string,
         @Scope() scope: DataScope
-    ): Promise<UserResponseDto> {
+    ): Promise<UserModel> {
         const user = await this.userService.findById(id);
         if (!user) {
-            throw new Error('User not found');
+            throw new NotFoundException('User not found');
         }
-        return plainToClass(UserResponseDto, user);
+        return user;
     }
 
     @Get()
     @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Get all users in the current organization' })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
-    @ApiResponse({
-        status: 200,
-        description: 'A paginated list of users in the organization.',
-        type: PaginationResponseDto<OrganizationUserResponseDto>,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiOkResponsePaginated(OrganizationUserResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getOrganizationUsers(
         @Scope() scope: DataScope,
         @Query() paginationDto: PaginationDto
-    ): Promise<PaginationResponseDto<OrganizationUserResponseDto>> {
-        const users = await this.userService.getOrganizationUsers(scope);
-
-        // Simple pagination (in a real app, you'd do this at the database level)
-        const { page = 1, limit = 10 } = paginationDto;
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginatedUsers = users.slice(startIndex, endIndex);
-
-        const responseUsers = paginatedUsers.map(orgUser =>
-            plainToClass(OrganizationUserResponseDto, {
-                ...orgUser.user,
-                role: orgUser.role,
-                organizationId: orgUser.organizationId,
-                managedBranches: orgUser.managedBranches.map(mb => ({
-                    branchId: mb.branchId,
-                    branchName: mb.branch.name,
-                })),
-            })
-        );
-
-        return new PaginationResponseDto(responseUsers, users.length, page, limit);
+    ) {
+        return this.userService.getOrganizationUsers(scope, paginationDto);
     }
 
     @Patch(':id')
@@ -128,33 +117,28 @@ export class UserController {
     @ApiOperation({ summary: 'Update a user' })
     @ApiParam({ name: 'id', description: 'ID of the user to update' })
     @ApiBody({ type: UpdateUserDto })
-    @ApiResponse({
-        status: 200,
-        description: 'The user has been successfully updated.',
-        type: UserResponseDto,
-    })
-    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'User not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(UserResponseDto)
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
     async updateUser(
         @Param('id') id: string,
         @Body() updateUserDto: UpdateUserDto,
         @User() user: UserContext
-    ): Promise<UserResponseDto> {
-        const updatedUser = await this.userService.updateUser(id, updateUserDto, user.sub);
-        return plainToClass(UserResponseDto, updatedUser);
+    ): Promise<UserModel> {
+        return this.userService.updateUser(id, updateUserDto, user.sub);
     }
 
     @Patch(':id/password')
-    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @HttpCode(HttpStatus.NO_CONTENT)
+    @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Change a user’s password' })
     @ApiParam({ name: 'id', description: 'ID of the user' })
     @ApiBody({ type: ChangePasswordDto })
     @ApiResponse({ status: 204, description: 'Password changed successfully.' })
-    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'User not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
     async changeUserPassword(
         @Param('id') id: string,
         @Body() changePasswordDto: ChangePasswordDto,
@@ -169,12 +153,12 @@ export class UserController {
     @ApiOperation({ summary: 'Assign a user to an organization (Super Admin)' })
     @ApiParam({ name: 'id', description: 'ID of the user' })
     @ApiBody({ type: AssignUserToOrganizationDto })
-    @ApiResponse({ status: 201, description: 'User assigned successfully.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 201, description: 'User assigned successfully.'})
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({
         status: 404,
         description: 'User or organization not found.',
-        type: ErrorResponseDto,
+        type: ApiErrorResponse,
     })
     async assignUserToOrganization(
         @Param('id') userId: string,
@@ -186,15 +170,7 @@ export class UserController {
             userId,
         };
 
-        const orgUser = await this.userService.assignToOrganization(assignmentData, user.sub);
-
-        return {
-            id: orgUser.id,
-            userId: orgUser.userId,
-            organizationId: orgUser.organizationId,
-            role: orgUser.role,
-            createdAt: orgUser.createdAt,
-        };
+        return this.userService.assignToOrganization(assignmentData, user.sub);
     }
 
     @Delete(':userId/organizations/:organizationId')
@@ -205,8 +181,8 @@ export class UserController {
     @ApiParam({ name: 'userId', description: 'ID of the user' })
     @ApiParam({ name: 'organizationId', description: 'ID of the organization' })
     @ApiResponse({ status: 204, description: 'User removed successfully.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Assignment not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Assignment not found.', type: ApiErrorResponse })
     async removeUserFromOrganization(
         @Param('userId') userId: string,
         @Param('organizationId') organizationId: string,
@@ -219,73 +195,46 @@ export class UserController {
     @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Activate a user' })
     @ApiParam({ name: 'id', description: 'ID of the user to activate' })
-    @ApiResponse({
-        status: 200,
-        description: 'The user has been successfully activated.',
-        type: UserResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'User not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(UserResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
     async activateUser(
         @Param('id') id: string,
         @User() user: UserContext
-    ): Promise<UserResponseDto> {
-        const activatedUser = await this.userService.activateUser(id, user.sub);
-        return plainToClass(UserResponseDto, activatedUser);
+    ): Promise<UserModel> {
+        return this.userService.activateUser(id, user.sub);
     }
 
     @Patch(':id/deactivate')
     @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Deactivate a user' })
     @ApiParam({ name: 'id', description: 'ID of the user to deactivate' })
-    @ApiResponse({
-        status: 200,
-        description: 'The user has been successfully deactivated.',
-        type: UserResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'User not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(UserResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
     async deactivateUser(
         @Param('id') id: string,
         @User() user: UserContext
-    ): Promise<UserResponseDto> {
-        const deactivatedUser = await this.userService.deactivateUser(id, user.sub);
-        return plainToClass(UserResponseDto, deactivatedUser);
+    ): Promise<UserModel> {
+        return this.userService.deactivateUser(id, user.sub);
     }
 
     @Get(':id/organizations')
     @Permissions(PERMISSIONS.USER.MANAGE_ORG)
     @ApiOperation({ summary: 'Get all organizations a user belongs to' })
     @ApiParam({ name: 'id', description: 'ID of the user' })
-    @ApiResponse({
-        status: 200,
-        description: 'A list of organizations for the user.',
-        type: UserWithOrganizationsResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'User not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(UserWithOrganizationsResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
     async getUserOrganizations(
         @Param('id') id: string
-    ): Promise<UserWithOrganizationsResponseDto> {
+    ) {
         const userWithOrgs = await this.userService.getUserWithOrganizations(id);
 
         if (!userWithOrgs) {
-            throw new Error('User not found');
+            throw new NotFoundException('User not found');
         }
 
-        return plainToClass(UserWithOrganizationsResponseDto, {
-            ...userWithOrgs,
-            organizations: userWithOrgs.organizationLinks.map(link => ({
-                organizationId: link.organizationId,
-                organizationName: link.organization.name,
-                role: link.role,
-                managedBranches: link.managedBranches.map(mb => ({
-                    branchId: mb.branchId,
-                    branchName: mb.branch.name,
-                    assignedAt: mb.assignedAt,
-                })),
-                joinedAt: link.createdAt,
-            })),
-        });
+        return userWithOrgs;
     }
 }

@@ -12,29 +12,35 @@ import {
 import {
     ApiBearerAuth,
     ApiBody,
+    ApiExtraModels,
     ApiOperation,
     ApiParam,
     ApiQuery,
     ApiResponse,
     ApiTags,
+    getSchemaPath,
 } from '@nestjs/swagger';
 import { AttendanceService } from './attendance.service';
 import {
+    ApiErrorResponse,
+    ApiSuccessResponse,
     AttendanceFiltersDto,
     AttendanceResponseDto,
     AttendanceStatsDto,
     AttendanceSummaryDto,
     CreateAttendanceDto,
     PaginationDto,
-    PaginationResponseDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
-import { AttendanceWithRelations, DataScope, UserContext } from '@/shared/interfaces';
+import { DataScope, UserContext } from '@/shared/interfaces';
+import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
+import { Attendance } from '@prisma/client';
 
 @ApiTags('Attendance')
 @ApiBearerAuth()
 @Controller('attendance')
+@ApiExtraModels(ApiSuccessResponse, AttendanceResponseDto, AttendanceStatsDto, AttendanceSummaryDto)
 export class AttendanceController {
     constructor(private readonly attendanceService: AttendanceService) {}
 
@@ -45,32 +51,28 @@ export class AttendanceController {
     @ApiResponse({
         status: 201,
         description: 'The attendance record has been successfully created.',
-        type: AttendanceResponseDto,
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(AttendanceResponseDto) },
+                    },
+                },
+            ],
+        }
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async createAttendanceRecord(
         @Body() createAttendanceDto: CreateAttendanceDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<AttendanceResponseDto> {
-        const attendance = await this.attendanceService.createAttendanceRecord(
+    ): Promise<Attendance> {
+        return this.attendanceService.createAttendanceRecord(
             createAttendanceDto,
             scope
         );
-
-        return {
-            id: attendance.id,
-            organizationId: attendance.organizationId,
-            branchId: attendance.branchId,
-            employeeId: attendance.employeeId,
-            guestId: attendance.guestId,
-            deviceId: attendance.deviceId,
-            eventType: attendance.eventType,
-            timestamp: attendance.timestamp,
-            meta: attendance.meta,
-            createdAt: attendance.createdAt,
-        };
     }
 
     @Get()
@@ -78,17 +80,13 @@ export class AttendanceController {
     @ApiOperation({ summary: 'Get all attendance records with filters and pagination' })
     @ApiQuery({ name: 'filtersDto', type: AttendanceFiltersDto })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
-    @ApiResponse({
-        status: 200,
-        description: 'A paginated list of attendance records.',
-        type: PaginationResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiOkResponsePaginated(AttendanceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getAttendanceRecords(
         @Scope() scope: DataScope,
         @Query() filtersDto: AttendanceFiltersDto,
         @Query() paginationDto: PaginationDto
-    ): Promise<PaginationResponseDto<AttendanceResponseDto>> {
+    ) {
         const filters = {
             employeeId: filtersDto.employeeId,
             branchId: filtersDto.branchId,
@@ -96,42 +94,15 @@ export class AttendanceController {
             endDate: filtersDto.endDate ? new Date(filtersDto.endDate) : undefined,
         };
 
-        const attendanceRecords = await this.attendanceService.getAttendanceRecords(filters, scope);
-
-        // Simple pagination (in a real app, you'd do this at the database level)
-        const { page = 1, limit = 50 } = paginationDto;
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginatedRecords = attendanceRecords.slice(startIndex, endIndex);
-
-        const responseRecords = paginatedRecords.map(record => ({
-            id: record.id,
-            organizationId: record.organizationId,
-            branchId: record.branchId,
-            employeeId: record.employeeId,
-            guestId: record.guestId,
-            deviceId: record.deviceId,
-            eventType: record.eventType,
-            timestamp: record.timestamp,
-            meta: record.meta,
-            createdAt: record.createdAt,
-            employee: record.employee,
-            device: record.device,
-        }));
-
-        return new PaginationResponseDto(responseRecords, attendanceRecords.length, page, limit);
+        return this.attendanceService.getAttendanceRecords(filters, scope, paginationDto);
     }
 
     @Get('stats')
     @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get attendance statistics' })
     @ApiQuery({ name: 'filtersDto', type: AttendanceFiltersDto })
-    @ApiResponse({
-        status: 200,
-        description: 'Attendance statistics.',
-        type: AttendanceStatsDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiOkResponseData(AttendanceStatsDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getAttendanceStats(
         @Scope() scope: DataScope,
         @Query() filtersDto: AttendanceFiltersDto
@@ -150,18 +121,15 @@ export class AttendanceController {
     @ApiOperation({ summary: 'Get all attendance records for a specific employee' })
     @ApiParam({ name: 'employeeId', description: 'ID of the employee' })
     @ApiQuery({ name: 'filtersDto', type: AttendanceFiltersDto })
-    @ApiResponse({
-        status: 200,
-        description: 'A list of attendance records for the employee.',
-        type: [AttendanceResponseDto],
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Employee not found.' })
+    @ApiOkResponsePaginated(AttendanceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async getEmployeeAttendance(
         @Param('employeeId') employeeId: string,
         @Scope() scope: DataScope,
-        @Query() filtersDto: AttendanceFiltersDto
-    ): Promise<AttendanceResponseDto[]> {
+        @Query() filtersDto: AttendanceFiltersDto,
+        @Query() paginationDto: PaginationDto
+    ) {
         const filters = {
             employeeId,
             branchId: filtersDto.branchId,
@@ -169,22 +137,7 @@ export class AttendanceController {
             endDate: filtersDto.endDate ? new Date(filtersDto.endDate) : undefined,
         };
 
-        const attendanceRecords = await this.attendanceService.getAttendanceRecords(filters, scope);
-
-        return attendanceRecords.map(record => ({
-            id: record.id,
-            organizationId: record.organizationId,
-            branchId: record.branchId,
-            employeeId: record.employeeId,
-            guestId: record.guestId,
-            deviceId: record.deviceId,
-            eventType: record.eventType,
-            timestamp: record.timestamp,
-            meta: record.meta,
-            createdAt: record.createdAt,
-            employee: record.employee,
-            device: record.device,
-        }));
+        return this.attendanceService.getAttendanceRecords(filters, scope, paginationDto);
     }
 
     @Get('employee/:employeeId/summary')
@@ -193,14 +146,10 @@ export class AttendanceController {
     @ApiParam({ name: 'employeeId', description: 'ID of the employee' })
     @ApiQuery({ name: 'startDate', description: 'Start date for the summary (YYYY-MM-DD)' })
     @ApiQuery({ name: 'endDate', description: 'End date for the summary (YYYY-MM-DD)' })
-    @ApiResponse({
-        status: 200,
-        description: 'Attendance summary for the employee.',
-        type: AttendanceSummaryDto,
-    })
-    @ApiResponse({ status: 400, description: 'Start date and end date are required.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Employee not found.' })
+    @ApiOkResponseData(AttendanceSummaryDto)
+    @ApiResponse({ status: 400, description: 'Start date and end date are required.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async getEmployeeAttendanceSummary(
         @Param('employeeId') employeeId: string,
         @Query('startDate') startDate: string,
@@ -224,18 +173,15 @@ export class AttendanceController {
     @ApiOperation({ summary: 'Get all attendance records for a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
     @ApiQuery({ name: 'filtersDto', type: AttendanceFiltersDto })
-    @ApiResponse({
-        status: 200,
-        description: 'A list of attendance records for the branch.',
-        type: [AttendanceResponseDto],
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Branch not found.' })
+    @ApiOkResponsePaginated(AttendanceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ApiErrorResponse })
     async getBranchAttendance(
         @Param('branchId') branchId: string,
         @Scope() scope: DataScope,
-        @Query() filtersDto: AttendanceFiltersDto
-    ): Promise<AttendanceResponseDto[]> {
+        @Query() filtersDto: AttendanceFiltersDto,
+        @Query() paginationDto: PaginationDto
+    ) {
         const filters = {
             branchId,
             employeeId: filtersDto.employeeId,
@@ -243,22 +189,7 @@ export class AttendanceController {
             endDate: filtersDto.endDate ? new Date(filtersDto.endDate) : undefined,
         };
 
-        const attendanceRecords = await this.attendanceService.getAttendanceRecords(filters, scope);
-
-        return attendanceRecords.map(record => ({
-            id: record.id,
-            organizationId: record.organizationId,
-            branchId: record.branchId,
-            employeeId: record.employeeId,
-            guestId: record.guestId,
-            deviceId: record.deviceId,
-            eventType: record.eventType,
-            timestamp: record.timestamp,
-            meta: record.meta,
-            createdAt: record.createdAt,
-            employee: record.employee,
-            device: record.device,
-        }));
+        return this.attendanceService.getAttendanceRecords(filters, scope, paginationDto);
     }
 
     @Get('today')
@@ -269,16 +200,13 @@ export class AttendanceController {
         type: AttendanceFiltersDto,
         description: 'Filter by employeeId or branchId',
     })
-    @ApiResponse({
-        status: 200,
-        description: "A list of today's attendance records.",
-        type: [AttendanceResponseDto],
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiOkResponsePaginated(AttendanceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getTodayAttendance(
         @Scope() scope: DataScope,
-        @Query() filtersDto: Pick<AttendanceFiltersDto, 'employeeId' | 'branchId'>
-    ): Promise<AttendanceResponseDto[]> {
+        @Query() filtersDto: Pick<AttendanceFiltersDto, 'employeeId' | 'branchId'>,
+        @Query() paginationDto: PaginationDto
+    ) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
@@ -291,22 +219,7 @@ export class AttendanceController {
             endDate: tomorrow,
         };
 
-        const attendanceRecords = await this.attendanceService.getAttendanceRecords(filters, scope);
-
-        return attendanceRecords.map(record => ({
-            id: record.id,
-            organizationId: record.organizationId,
-            branchId: record.branchId,
-            employeeId: record.employeeId,
-            guestId: record.guestId,
-            deviceId: record.deviceId,
-            eventType: record.eventType,
-            timestamp: record.timestamp,
-            meta: record.meta,
-            createdAt: record.createdAt,
-            employee: record.employee,
-            device: record.device,
-        }));
+        return this.attendanceService.getAttendanceRecords(filters, scope, paginationDto);
     }
 
     @Get('live')
@@ -317,151 +230,27 @@ export class AttendanceController {
         type: AttendanceFiltersDto,
         description: 'Filter by branchId',
     })
-    @ApiResponse({
-        status: 200,
-        description: 'Live attendance data.',
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 200, description: 'Live attendance data.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getLiveAttendance(
         @Scope() scope: DataScope,
         @Query() filtersDto: Pick<AttendanceFiltersDto, 'branchId'>
-    ): Promise<{
-        currentlyPresent: Array<{
-            employeeId: string;
-            employeeName: string;
-            employeeCode: string;
-            checkInTime: Date;
-            duration: string;
-        }>;
-        recentActivity: AttendanceResponseDto[];
-    }> {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const filters = {
-            branchId: filtersDto.branchId,
-            startDate: today,
-            endDate: new Date(),
-        };
-
-        const todayRecords = await this.attendanceService.getAttendanceRecords(filters, scope);
-
-        // Group by employee to find current status
-        const employeeStatus = new Map<
-            string,
-            {
-                employee: any;
-                lastCheckIn?: Date;
-                lastCheckOut?: Date;
-                isPresent: boolean;
-            }
-        >();
-
-        todayRecords.forEach(record => {
-            if (!record.employeeId || !record.employee) return;
-
-            const employeeId = record.employeeId;
-            if (!employeeStatus.has(employeeId)) {
-                employeeStatus.set(employeeId, {
-                    employee: record.employee,
-                    isPresent: false,
-                });
-            }
-
-            const status = employeeStatus.get(employeeId)!;
-
-            if (record.eventType === 'CHECK_IN') {
-                if (!status.lastCheckIn || record.timestamp > status.lastCheckIn) {
-                    status.lastCheckIn = record.timestamp;
-                }
-            } else if (record.eventType === 'CHECK_OUT') {
-                if (!status.lastCheckOut || record.timestamp > status.lastCheckOut) {
-                    status.lastCheckOut = record.timestamp;
-                }
-            }
-
-            // Determine if currently present
-            if (
-                status.lastCheckIn &&
-                (!status.lastCheckOut || status.lastCheckIn > status.lastCheckOut)
-            ) {
-                status.isPresent = true;
-            } else {
-                status.isPresent = false;
-            }
-        });
-
-        // Build currently present list
-        const currentlyPresent = Array.from(employeeStatus.values())
-            .filter(status => status.isPresent && status.lastCheckIn)
-            .map(status => {
-                const duration = this.calculateDuration(status.lastCheckIn!, new Date());
-                return {
-                    employeeId: status.employee.id,
-                    employeeName: `${status.employee.firstName} ${status.employee.lastName}`,
-                    employeeCode: status.employee.employeeCode,
-                    checkInTime: status.lastCheckIn!,
-                    duration,
-                };
-            })
-            .sort((a, b) => a.checkInTime.getTime() - b.checkInTime.getTime());
-
-        // Get recent activity (last 20 records)
-        const recentActivity = todayRecords
-            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-            .slice(0, 20)
-            .map(record => ({
-                id: record.id,
-                organizationId: record.organizationId,
-                branchId: record.branchId,
-                employeeId: record.employeeId,
-                guestId: record.guestId,
-                deviceId: record.deviceId,
-                eventType: record.eventType,
-                timestamp: record.timestamp,
-                meta: record.meta,
-                createdAt: record.createdAt,
-                employee: record.employee,
-                device: record.device,
-            }));
-
-        return {
-            currentlyPresent,
-            recentActivity,
-        };
+    ) {
+        return this.attendanceService.getLiveAttendance(scope, filtersDto);
     }
 
     @Get(':id')
     @Permissions(PERMISSIONS.ATTENDANCE.READ_ALL)
     @ApiOperation({ summary: 'Get a specific attendance record by ID' })
     @ApiParam({ name: 'id', description: 'ID of the attendance record' })
-    @ApiResponse({
-        status: 200,
-        description: 'The attendance record.',
-        type: AttendanceResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Attendance record not found.' })
+    @ApiOkResponseData(AttendanceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Attendance record not found.', type: ApiErrorResponse })
     async getAttendanceById(
         @Param('id') id: string,
         @Scope() scope: DataScope
-    ): Promise<AttendanceResponseDto> {
-        const attendance = await this.attendanceService.getAttendanceById(id, scope);
-
-        return {
-            id: attendance.id,
-            organizationId: attendance.organizationId,
-            branchId: attendance.branchId,
-            employeeId: attendance.employeeId,
-            guestId: attendance.guestId,
-            deviceId: attendance.deviceId,
-            eventType: attendance.eventType,
-            timestamp: attendance.timestamp,
-            meta: attendance.meta,
-            createdAt: attendance.createdAt,
-            employee: (attendance as AttendanceWithRelations).employee,
-            device: (attendance as AttendanceWithRelations).device,
-        };
+    ): Promise<Attendance> {
+        return this.attendanceService.getAttendanceById(id, scope);
     }
 
     @Delete(':id')
@@ -470,8 +259,8 @@ export class AttendanceController {
     @ApiOperation({ summary: 'Delete an attendance record' })
     @ApiParam({ name: 'id', description: 'ID of the attendance record to delete' })
     @ApiResponse({ status: 204, description: 'The record has been successfully deleted.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
-    @ApiResponse({ status: 404, description: 'Attendance record not found.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Attendance record not found.', type: ApiErrorResponse })
     async deleteAttendanceRecord(
         @Param('id') id: string,
         @User() user: UserContext,
@@ -486,7 +275,7 @@ export class AttendanceController {
     @ApiQuery({ name: 'date', description: 'Date for the report (YYYY-MM-DD)', required: false })
     @ApiQuery({ name: 'branchId', description: 'Filter by branch ID', required: false })
     @ApiResponse({ status: 200, description: 'The daily attendance report.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getDailyAttendanceReport(
         @Query('date') date: string,
         @Query('branchId') branchId?: string,
@@ -502,8 +291,8 @@ export class AttendanceController {
     @ApiQuery({ name: 'startDate', description: 'Start date for the report (YYYY-MM-DD)' })
     @ApiQuery({ name: 'branchId', description: 'Filter by branch ID', required: false })
     @ApiResponse({ status: 200, description: 'The weekly attendance report.' })
-    @ApiResponse({ status: 400, description: 'Start date is required.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 400, description: 'Start date is required.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getWeeklyAttendanceReport(
         @Query('startDate') startDate: string,
         @Query('branchId') branchId?: string,
@@ -526,8 +315,8 @@ export class AttendanceController {
     @ApiQuery({ name: 'month', description: 'Month for the report (1-12)' })
     @ApiQuery({ name: 'branchId', description: 'Filter by branch ID', required: false })
     @ApiResponse({ status: 200, description: 'The monthly attendance report.' })
-    @ApiResponse({ status: 400, description: 'Year and month are required.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.' })
+    @ApiResponse({ status: 400, description: 'Year and month are required.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getMonthlyAttendanceReport(
         @Query('year') year: string,
         @Query('month') month: string,
@@ -543,17 +332,5 @@ export class AttendanceController {
             branchId,
             scope
         );
-    }
-
-    private calculateDuration(startTime: Date, endTime: Date): string {
-        const diffMs = endTime.getTime() - startTime.getTime();
-        const hours = Math.floor(diffMs / (1000 * 60 * 60));
-        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-        if (hours > 0) {
-            return `${hours}h ${minutes}m`;
-        } else {
-            return `${minutes}m`;
-        }
     }
 }

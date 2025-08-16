@@ -2,17 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { LoggerService } from '@/core/logger';
-import {
-    ChangePasswordDto,
-    CreateUserDto,
-    OrganizationUserResponseDto,
-    UpdateUserDto,
-    UserResponseDto,
-    UserWithOrganizationsResponseDto,
-} from '@/shared/dto';
+import { ChangePasswordDto, CreateUserDto, UpdateUserDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { Role } from '@/shared/enums';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { NotFoundException } from '@nestjs/common';
+import { User as UserModel } from '@prisma/client';
 
 describe('UserController', () => {
     let controller: UserController;
@@ -50,7 +45,7 @@ describe('UserController', () => {
         branchIds: [],
     };
 
-    const mockUserEntity = {
+    const mockUserEntity: Partial<UserModel> = {
         id: 'user-123',
         email: 'test@example.com',
         fullName: 'Test User',
@@ -94,7 +89,6 @@ describe('UserController', () => {
             const result = await controller.createUser(createUserDto, mockUser);
 
             expect(mockUserService.createUser).toHaveBeenCalledWith(createUserDto, 'user-123');
-            expect(result).toBeInstanceOf(UserResponseDto);
             expect(result.id).toBe(mockUserEntity.id);
         });
     });
@@ -106,73 +100,54 @@ describe('UserController', () => {
             const result = await controller.getUserById('user-123', mockScope);
 
             expect(mockUserService.findById).toHaveBeenCalledWith('user-123');
-            expect(result).toBeInstanceOf(UserResponseDto);
             expect(result.id).toBe(mockUserEntity.id);
         });
 
         it('should throw error when user not found', async () => {
             mockUserService.findById.mockResolvedValue(null);
 
-            await expect(controller.getUserById('nonexistent', mockScope)).rejects.toThrow();
+            await expect(controller.getUserById('nonexistent', mockScope)).rejects.toThrow(
+                NotFoundException
+            );
         });
     });
 
     describe('getOrganizationUsers', () => {
         it('should return paginated organization users', async () => {
-            const mockOrgUsers = [
-                {
-                    id: 'org-user-1',
-                    userId: 'user-1',
-                    organizationId: 'org-456',
-                    role: Role.ORG_ADMIN,
-                    createdAt: new Date(),
-                    user: {
-                        id: 'user-1',
-                        email: 'user1@example.com',
-                        fullName: 'User One',
-                        isActive: true,
-                    },
-                    managedBranches: [],
-                },
-                {
-                    id: 'org-user-2',
-                    userId: 'user-2',
-                    organizationId: 'org-456',
-                    role: Role.BRANCH_MANAGER,
-                    createdAt: new Date(),
-                    user: {
-                        id: 'user-2',
-                        email: 'user2@example.com',
-                        fullName: 'User Two',
-                        isActive: true,
-                    },
-                    managedBranches: [
-                        {
-                            branchId: 'branch-1',
-                            branch: { name: 'Main Branch' },
+            const mockOrgUsers = {
+                data: [
+                    {
+                        id: 'org-user-1',
+                        userId: 'user-1',
+                        organizationId: 'org-456',
+                        role: Role.ORG_ADMIN,
+                        createdAt: new Date(),
+                        user: {
+                            id: 'user-1',
+                            email: 'user1@example.com',
+                            fullName: 'User One',
+                            isActive: true,
                         },
-                    ],
-                },
-            ];
+                        managedBranches: [],
+                    },
+                ],
+                total: 1,
+                page: 1,
+                limit: 10,
+            };
 
             mockUserService.getOrganizationUsers.mockResolvedValue(mockOrgUsers);
 
-            const result = await controller.getOrganizationUsers(mockScope, { page: 1, limit: 10 });
+            const paginationDto = { page: 1, limit: 10 };
+            const result = await controller.getOrganizationUsers(mockScope, paginationDto);
 
-            expect(mockUserService.getOrganizationUsers).toHaveBeenCalledWith(mockScope);
-            expect(result.data).toHaveLength(2);
-            expect(result.total).toBe(2);
-            expect(result.page).toBe(1);
-            expect(result.limit).toBe(10);
-            expect(result.data[0]).toEqual(
-                expect.objectContaining({
-                    id: 'user-1',
-                    email: 'user1@example.com',
-                    role: Role.ORG_ADMIN,
-                    managedBranches: [],
-                })
+            expect(mockUserService.getOrganizationUsers).toHaveBeenCalledWith(
+                mockScope,
+                paginationDto
             );
-            expect(result.data[1]).toBeInstanceOf(OrganizationUserResponseDto);
+            expect(result.data).toHaveLength(1);
+            expect(result.total).toBe(1);
+            expect(result.page).toBe(1);
         });
     });
 
@@ -193,7 +168,6 @@ describe('UserController', () => {
                 updateUserDto,
                 'user-123'
             );
-            expect(result).toBeInstanceOf(UserResponseDto);
             expect(result.fullName).toBe('Updated Name');
         });
     });
@@ -248,13 +222,7 @@ describe('UserController', () => {
                 },
                 'user-123'
             );
-            expect(result).toEqual({
-                id: mockOrgUser.id,
-                userId: mockOrgUser.userId,
-                organizationId: mockOrgUser.organizationId,
-                role: mockOrgUser.role,
-                createdAt: mockOrgUser.createdAt,
-            });
+            expect(result).toEqual(mockOrgUser);
         });
     });
 
@@ -280,7 +248,6 @@ describe('UserController', () => {
             const result = await controller.activateUser('user-123', mockUser);
 
             expect(mockUserService.activateUser).toHaveBeenCalledWith('user-123', 'user-123');
-            expect(result).toBeInstanceOf(UserResponseDto);
             expect(result.isActive).toBe(true);
         });
     });
@@ -293,7 +260,6 @@ describe('UserController', () => {
             const result = await controller.deactivateUser('user-123', mockUser);
 
             expect(mockUserService.deactivateUser).toHaveBeenCalledWith('user-123', 'user-123');
-            expect(result).toBeInstanceOf(UserResponseDto);
             expect(result.isActive).toBe(false);
         });
     });
@@ -326,14 +292,15 @@ describe('UserController', () => {
             const result = await controller.getUserOrganizations('user-123');
 
             expect(mockUserService.getUserWithOrganizations).toHaveBeenCalledWith('user-123');
-            expect(result).toBeInstanceOf(UserWithOrganizationsResponseDto);
-            expect(result.organizations).toHaveLength(1);
+            expect(result.id).toEqual(mockUserWithOrgs.id);
         });
 
         it('should throw error when user not found', async () => {
             mockUserService.getUserWithOrganizations.mockResolvedValue(null);
 
-            await expect(controller.getUserOrganizations('nonexistent')).rejects.toThrow();
+            await expect(controller.getUserOrganizations('nonexistent')).rejects.toThrow(
+                NotFoundException
+            );
         });
     });
 });

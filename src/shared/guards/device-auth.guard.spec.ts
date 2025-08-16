@@ -119,7 +119,8 @@ describe('DeviceAuthGuard', () => {
                 'Device authentication failed: Request too old',
                 expect.objectContaining({
                     deviceId: 'device-123',
-                    timestamp: oldTimestamp,
+                    timestamp: expect.any(Date),
+                    timeDiff: expect.any(Number),
                 })
             );
         });

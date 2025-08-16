@@ -2,28 +2,27 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BranchController } from './branch.controller';
 import { BranchService } from './branch.service';
 import { LoggerService } from '@/core/logger';
-import {
-    BranchManagerResponseDto,
-    BranchResponseDto,
-    BranchStatsResponseDto,
-    CreateBranchDto,
-    ManagedBranchResponseDto,
-    UpdateBranchDto,
-} from '@/shared/dto';
+import { CreateBranchDto, UpdateBranchDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { Branch, ManagedBranch } from '@prisma/client';
+import { NotFoundException } from '@nestjs/common';
 
 describe('BranchController', () => {
     let controller: BranchController;
     let branchService: jest.Mocked<BranchService>;
-    let loggerService: jest.Mocked<LoggerService>;
 
     const mockUserContext: UserContext = {
         sub: 'user-123',
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: [PERMISSIONS.BRANCH.CREATE, PERMISSIONS.BRANCH.READ_ALL],
+        permissions: [
+            PERMISSIONS.BRANCH.CREATE,
+            PERMISSIONS.BRANCH.READ_ALL,
+            PERMISSIONS.BRANCH.UPDATE_MANAGED,
+            PERMISSIONS.USER.MANAGE_ORG,
+        ],
     };
 
     const mockDataScope: DataScope = {
@@ -31,20 +30,23 @@ describe('BranchController', () => {
         branchIds: ['branch-123'],
     };
 
-    const mockBranch = {
+    const mockBranch: Branch = {
         id: 'branch-123',
         organizationId: 'org-123',
         name: 'Main Branch',
         address: '123 Main St',
         createdAt: new Date(),
         updatedAt: new Date(),
+        createdById: 'user-123',
+        updatedById: 'user-123',
     };
 
-    const mockManagedBranch = {
+    const mockManagedBranch: ManagedBranch & { manager: any } = {
         id: 'managed-123',
         managerId: 'user-123',
         branchId: 'branch-123',
         assignedAt: new Date(),
+        assignedById: 'user-123',
         manager: {
             id: 'org-user-123',
             createdAt: new Date(),
@@ -78,14 +80,6 @@ describe('BranchController', () => {
             getBranchCount: jest.fn(),
         };
 
-        const mockLoggerService = {
-            log: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
-            logUserAction: jest.fn(),
-        };
-
         const module: TestingModule = await Test.createTestingModule({
             controllers: [BranchController],
             providers: [
@@ -95,14 +89,18 @@ describe('BranchController', () => {
                 },
                 {
                     provide: LoggerService,
-                    useValue: mockLoggerService,
+                    useValue: {
+                        log: jest.fn(),
+                        error: jest.fn(),
+                        warn: jest.fn(),
+                        debug: jest.fn(),
+                    },
                 },
             ],
         }).compile();
 
         controller = module.get<BranchController>(BranchController);
         branchService = module.get(BranchService);
-        loggerService = module.get(LoggerService);
     });
 
     it('should be defined', () => {
@@ -125,23 +123,26 @@ describe('BranchController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(BranchResponseDto);
-            expect(result.id).toBe(mockBranch.id);
+            expect(result).toEqual(mockBranch);
         });
     });
 
     describe('getBranches', () => {
         it('should return paginated branches', async () => {
-            const branches = [mockBranch];
-            branchService.getBranches.mockResolvedValue(branches);
+            const paginatedResult = {
+                data: [mockBranch],
+                total: 1,
+                page: 1,
+                limit: 10,
+            };
+            const paginationDto = { page: 1, limit: 10 };
+            branchService.getBranches.mockResolvedValue(paginatedResult);
 
-            const result = await controller.getBranches(mockDataScope, { page: 1, limit: 10 });
+            const result = await controller.getBranches(mockDataScope, paginationDto);
 
-            expect(branchService.getBranches).toHaveBeenCalledWith(mockDataScope);
+            expect(branchService.getBranches).toHaveBeenCalledWith(mockDataScope, paginationDto);
             expect(result.data).toHaveLength(1);
             expect(result.total).toBe(1);
-            expect(result.page).toBe(1);
-            expect(result.limit).toBe(10);
         });
     });
 
@@ -152,14 +153,15 @@ describe('BranchController', () => {
             const result = await controller.getBranchById('branch-123', mockDataScope);
 
             expect(branchService.getBranchById).toHaveBeenCalledWith('branch-123', mockDataScope);
-            expect(result).toBeInstanceOf(BranchResponseDto);
-            expect(result.id).toBe(mockBranch.id);
+            expect(result).toEqual(mockBranch);
         });
 
         it('should throw error when branch not found', async () => {
             branchService.getBranchById.mockResolvedValue(null);
 
-            await expect(controller.getBranchById('nonexistent', mockDataScope)).rejects.toThrow();
+            await expect(
+                controller.getBranchById('nonexistent', mockDataScope)
+            ).rejects.toThrow(NotFoundException);
         });
     });
 
@@ -185,14 +187,13 @@ describe('BranchController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(BranchResponseDto);
-            expect(result.name).toBe('Updated Branch');
+            expect(result).toEqual(updatedBranch);
         });
     });
 
     describe('deleteBranch', () => {
         it('should delete a branch successfully', async () => {
-            branchService.deleteBranch.mockResolvedValue();
+            branchService.deleteBranch.mockResolvedValue(undefined);
 
             await controller.deleteBranch('branch-123', mockUserContext, mockDataScope);
 
@@ -222,14 +223,13 @@ describe('BranchController', () => {
                 { ...assignDto, branchId: 'branch-123' },
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(ManagedBranchResponseDto);
-            expect(result.managerId).toBe(mockManagedBranch.managerId);
+            expect(result).toEqual(mockManagedBranch);
         });
     });
 
     describe('removeBranchManager', () => {
         it('should remove a branch manager successfully', async () => {
-            branchService.removeBranchManager.mockResolvedValue();
+            branchService.removeBranchManager.mockResolvedValue(undefined);
 
             await controller.removeBranchManager('branch-123', 'user-123', mockUserContext);
 
@@ -252,7 +252,7 @@ describe('BranchController', () => {
                 mockDataScope
             );
             expect(result).toHaveLength(1);
-            expect(result[0]).toBeInstanceOf(BranchManagerResponseDto);
+            expect(result[0]).toEqual(mockManagedBranch);
         });
     });
 
@@ -272,7 +272,7 @@ describe('BranchController', () => {
 
             expect(branchService.searchBranches).toHaveBeenCalledWith('main', mockDataScope);
             expect(result).toHaveLength(1);
-            expect(result[0]).toBeInstanceOf(BranchResponseDto);
+            expect(result[0]).toEqual(mockBranch);
         });
     });
 
@@ -283,7 +283,7 @@ describe('BranchController', () => {
             const result = await controller.getBranchCount(mockDataScope);
 
             expect(branchService.getBranchCount).toHaveBeenCalledWith(mockDataScope);
-            expect(result.count).toBe(3);
+            expect(result).toEqual({ count: 3 });
         });
     });
 
@@ -303,7 +303,6 @@ describe('BranchController', () => {
                 'branch-123',
                 mockDataScope
             );
-            expect(result).toBeInstanceOf(BranchStatsResponseDto);
             expect(result.employeeCount).toBe(25);
         });
     });

@@ -30,7 +30,7 @@ export class DepartmentRepository {
         });
     }
 
-    async findMany(filters: any = {}, scope: DataScope): Promise<Department[]> {
+    async findMany(scope: DataScope, skip: number, take: number, filters: any = {}): Promise<Department[]> {
         const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         return this.prisma.department.findMany({
@@ -38,6 +38,8 @@ export class DepartmentRepository {
                 ...filters,
                 branch: whereClause,
             },
+            skip,
+            take,
             include: {
                 parent: true,
                 children: true,
@@ -104,7 +106,7 @@ export class DepartmentRepository {
         });
     }
 
-    async count(filters: any = {}, scope: DataScope): Promise<number> {
+    async count(scope: DataScope, filters: any = {}): Promise<number> {
         const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         return this.prisma.department.count({
@@ -136,7 +138,7 @@ export class DepartmentRepository {
         });
     }
 
-    async searchDepartments(searchTerm: string, scope: DataScope): Promise<Department[]> {
+    async searchDepartments(searchTerm: string, scope: DataScope, skip: number, take: number): Promise<Department[]> {
         const whereClause = QueryBuilder.buildBranchRelationScope(scope);
 
         return this.prisma.department.findMany({
@@ -147,6 +149,8 @@ export class DepartmentRepository {
                 },
                 branch: whereClause,
             },
+            skip,
+            take,
             include: {
                 parent: true,
                 children: true,

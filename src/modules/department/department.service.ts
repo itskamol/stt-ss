@@ -6,17 +6,18 @@ import {
 } from '@nestjs/common';
 import { Department } from '@prisma/client';
 import { DepartmentRepository } from './department.repository';
-import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
-import { CreateDepartmentDto, UpdateDepartmentDto } from '@/shared/dto';
+import {
+    CreateDepartmentDto,
+    UpdateDepartmentDto,
+    PaginationDto,
+    PaginationResponseDto,
+} from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 
 @Injectable()
 export class DepartmentService {
-    constructor(
-        private readonly departmentRepository: DepartmentRepository,
-        private readonly logger: LoggerService
-    ) {}
+    constructor(private readonly departmentRepository: DepartmentRepository) {}
 
     /**
      * Create a new department
@@ -24,8 +25,7 @@ export class DepartmentService {
     async createDepartment(
         createDepartmentDto: CreateDepartmentDto,
         scope: DataScope,
-        createdByUserId: string,
-        correlationId?: string
+        createdByUserId: string
     ): Promise<Department> {
         try {
             // Validate parent department if provided
@@ -43,18 +43,7 @@ export class DepartmentService {
                 }
             }
 
-            const department = await this.departmentRepository.create(createDepartmentDto);
-
-            this.logger.logUserAction(createdByUserId, 'DEPARTMENT_CREATED', {
-                departmentId: department.id,
-                departmentName: department.name,
-                branchId: department.branchId,
-                parentId: department.parentId,
-                correlationId,
-                organizationId: scope.organizationId,
-            });
-
-            return department;
+            return await this.departmentRepository.create(createDepartmentDto);
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -69,8 +58,19 @@ export class DepartmentService {
     /**
      * Get all departments (scoped to managed branches)
      */
-    async getDepartments(scope: DataScope): Promise<Department[]> {
-        return this.departmentRepository.findMany({}, scope);
+    async getDepartments(
+        scope: DataScope,
+        paginationDto: PaginationDto
+    ): Promise<PaginationResponseDto<Department>> {
+        const { page, limit } = paginationDto;
+        const skip = (page - 1) * limit;
+
+        const [departments, total] = await Promise.all([
+            this.departmentRepository.findMany(scope, skip, limit),
+            this.departmentRepository.count(scope),
+        ]);
+
+        return new PaginationResponseDto(departments, total, page, limit);
     }
 
     /**
@@ -90,8 +90,12 @@ export class DepartmentService {
     /**
      * Get department by ID
      */
-    async getDepartmentById(id: string, scope: DataScope): Promise<Department | null> {
-        return this.departmentRepository.findById(id, scope);
+    async getDepartmentById(id: string, scope: DataScope): Promise<Department> {
+        const department = await this.departmentRepository.findById(id, scope);
+        if (!department) {
+            throw new NotFoundException('Department not found');
+        }
+        return department;
     }
 
     /**
@@ -101,15 +105,11 @@ export class DepartmentService {
         id: string,
         updateDepartmentDto: UpdateDepartmentDto,
         scope: DataScope,
-        updatedByUserId: string,
-        correlationId?: string
+        updatedByUserId: string
     ): Promise<Department> {
-        try {
-            const existingDepartment = await this.departmentRepository.findById(id, scope);
-            if (!existingDepartment) {
-                throw new NotFoundException('Department not found');
-            }
+        const existingDepartment = await this.getDepartmentById(id, scope);
 
+        try {
             // Validate parent department if being updated
             if (updateDepartmentDto.parentId) {
                 // Check if setting this parent would create a circular reference
@@ -138,24 +138,11 @@ export class DepartmentService {
                 }
             }
 
-            const updatedDepartment = await this.departmentRepository.update(
+            return await this.departmentRepository.update(
                 id,
                 updateDepartmentDto,
                 scope
             );
-
-            this.logger.logUserAction(updatedByUserId, 'DEPARTMENT_UPDATED', {
-                departmentId: id,
-                changes: updateDepartmentDto,
-                oldName: existingDepartment.name,
-                newName: updatedDepartment.name,
-                oldParentId: existingDepartment.parentId,
-                newParentId: updatedDepartment.parentId,
-                correlationId,
-                organizationId: scope.organizationId,
-            });
-
-            return updatedDepartment;
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -173,16 +160,12 @@ export class DepartmentService {
     async deleteDepartment(
         id: string,
         scope: DataScope,
-        deletedByUserId: string,
-        correlationId?: string
+        deletedByUserId: string
     ): Promise<void> {
-        const existingDepartment = await this.departmentRepository.findById(id, scope);
-        if (!existingDepartment) {
-            throw new NotFoundException('Department not found');
-        }
+        await this.getDepartmentById(id, scope); // Ensure department exists and is in scope
 
         // Check if department has children
-        const childrenCount = await this.departmentRepository.count({ parentId: id }, scope);
+        const childrenCount = await this.departmentRepository.count(scope, { parentId: id });
         if (childrenCount > 0) {
             throw new BadRequestException(
                 'Cannot delete department with child departments. Please delete or reassign child departments first.'
@@ -190,14 +173,6 @@ export class DepartmentService {
         }
 
         await this.departmentRepository.delete(id, scope);
-
-        this.logger.logUserAction(deletedByUserId, 'DEPARTMENT_DELETED', {
-            departmentId: id,
-            departmentName: existingDepartment.name,
-            branchId: existingDepartment.branchId,
-            correlationId,
-            organizationId: scope.organizationId,
-        });
     }
 
     /**
@@ -233,14 +208,15 @@ export class DepartmentService {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
         }
-
-        return this.departmentRepository.searchDepartments(searchTerm.trim(), scope);
+        const skip = 0;
+        const take = 10;
+        return this.departmentRepository.searchDepartments(searchTerm.trim(), scope, skip, take);
     }
 
     /**
      * Get department count
      */
     async getDepartmentCount(scope: DataScope): Promise<number> {
-        return this.departmentRepository.count({}, scope);
+        return this.departmentRepository.count(scope);
     }
 }

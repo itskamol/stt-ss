@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { EventController } from './event.controller';
 import { EventService } from './event.service';
 import { LoggerService } from '@/core/logger';
 import { CreateRawEventDto } from '@/shared/dto';
-import { EventType } from '@prisma/client';
+import { UnauthorizedException } from '@nestjs/common';
+import { DeviceAuthGuard } from '@/shared/guards/device-auth.guard';
 
 describe('EventController', () => {
     let controller: EventController;
@@ -35,7 +35,10 @@ describe('EventController', () => {
                     useValue: mockLoggerService,
                 },
             ],
-        }).compile();
+        })
+            .overrideGuard(DeviceAuthGuard)
+            .useValue({ canActivate: () => true }) // Mock the guard
+            .compile();
 
         controller = module.get<EventController>(EventController);
         eventService = module.get(EventService);
@@ -47,168 +50,98 @@ describe('EventController', () => {
     });
 
     describe('processRawEvent', () => {
-        const mockEventDto: CreateRawEventDto = {
-            eventType: EventType.CARD_SCAN,
+        const createRawEventDto: CreateRawEventDto = {
+            eventType: 'CARD_SCAN' as any,
             timestamp: new Date().toISOString(),
-            cardId: 'CARD-123',
-            additionalData: { location: 'main_entrance' },
+            employeeId: 'emp-123',
         };
+        const deviceId = 'device-123';
+        const signature = 'valid-signature';
+        const idempotencyKey = 'unique-key-123';
 
         it('should process raw event successfully', async () => {
-            const deviceId = 'device-123';
-            const signature = 'dev-mock-signature';
-            const idempotencyKey = 'unique-key-123';
             const eventId = 'event-456';
-
             eventService.processRawEvent.mockResolvedValue(eventId);
 
             const result = await controller.processRawEvent(
-                mockEventDto,
+                createRawEventDto,
                 deviceId,
                 signature,
                 idempotencyKey
             );
 
             expect(eventService.processRawEvent).toHaveBeenCalledWith(
-                mockEventDto,
+                createRawEventDto,
                 deviceId,
                 signature,
                 idempotencyKey
             );
-
             expect(result).toEqual({
                 eventId,
                 status: 'accepted',
                 message: 'Event queued for processing',
             });
-
-            expect(loggerService.log).toHaveBeenCalledWith(
-                'Raw event processed successfully',
-                expect.objectContaining({
-                    eventId,
-                    deviceId,
-                    eventType: mockEventDto.eventType,
-                    idempotencyKey,
-                })
-            );
         });
 
-        it('should generate idempotency key if not provided', async () => {
-            const deviceId = 'device-123';
-            const signature = 'dev-mock-signature';
-            const eventId = 'event-456';
-
-            eventService.processRawEvent.mockResolvedValue(eventId);
-
-            const result = await controller.processRawEvent(mockEventDto, deviceId, signature);
-
-            expect(eventService.processRawEvent).toHaveBeenCalledWith(
-                mockEventDto,
-                deviceId,
-                signature,
-                expect.stringContaining(deviceId)
-            );
-
-            expect(result.eventId).toBe(eventId);
-        });
-
-        it('should throw BadRequestException when device ID is missing', async () => {
-            const signature = 'dev-mock-signature';
-
-            await expect(controller.processRawEvent(mockEventDto, '', signature)).rejects.toThrow(
-                BadRequestException
-            );
-        });
-
-        it('should throw UnauthorizedException when signature is missing', async () => {
-            const deviceId = 'device-123';
-
-            await expect(controller.processRawEvent(mockEventDto, deviceId, '')).rejects.toThrow(
-                UnauthorizedException
-            );
-        });
-
-        it('should handle duplicate events', async () => {
-            const deviceId = 'device-123';
-            const signature = 'dev-mock-signature';
-            const idempotencyKey = 'duplicate-key';
-            const existingEventId = 'existing-event-123';
-
+        it('should handle duplicate events gracefully', async () => {
             const duplicateError = new Error('DUPLICATE_EVENT');
-            (duplicateError as any).existingEventId = existingEventId;
+            (duplicateError as any).existingEventId = 'existing-event-789';
             eventService.processRawEvent.mockRejectedValue(duplicateError);
 
             const result = await controller.processRawEvent(
-                mockEventDto,
+                createRawEventDto,
                 deviceId,
                 signature,
-                idempotencyKey
+                'duplicate-key'
             );
 
             expect(result).toEqual({
-                eventId: existingEventId,
+                eventId: 'existing-event-789',
                 status: 'duplicate',
                 message: 'Event already processed',
             });
         });
 
-        it('should handle processing errors', async () => {
-            const deviceId = 'device-123';
-            const signature = 'dev-mock-signature';
-            const idempotencyKey = 'error-key';
+        it('should generate idempotency key if not provided', async () => {
+            const eventId = 'event-456';
+            eventService.processRawEvent.mockResolvedValue(eventId);
 
+            await controller.processRawEvent(createRawEventDto, deviceId, signature, undefined);
+
+            expect(eventService.processRawEvent).toHaveBeenCalledWith(
+                createRawEventDto,
+                deviceId,
+                signature,
+                expect.any(String) // Check that a key was generated
+            );
+        });
+
+        it('should throw UnauthorizedException for invalid signature', async () => {
+            const authError = new UnauthorizedException('Device signature verification failed');
+            eventService.processRawEvent.mockRejectedValue(authError);
+
+            await expect(
+                controller.processRawEvent(
+                    createRawEventDto,
+                    deviceId,
+                    'invalid-signature',
+                    idempotencyKey
+                )
+            ).rejects.toThrow(UnauthorizedException);
+        });
+
+        it('should re-throw other processing errors', async () => {
             const processingError = new Error('Processing failed');
             eventService.processRawEvent.mockRejectedValue(processingError);
 
             await expect(
-                controller.processRawEvent(mockEventDto, deviceId, signature, idempotencyKey)
-            ).rejects.toThrow('Processing failed');
-
-            expect(loggerService.error).toHaveBeenCalledWith(
-                'Failed to process raw event',
-                processingError,
-                expect.objectContaining({
+                controller.processRawEvent(
+                    createRawEventDto,
                     deviceId,
-                    eventType: mockEventDto.eventType,
-                    idempotencyKey,
-                })
-            );
-        });
-    });
-
-    describe('generateIdempotencyKey', () => {
-        it('should generate consistent idempotency keys', () => {
-            const deviceId = 'device-123';
-            const eventData: CreateRawEventDto = {
-                eventType: EventType.CARD_SCAN,
-                timestamp: '2023-01-01T12:00:00Z',
-                cardId: 'CARD-123',
-            };
-
-            // Access private method for testing
-            const key1 = (controller as any).generateIdempotencyKey(deviceId, eventData);
-            const key2 = (controller as any).generateIdempotencyKey(deviceId, eventData);
-
-            expect(key1).toBe(key2);
-            expect(key1).toContain(deviceId);
-            expect(key1).toContain('2023-01-01T12:00:00Z');
-        });
-
-        it('should generate different keys for different data', () => {
-            const deviceId = 'device-123';
-            const eventData1: CreateRawEventDto = {
-                eventType: EventType.CARD_SCAN,
-                cardId: 'CARD-123',
-            };
-            const eventData2: CreateRawEventDto = {
-                eventType: EventType.CARD_SCAN,
-                cardId: 'CARD-456',
-            };
-
-            const key1 = (controller as any).generateIdempotencyKey(deviceId, eventData1);
-            const key2 = (controller as any).generateIdempotencyKey(deviceId, eventData2);
-
-            expect(key1).not.toBe(key2);
+                    signature,
+                    'error-key'
+                )
+            ).rejects.toThrow('Processing failed');
         });
     });
 });

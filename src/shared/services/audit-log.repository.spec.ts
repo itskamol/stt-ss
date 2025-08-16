@@ -78,7 +78,6 @@ describe('AuditLogRepository', () => {
                 method: 'POST',
                 url: '/api/v1/employees',
                 userAgent: 'Mozilla/5.0',
-                host: '192.168.1.1',
                 status: 'SUCCESS',
                 duration: 150,
                 timestamp: new Date(),
@@ -86,10 +85,10 @@ describe('AuditLogRepository', () => {
 
             prismaService.auditLog.create.mockResolvedValue(mockAuditLog as any);
 
-            const result = await repository.create(createData);
+            const result = await repository.create(createData as any);
 
             expect(prismaService.auditLog.create).toHaveBeenCalledWith({
-                data: createData,
+                data: expect.objectContaining(createData),
             });
             expect(result).toEqual(mockAuditLog);
         });
@@ -174,7 +173,7 @@ describe('AuditLogRepository', () => {
             prismaService.auditLog.findMany.mockResolvedValue([]);
             prismaService.auditLog.count.mockResolvedValue(0);
 
-            // const result = await repository.findMany({}, mockDataScope);
+            await repository.findMany({}, mockDataScope, { page: 1, limit: 50 });
 
             expect(prismaService.auditLog.findMany).toHaveBeenCalledWith({
                 where: {

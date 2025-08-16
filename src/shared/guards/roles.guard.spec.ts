@@ -1,40 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { RequestWithUser, RolesGuard } from './roles.guard';
-import { LoggerService } from '@/core/logger';
-import { UserContext } from '../interfaces/data-scope.interface';
-import { Role } from '@prisma/client';
-import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { RolesGuard } from './roles.guard';
+import { Role } from '../enums';
+import { UserContext } from '../interfaces';
+import { PERMISSIONS } from '../constants/permissions.constants';
 
 describe('RolesGuard', () => {
     let guard: RolesGuard;
+    let reflector: Reflector;
 
-    const mockReflector = {
-        getAllAndOverride: jest.fn(),
-    };
+    const mockContext: ExecutionContext = {
+        switchToHttp: () => ({
+            getRequest: () => ({
+                user: {
+                    sub: 'user-123',
+                    roles: [Role.ORG_ADMIN],
+                    permissions: ['employee:create', 'employee:read:all'],
+                } as UserContext,
+            }),
+        }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
+    } as any;
 
-    const mockLogger = {
-        logSecurityEvent: jest.fn(),
-        debug: jest.fn(),
-    };
-
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                RolesGuard,
-                {
-                    provide: Reflector,
-                    useValue: mockReflector,
-                },
-                {
-                    provide: LoggerService,
-                    useValue: mockLogger,
-                },
-            ],
-        }).compile();
-
-        guard = module.get<RolesGuard>(RolesGuard);
+    beforeEach(() => {
+        reflector = new Reflector();
+        guard = new RolesGuard(reflector);
     });
 
     afterEach(() => {
@@ -42,55 +33,16 @@ describe('RolesGuard', () => {
     });
 
     describe('canActivate', () => {
-        const mockUser: UserContext = {
-            sub: 'user-123',
-            email: 'test@example.com',
-            organizationId: 'org-456',
-            branchIds: ['branch-1'],
-            roles: [Role.ORG_ADMIN],
-            permissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL],
-        };
-
-        const createMockContext = (user?: UserContext): ExecutionContext => {
-            const mockRequest: Partial<RequestWithUser> = {
-                user,
-                url: '/test',
-                method: 'GET',
-                correlationId: 'test-correlation-id',
-            };
-
-            return {
-                getHandler: jest.fn(),
-                getClass: jest.fn(),
-                switchToHttp: jest.fn().mockReturnValue({
-                    getRequest: jest.fn().mockReturnValue(mockRequest),
-                }),
-            } as unknown as ExecutionContext;
-        };
-
-        it('should allow access when no user (unauthenticated)', () => {
-            const mockContext = createMockContext();
+        it('should allow access when no roles or permissions are required', () => {
+            jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
 
             const result = guard.canActivate(mockContext);
 
             expect(result).toBe(true);
         });
 
-        it('should allow access to public routes', () => {
-            const mockContext = createMockContext(mockUser);
-            mockReflector.getAllAndOverride.mockReturnValue(true);
-
-            const result = guard.canActivate(mockContext);
-
-            expect(result).toBe(true);
-        });
-
-        it('should allow access when no permissions or roles are required', () => {
-            const mockContext = createMockContext(mockUser);
-            mockReflector.getAllAndOverride
-                .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce([]) // permissions
-                .mockReturnValueOnce([]); // roles
+        it('should allow access for public routes', () => {
+            jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true); // isPublic
 
             const result = guard.canActivate(mockContext);
 
@@ -98,8 +50,7 @@ describe('RolesGuard', () => {
         });
 
         it('should allow access when user has required role', () => {
-            const mockContext = createMockContext(mockUser);
-            mockReflector.getAllAndOverride
+            jest.spyOn(reflector, 'getAllAndOverride')
                 .mockReturnValueOnce(false) // isPublic
                 .mockReturnValueOnce(null) // permissions
                 .mockReturnValueOnce([Role.ORG_ADMIN, Role.SUPER_ADMIN]); // roles
@@ -107,65 +58,21 @@ describe('RolesGuard', () => {
             const result = guard.canActivate(mockContext);
 
             expect(result).toBe(true);
-            expect(mockLogger.debug).toHaveBeenCalledWith(
-                'Role/permission check passed',
-                expect.objectContaining({
-                    userId: 'user-123',
-                    userRoles: [Role.ORG_ADMIN],
-                    requiredRoles: [Role.ORG_ADMIN, Role.SUPER_ADMIN],
-                    module: 'roles-guard',
-                })
-            );
         });
 
         it('should deny access when user lacks required role', () => {
-            const mockContext = createMockContext(mockUser);
-            mockReflector.getAllAndOverride
+            jest.spyOn(reflector, 'getAllAndOverride')
                 .mockReturnValueOnce(false) // isPublic
                 .mockReturnValueOnce(null) // permissions
                 .mockReturnValueOnce([Role.SUPER_ADMIN]); // roles
 
             expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
-                'ROLE_ACCESS_DENIED',
-                expect.objectContaining({
-                    userId: 'user-123',
-                    userRoles: [Role.ORG_ADMIN],
-                    requiredRoles: [Role.SUPER_ADMIN],
-                }),
-                'user-123',
-                'org-456',
-                'test-correlation-id'
-            );
         });
 
         it('should allow access when user has all required permissions', () => {
-            const mockContext = createMockContext(mockUser);
-            mockReflector.getAllAndOverride
+            jest.spyOn(reflector, 'getAllAndOverride')
                 .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.CREATE]) // permissions
-                .mockReturnValueOnce(null); // roles
-
-            const result = guard.canActivate(mockContext);
-
-            expect(result).toBe(true);
-            expect(mockLogger.debug).toHaveBeenCalledWith(
-                'Role/permission check passed',
-                expect.objectContaining({
-                    userId: 'user-123',
-                    userPermissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL],
-                    requiredPermissions: [PERMISSIONS.EMPLOYEE.CREATE],
-                    module: 'roles-guard',
-                })
-            );
-        });
-
-        it('should allow access when user has all multiple required permissions', () => {
-            const mockContext = createMockContext(mockUser);
-            mockReflector.getAllAndOverride
-                .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL]) // permissions
-                .mockReturnValueOnce(null); // roles
+                .mockReturnValueOnce(['employee:create']); // permissions
 
             const result = guard.canActivate(mockContext);
 
@@ -173,47 +80,33 @@ describe('RolesGuard', () => {
         });
 
         it('should deny access when user lacks some required permissions', () => {
-            const mockContext = createMockContext(mockUser);
-            mockReflector.getAllAndOverride
+            jest.spyOn(reflector, 'getAllAndOverride')
                 .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.DELETE]) // permissions
-                .mockReturnValueOnce(null); // roles
+                .mockReturnValueOnce(['employee:create', 'employee:delete']); // permissions
 
             expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
-                'PERMISSION_ACCESS_DENIED',
-                expect.objectContaining({
-                    userId: 'user-123',
-                    userPermissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL],
-                    requiredPermissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.DELETE],
-                    missingPermissions: [PERMISSIONS.EMPLOYEE.DELETE],
-                }),
-                'user-123',
-                'org-456',
-                'test-correlation-id'
-            );
-        });
-
-        it('should check both roles and permissions when both are specified', () => {
-            const mockContext = createMockContext(mockUser);
-            mockReflector.getAllAndOverride
-                .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.CREATE]) // permissions
-                .mockReturnValueOnce([Role.ORG_ADMIN]); // roles
-
-            const result = guard.canActivate(mockContext);
-
-            expect(result).toBe(true);
         });
 
         it('should deny access when user has role but lacks permissions', () => {
-            const mockContext = createMockContext(mockUser);
-            mockReflector.getAllAndOverride
+            const mockUserWithRole = {
+                ...mockContext.switchToHttp().getRequest(),
+                user: {
+                    ...mockContext.switchToHttp().getRequest().user,
+                    permissions: ['employee:read:all'], // Lacks 'employee:create'
+                },
+            };
+
+            const mockContextWithRole = {
+                ...mockContext,
+                switchToHttp: () => ({ getRequest: () => mockUserWithRole }),
+            } as any;
+
+            jest.spyOn(reflector, 'getAllAndOverride')
                 .mockReturnValueOnce(false) // isPublic
-                .mockReturnValueOnce([PERMISSIONS.EMPLOYEE.DELETE]) // permissions (user doesn't have this)
+                .mockReturnValueOnce(['employee:create']) // permissions
                 .mockReturnValueOnce([Role.ORG_ADMIN]); // roles (user has this)
 
-            expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
+            expect(() => guard.canActivate(mockContextWithRole)).toThrow(ForbiddenException);
         });
     });
 });

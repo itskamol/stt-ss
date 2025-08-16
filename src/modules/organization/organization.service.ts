@@ -1,35 +1,27 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Organization } from '@prisma/client';
 import { OrganizationRepository } from './organization.repository';
-import { LoggerService } from '@/core/logger';
 import { DatabaseUtil } from '@/shared/utils';
-import { CreateOrganizationDto, UpdateOrganizationDto } from '@/shared/dto';
+import {
+    CreateOrganizationDto,
+    UpdateOrganizationDto,
+    PaginationDto,
+    PaginationResponseDto,
+} from '@/shared/dto';
 
 @Injectable()
 export class OrganizationService {
-    constructor(
-        private readonly organizationRepository: OrganizationRepository,
-        private readonly logger: LoggerService
-    ) {}
+    constructor(private readonly organizationRepository: OrganizationRepository) {}
 
     /**
      * Create a new organization (SUPER_ADMIN only)
      */
     async createOrganization(
         createOrganizationDto: CreateOrganizationDto,
-        createdByUserId: string,
-        correlationId?: string
+        createdByUserId: string
     ): Promise<Organization> {
         try {
-            const organization = await this.organizationRepository.create(createOrganizationDto);
-
-            this.logger.logUserAction(createdByUserId, 'ORGANIZATION_CREATED', {
-                organizationId: organization.id,
-                organizationName: organization.name,
-                correlationId,
-            });
-
-            return organization;
+            return await this.organizationRepository.create(createOrganizationDto);
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -44,15 +36,29 @@ export class OrganizationService {
     /**
      * Get all organizations (SUPER_ADMIN only)
      */
-    async getAllOrganizations(correlationId?: string): Promise<Organization[]> {
-        return this.organizationRepository.findMany({ correlationId });
+    async getAllOrganizations(
+        paginationDto: PaginationDto
+    ): Promise<PaginationResponseDto<Organization>> {
+        const { page, limit } = paginationDto;
+        const skip = (page - 1) * limit;
+
+        const [organizations, total] = await Promise.all([
+            this.organizationRepository.findMany(skip, limit),
+            this.organizationRepository.countAll(),
+        ]);
+
+        return new PaginationResponseDto(organizations, total, page, limit);
     }
 
     /**
      * Get organization by ID
      */
-    async getOrganizationById(id: string): Promise<Organization | null> {
-        return this.organizationRepository.findById(id);
+    async getOrganizationById(id: string): Promise<Organization> {
+        const organization = await this.organizationRepository.findById(id);
+        if (!organization) {
+            throw new NotFoundException('Organization not found');
+        }
+        return organization;
     }
 
     /**
@@ -68,29 +74,12 @@ export class OrganizationService {
     async updateOrganization(
         id: string,
         updateOrganizationDto: UpdateOrganizationDto,
-        updatedByUserId: string,
-        correlationId?: string
+        updatedByUserId: string
     ): Promise<Organization> {
+        await this.getOrganizationById(id); // Ensure organization exists
+
         try {
-            const existingOrganization = await this.organizationRepository.findById(id);
-            if (!existingOrganization) {
-                throw new NotFoundException('Organization not found');
-            }
-
-            const updatedOrganization = await this.organizationRepository.update(
-                id,
-                updateOrganizationDto
-            );
-
-            this.logger.logUserAction(updatedByUserId, 'ORGANIZATION_UPDATED', {
-                organizationId: id,
-                changes: updateOrganizationDto,
-                oldName: existingOrganization.name,
-                newName: updatedOrganization.name,
-                correlationId,
-            });
-
-            return updatedOrganization;
+            return await this.organizationRepository.update(id, updateOrganizationDto);
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -105,23 +94,9 @@ export class OrganizationService {
     /**
      * Delete organization (SUPER_ADMIN only)
      */
-    async deleteOrganization(
-        id: string,
-        deletedByUserId: string,
-        correlationId?: string
-    ): Promise<void> {
-        const existingOrganization = await this.organizationRepository.findById(id);
-        if (!existingOrganization) {
-            throw new NotFoundException('Organization not found');
-        }
-
+    async deleteOrganization(id: string, deletedByUserId: string): Promise<void> {
+        await this.getOrganizationById(id); // Ensure organization exists
         await this.organizationRepository.delete(id);
-
-        this.logger.logUserAction(deletedByUserId, 'ORGANIZATION_DELETED', {
-            organizationId: id,
-            organizationName: existingOrganization.name,
-            correlationId,
-        });
     }
 
     /**
@@ -153,7 +128,9 @@ export class OrganizationService {
      * Search organizations by name (SUPER_ADMIN only)
      */
     async searchOrganizations(searchTerm: string): Promise<Organization[]> {
-        return this.organizationRepository.findMany({
+        const take = 10; // Limit search results
+        const skip = 0;
+        return this.organizationRepository.findMany(skip, take, {
             name: {
                 contains: searchTerm,
                 mode: 'insensitive',

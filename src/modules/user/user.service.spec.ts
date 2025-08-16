@@ -78,7 +78,7 @@ describe('UserService', () => {
             (PasswordUtil.hash as jest.Mock).mockResolvedValue('hashed-password');
             mockUserRepository.create.mockResolvedValue(mockUser);
 
-            const result = await service.createUser(createUserDto, 'correlation-123');
+            const result = await service.createUser(createUserDto, 'user-123');
 
             expect(PasswordUtil.validatePassword).toHaveBeenCalledWith('StrongPassword123!');
             expect(PasswordUtil.hash).toHaveBeenCalledWith('StrongPassword123!');
@@ -86,13 +86,6 @@ describe('UserService', () => {
                 ...createUserDto,
                 passwordHash: 'hashed-password',
             });
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'USER_CREATED',
-                { email: 'test@example.com' },
-                undefined,
-                'correlation-123'
-            );
             expect(result).toEqual(mockUser);
         });
 
@@ -102,7 +95,7 @@ describe('UserService', () => {
                 errors: ['Password too weak'],
             });
 
-            await expect(service.createUser(createUserDto, 'correlation-123')).rejects.toThrow(
+            await expect(service.createUser(createUserDto, 'user-123')).rejects.toThrow(
                 ConflictException
             );
             expect(mockUserRepository.create).not.toHaveBeenCalled();
@@ -120,7 +113,7 @@ describe('UserService', () => {
             (DatabaseUtil.getUniqueConstraintFields as jest.Mock).mockReturnValue(['email']);
             mockUserRepository.create.mockRejectedValue(uniqueError);
 
-            await expect(service.createUser(createUserDto, 'correlation-123')).rejects.toThrow(
+            await expect(service.createUser(createUserDto, 'user-123')).rejects.toThrow(
                 ConflictException
             );
         });
@@ -136,12 +129,10 @@ describe('UserService', () => {
             expect(result).toEqual(mockUser);
         });
 
-        it('should return null when user not found', async () => {
+        it('should throw NotFoundException when user not found', async () => {
             mockUserRepository.findById.mockResolvedValue(null);
 
-            const result = await service.findById('nonexistent');
-
-            expect(result).toBeNull();
+            await expect(service.findById('nonexistent')).rejects.toThrow(NotFoundException);
         });
     });
 
@@ -156,26 +147,22 @@ describe('UserService', () => {
             mockUserRepository.findById.mockResolvedValue(mockUser);
             mockUserRepository.update.mockResolvedValue(updatedUser);
 
-            const result = await service.updateUser('user-123', updateUserDto, 'correlation-123');
+            const result = await service.updateUser('user-123', updateUserDto, 'user-123');
 
             expect(mockUserRepository.findById).toHaveBeenCalledWith('user-123');
             expect(mockUserRepository.update).toHaveBeenCalledWith('user-123', updateUserDto);
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'USER_UPDATED',
-                { changes: updateUserDto },
-                undefined,
-                'correlation-123'
-            );
             expect(result).toEqual(updatedUser);
         });
 
         it('should throw NotFoundException when user not found', async () => {
             mockUserRepository.findById.mockResolvedValue(null);
+            // Add a specific mock for the update method for this test
+            mockUserRepository.update.mockRejectedValue(new Error('UPDATE SHOULD NOT HAVE BEEN CALLED'));
 
             await expect(
-                service.updateUser('nonexistent', updateUserDto, 'correlation-123')
+                service.updateUser('nonexistent', updateUserDto, 'user-123')
             ).rejects.toThrow(NotFoundException);
+
             expect(mockUserRepository.update).not.toHaveBeenCalled();
         });
     });
@@ -196,7 +183,7 @@ describe('UserService', () => {
             (PasswordUtil.hash as jest.Mock).mockResolvedValue('new-hashed-password');
             mockUserRepository.updatePassword.mockResolvedValue(undefined);
 
-            await service.changePassword('user-123', changePasswordDto, 'correlation-123');
+            await service.changePassword('user-123', changePasswordDto, 'user-123');
 
             expect(PasswordUtil.compare).toHaveBeenCalledWith('OldPassword123!', 'hashed-password');
             expect(PasswordUtil.validatePassword).toHaveBeenCalledWith('NewPassword123!');
@@ -205,20 +192,13 @@ describe('UserService', () => {
                 'user-123',
                 'new-hashed-password'
             );
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'PASSWORD_CHANGED',
-                {},
-                undefined,
-                'correlation-123'
-            );
         });
 
         it('should throw NotFoundException when user not found', async () => {
             mockUserRepository.findById.mockResolvedValue(null);
 
             await expect(
-                service.changePassword('nonexistent', changePasswordDto, 'correlation-123')
+                service.changePassword('nonexistent', changePasswordDto, 'user-123')
             ).rejects.toThrow(NotFoundException);
         });
 
@@ -227,15 +207,8 @@ describe('UserService', () => {
             (PasswordUtil.compare as jest.Mock).mockResolvedValue(false);
 
             await expect(
-                service.changePassword('user-123', changePasswordDto, 'correlation-123')
+                service.changePassword('user-123', changePasswordDto, 'user-123')
             ).rejects.toThrow(ConflictException);
-            expect(mockLogger.logSecurityEvent).toHaveBeenCalledWith(
-                'PASSWORD_CHANGE_FAILED_INVALID_CURRENT',
-                { userId: 'user-123' },
-                'user-123',
-                undefined,
-                'correlation-123'
-            );
         });
 
         it('should throw ConflictException for weak new password', async () => {
@@ -247,7 +220,7 @@ describe('UserService', () => {
             });
 
             await expect(
-                service.changePassword('user-123', changePasswordDto, 'correlation-123')
+                service.changePassword('user-123', changePasswordDto, 'user-123')
             ).rejects.toThrow(ConflictException);
         });
     });
@@ -268,22 +241,11 @@ describe('UserService', () => {
                 createdAt: new Date(),
             };
 
-            mockUserRepository.assignToOrganization.mockResolvedValue(mockOrgUser);
+            mockUserRepository.assignToOrganization.mockResolvedValue(mockOrgUser as any);
 
-            const result = await service.assignToOrganization(assignDto, 'correlation-123');
+            const result = await service.assignToOrganization(assignDto, 'user-123');
 
             expect(mockUserRepository.assignToOrganization).toHaveBeenCalledWith(assignDto);
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'USER_ASSIGNED_TO_ORGANIZATION',
-                {
-                    organizationId: 'org-456',
-                    role: Role.ORG_ADMIN,
-                    branchIds: undefined,
-                },
-                'org-456',
-                'correlation-123'
-            );
             expect(result).toEqual(mockOrgUser);
         });
 
@@ -293,7 +255,7 @@ describe('UserService', () => {
             mockUserRepository.assignToOrganization.mockRejectedValue(uniqueError);
 
             await expect(
-                service.assignToOrganization(assignDto, 'correlation-123')
+                service.assignToOrganization(assignDto, 'user-123')
             ).rejects.toThrow(ConflictException);
         });
     });
@@ -302,18 +264,11 @@ describe('UserService', () => {
         it('should activate user', async () => {
             const activatedUser = { ...mockUser, isActive: true };
             mockUserRepository.findById.mockResolvedValue(mockUser);
-            mockUserRepository.update.mockResolvedValue(activatedUser);
+            mockUserRepository.update.mockResolvedValue(activatedUser as any);
 
-            const result = await service.activateUser('user-123', 'correlation-123');
+            const result = await service.activateUser('user-123', 'user-123');
 
             expect(mockUserRepository.update).toHaveBeenCalledWith('user-123', { isActive: true });
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'USER_ACTIVATED',
-                {},
-                undefined,
-                'correlation-123'
-            );
             expect(result).toEqual(activatedUser);
         });
     });
@@ -322,18 +277,11 @@ describe('UserService', () => {
         it('should deactivate user', async () => {
             const deactivatedUser = { ...mockUser, isActive: false };
             mockUserRepository.findById.mockResolvedValue(mockUser);
-            mockUserRepository.update.mockResolvedValue(deactivatedUser);
+            mockUserRepository.update.mockResolvedValue(deactivatedUser as any);
 
-            const result = await service.deactivateUser('user-123', 'correlation-123');
+            const result = await service.deactivateUser('user-123', 'user-123');
 
             expect(mockUserRepository.update).toHaveBeenCalledWith('user-123', { isActive: false });
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'USER_DEACTIVATED',
-                {},
-                undefined,
-                'correlation-123'
-            );
             expect(result).toEqual(deactivatedUser);
         });
     });

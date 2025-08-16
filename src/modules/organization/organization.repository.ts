@@ -25,9 +25,11 @@ export class OrganizationRepository {
         });
     }
 
-    async findMany(filters: any = {}): Promise<Organization[]> {
+    async findMany(skip: number, take: number, filters: any = {}): Promise<Organization[]> {
         return this.prisma.organization.findMany({
             where: filters,
+            skip,
+            take,
             orderBy: { createdAt: 'desc' },
         });
     }
@@ -49,6 +51,10 @@ export class OrganizationRepository {
         return this.prisma.organization.count({
             where: filters,
         });
+    }
+
+    async countAll(): Promise<number> {
+        return this.prisma.organization.count();
     }
 
     async findWithStats(id: string) {

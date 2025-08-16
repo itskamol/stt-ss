@@ -4,6 +4,8 @@ import { GuestService } from './guest.service';
 import { ApproveGuestVisitDto, CreateGuestVisitDto, UpdateGuestVisitDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { GuestVisit } from '@prisma/client';
+import { NotFoundException } from '@nestjs/common';
 
 describe('GuestController', () => {
     let controller: GuestController;
@@ -22,7 +24,7 @@ describe('GuestController', () => {
         branchIds: ['branch-123'],
     };
 
-    const mockGuestVisit = {
+    const mockGuestVisit: GuestVisit = {
         id: 'visit-123',
         organizationId: 'org-123',
         branchId: 'branch-123',
@@ -37,6 +39,11 @@ describe('GuestController', () => {
         createdByUserId: 'user-123',
         createdAt: new Date(),
         updatedAt: new Date(),
+        actualEntryTime: null,
+        actualExitTime: null,
+        notes: null,
+        rejectionReason: null,
+        approvedByUserId: null,
     };
 
     beforeEach(async () => {
@@ -97,45 +104,37 @@ describe('GuestController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toEqual({
-                id: mockGuestVisit.id,
-                organizationId: mockGuestVisit.organizationId,
-                branchId: mockGuestVisit.branchId,
-                guestName: mockGuestVisit.guestName,
-                guestContact: mockGuestVisit.guestContact,
-                responsibleEmployeeId: mockGuestVisit.responsibleEmployeeId,
-                scheduledEntryTime: mockGuestVisit.scheduledEntryTime,
-                scheduledExitTime: mockGuestVisit.scheduledExitTime,
-                status: mockGuestVisit.status,
-                accessCredentialType: mockGuestVisit.accessCredentialType,
-                createdByUserId: mockGuestVisit.createdByUserId,
-                createdAt: mockGuestVisit.createdAt,
-                updatedAt: mockGuestVisit.updatedAt,
-            });
+            expect(result).toEqual(mockGuestVisit);
         });
     });
 
     describe('getGuestVisits', () => {
         it('should return paginated guest visits', async () => {
-            const guestVisits = [mockGuestVisit];
-            guestService.getGuestVisits.mockResolvedValue(guestVisits);
+            const paginatedResult = {
+                data: [mockGuestVisit],
+                total: 1,
+                page: 1,
+                limit: 10,
+            };
+            const filtersDto = { status: 'PENDING_APPROVAL' as any };
+            const paginationDto = { page: 1, limit: 10 };
+            guestService.getGuestVisits.mockResolvedValue(paginatedResult);
 
             const result = await controller.getGuestVisits(
                 mockDataScope,
-                { status: 'PENDING_APPROVAL' },
-                { page: 1, limit: 10 }
+                filtersDto,
+                paginationDto
             );
 
             expect(guestService.getGuestVisits).toHaveBeenCalledWith(
                 expect.objectContaining({
                     status: 'PENDING_APPROVAL',
                 }),
-                mockDataScope
+                mockDataScope,
+                paginationDto
             );
             expect(result.data).toHaveLength(1);
             expect(result.total).toBe(1);
-            expect(result.page).toBe(1);
-            expect(result.limit).toBe(10);
         });
     });
 
@@ -154,7 +153,7 @@ describe('GuestController', () => {
 
             await expect(
                 controller.getGuestVisitById('nonexistent', mockDataScope)
-            ).rejects.toThrow('Guest visit not found');
+            ).rejects.toThrow(NotFoundException);
         });
     });
 

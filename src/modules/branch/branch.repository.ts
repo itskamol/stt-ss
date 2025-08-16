@@ -29,7 +29,7 @@ export class BranchRepository {
         });
     }
 
-    async findMany(filters: any = {}, scope: DataScope): Promise<Branch[]> {
+    async findMany(scope: DataScope, skip: number, take: number, filters: any = {}): Promise<Branch[]> {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.branch.findMany({
@@ -37,6 +37,8 @@ export class BranchRepository {
                 ...filters,
                 ...whereClause,
             },
+            skip,
+            take,
             orderBy: { name: 'asc' },
         });
     }
@@ -54,7 +56,11 @@ export class BranchRepository {
         }
 
         // For org admins, return all branches in organization
-        return this.findMany({}, scope);
+        return this.prisma.branch.findMany({
+            where: {
+                organizationId: scope.organizationId,
+            }
+        });
     }
 
     async update(id: string, data: UpdateBranchDto, scope: DataScope): Promise<Branch> {
@@ -74,7 +80,7 @@ export class BranchRepository {
         });
     }
 
-    async count(filters: any = {}, scope: DataScope): Promise<number> {
+    async count(scope: DataScope, filters: any = {}): Promise<number> {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.branch.count({
@@ -146,7 +152,7 @@ export class BranchRepository {
         });
     }
 
-    async searchBranches(searchTerm: string, scope: DataScope): Promise<Branch[]> {
+    async searchBranches(searchTerm: string, scope: DataScope, skip: number, take: number): Promise<Branch[]> {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.branch.findMany({
@@ -157,6 +163,8 @@ export class BranchRepository {
                     { address: { contains: searchTerm, mode: 'insensitive' } },
                 ],
             },
+            skip,
+            take,
             orderBy: { name: 'asc' },
         });
     }

@@ -16,7 +16,10 @@ describe('AppController', () => {
 
     describe('root', () => {
         it('should return welcome message', () => {
-            expect(appController.getHello()).toBe('Sector Staff v2.1 API is running!');
+            expect(appController.getHello()).toEqual({
+                success: true,
+                message: 'Sector Staff API is running!',
+            });
         });
     });
 

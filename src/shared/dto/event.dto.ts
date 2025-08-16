@@ -250,3 +250,23 @@ export class EventLogFiltersDto {
     @IsDateString()
     endDate?: string;
 }
+
+export class ProcessedEventResponseDto {
+    @ApiProperty({
+        description: 'The unique identifier for the processed event.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+    })
+    eventId: string;
+
+    @ApiProperty({
+        description: 'The status of the event processing.',
+        example: 'accepted',
+    })
+    status: string;
+
+    @ApiProperty({
+        description: 'A message describing the result of the event processing.',
+        example: 'Event queued for processing',
+    })
+    message: string;
+}

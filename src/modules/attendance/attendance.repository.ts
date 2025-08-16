@@ -3,6 +3,7 @@ import { PrismaService } from '@/core/database/prisma.service';
 import { CreateAttendanceDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 import { QueryBuilder } from '@/shared/utils';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AttendanceRepository {
@@ -51,40 +52,45 @@ export class AttendanceRepository {
     }
 
     async findMany(
-        filters: {
+        scope: DataScope,
+        skip: number,
+        take: number,
+        filters?: {
             employeeId?: string;
             branchId?: string;
             startDate?: Date;
             endDate?: Date;
-        },
-        scope: DataScope
+        }
     ) {
-        const whereClause = QueryBuilder.buildOrganizationScope(scope);
-
-        const where: any = {
-            ...whereClause,
+        const where: Prisma.AttendanceWhereInput = {
+            organizationId: scope.organizationId,
+            branchId: { in: scope.branchIds },
         };
 
-        if (filters.employeeId) {
-            where.employeeId = filters.employeeId;
-        }
-
-        if (filters.branchId) {
-            where.branchId = filters.branchId;
-        }
-
-        if (filters.startDate || filters.endDate) {
-            where.timestamp = {};
-            if (filters.startDate) {
-                where.timestamp.gte = filters.startDate;
+        if (filters) {
+            if (filters.employeeId) {
+                where.employeeId = filters.employeeId;
             }
-            if (filters.endDate) {
-                where.timestamp.lte = filters.endDate;
+
+            if (filters.branchId && scope.branchIds.includes(filters.branchId)) {
+                where.branchId = filters.branchId;
+            }
+
+            if (filters.startDate || filters.endDate) {
+                where.timestamp = {};
+                if (filters.startDate) {
+                    where.timestamp.gte = filters.startDate;
+                }
+                if (filters.endDate) {
+                    where.timestamp.lte = filters.endDate;
+                }
             }
         }
 
         return this.prisma.attendance.findMany({
             where,
+            skip,
+            take,
             include: {
                 employee: {
                     select: {
@@ -103,6 +109,44 @@ export class AttendanceRepository {
                 },
             },
             orderBy: { timestamp: 'desc' },
+        });
+    }
+
+    async count(
+        scope: DataScope,
+        filters?: {
+            employeeId?: string;
+            branchId?: string;
+            startDate?: Date;
+            endDate?: Date;
+        }
+    ): Promise<number> {
+        const where: Prisma.AttendanceWhereInput = {
+            organizationId: scope.organizationId,
+        };
+
+        if (filters) {
+            if (filters.employeeId) {
+                where.employeeId = filters.employeeId;
+            }
+
+            if (filters.branchId) {
+                where.branchId = filters.branchId;
+            }
+
+            if (filters.startDate || filters.endDate) {
+                where.timestamp = {};
+                if (filters.startDate) {
+                    where.timestamp.gte = filters.startDate;
+                }
+                if (filters.endDate) {
+                    where.timestamp.lte = filters.endDate;
+                }
+            }
+        }
+
+        return this.prisma.attendance.count({
+            where,
         });
     }
 
@@ -160,10 +204,7 @@ export class AttendanceRepository {
         }
 
         const [totalRecords, eventsByType, recordsByEmployee] = await Promise.all([
-            // Total attendance records
             this.prisma.attendance.count({ where }),
-
-            // Records grouped by event type
             this.prisma.attendance.groupBy({
                 by: ['eventType'],
                 where,
@@ -176,8 +217,6 @@ export class AttendanceRepository {
                     },
                 },
             }),
-
-            // Records grouped by employee
             this.prisma.attendance.groupBy({
                 by: ['employeeId'],
                 where,
@@ -189,15 +228,14 @@ export class AttendanceRepository {
                         id: 'desc',
                     },
                 },
-                take: 10, // Top 10 employees
+                take: 10,
             }),
         ]);
 
-        // Get employee names for the top employees
         const employeeIds = recordsByEmployee.map(item => item.employeeId).filter(Boolean);
         const employees = await this.prisma.employee.findMany({
             where: {
-                id: { in: employeeIds },
+                id: { in: employeeIds as string[] },
             },
             select: {
                 id: true,
@@ -247,7 +285,6 @@ export class AttendanceRepository {
             },
         });
 
-        // Group by date
         const dateGroups = new Map<string, number>();
         records.forEach(record => {
             const dateKey = record.timestamp.toISOString().split('T')[0];

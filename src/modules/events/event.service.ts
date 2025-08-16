@@ -1,13 +1,17 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+    BadRequestException,
+    ConflictException,
+    Injectable,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { EventRepository } from './event.repository';
 import { DeviceRepository } from '../device/device.repository';
 import { PrismaService } from '@/core/database/prisma.service';
-import { LoggerService } from '@/core/logger';
 import { CacheService } from '@/core/cache/cache.service';
 import { QueueProducer } from '@/core/queue/queue.producer';
 import { CreateRawEventDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
-import { DeviceStatus, EventType } from '@prisma/client';
+import { DeviceStatus } from '@prisma/client';
 
 @Injectable()
 export class EventService {
@@ -15,7 +19,6 @@ export class EventService {
         private readonly eventRepository: EventRepository,
         private readonly deviceRepository: DeviceRepository,
         private readonly prisma: PrismaService,
-        private readonly logger: LoggerService,
         private readonly cacheService: CacheService,
         private readonly queueProducer: QueueProducer
     ) {}
@@ -29,9 +32,7 @@ export class EventService {
         // Check idempotency
         const existingEventId = await this.checkIdempotency(idempotencyKey);
         if (existingEventId) {
-            const error = new Error('DUPLICATE_EVENT');
-            (error as any).existingEventId = existingEventId;
-            throw error;
+            throw new ConflictException('Duplicate event');
         }
 
         // Verify device authentication
@@ -144,38 +145,5 @@ export class EventService {
 
     
         return device;
-    }
-
-    async getEventLogs(
-        deviceId?: string,
-        eventType?: EventType,
-        startDate?: Date,
-        endDate?: Date,
-        scope?: DataScope
-    ) {
-        return this.eventRepository.findEventLogs(
-            {
-                deviceId,
-                eventType,
-                startDate,
-                endDate,
-            },
-            scope
-        );
-    }
-
-    async getEventLogById(id: string, scope: DataScope) {
-        return this.eventRepository.findEventLogById(id, scope);
-    }
-
-    async getEventStats(deviceId?: string, startDate?: Date, endDate?: Date, scope?: DataScope) {
-        return this.eventRepository.getEventStats(
-            {
-                deviceId,
-                startDate,
-                endDate,
-            },
-            scope
-        );
     }
 }

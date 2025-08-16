@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from './core/config/config.service';
 import { CustomValidationException } from './shared/exceptions/validation.exception';
 import { LoggerService } from './core/logger';
+import { ApiErrorResponse, ApiSuccessResponse } from './shared/dto';
 
 async function bootstrap() {
     // Create app with our custom logger
@@ -37,7 +38,9 @@ async function bootstrap() {
         .addTag('API')
         .addBearerAuth()
         .build();
-    const document = SwaggerModule.createDocument(app, config);
+    const document = SwaggerModule.createDocument(app, config, {
+        extraModels: [ApiSuccessResponse, ApiErrorResponse],
+    });
     SwaggerModule.setup('api/docs', app, document);
 
     // Enable CORS

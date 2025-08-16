@@ -12,7 +12,6 @@ jest.mock('@/shared/utils/database.util');
 describe('OrganizationService', () => {
     let service: OrganizationService;
     let organizationRepository: OrganizationRepository;
-    let logger: LoggerService;
 
     const mockOrganizationRepository = {
         create: jest.fn(),
@@ -22,11 +21,8 @@ describe('OrganizationService', () => {
         update: jest.fn(),
         delete: jest.fn(),
         count: jest.fn(),
+        countAll: jest.fn(),
         findWithStats: jest.fn(),
-    };
-
-    const mockLogger = {
-        logUserAction: jest.fn(),
     };
 
     const mockOrganization = {
@@ -47,14 +43,13 @@ describe('OrganizationService', () => {
                 },
                 {
                     provide: LoggerService,
-                    useValue: mockLogger,
+                    useValue: { logUserAction: jest.fn() },
                 },
             ],
         }).compile();
 
         service = module.get<OrganizationService>(OrganizationService);
         organizationRepository = module.get<OrganizationRepository>(OrganizationRepository);
-        logger = module.get<LoggerService>(LoggerService);
     });
 
     afterEach(() => {
@@ -70,23 +65,9 @@ describe('OrganizationService', () => {
         it('should create organization successfully', async () => {
             mockOrganizationRepository.create.mockResolvedValue(mockOrganization);
 
-            const result = await service.createOrganization(
-                createOrganizationDto,
-                'user-123',
-                'correlation-456'
-            );
+            const result = await service.createOrganization(createOrganizationDto, 'user-123');
 
             expect(mockOrganizationRepository.create).toHaveBeenCalledWith(createOrganizationDto);
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'ORGANIZATION_CREATED',
-                {
-                    organizationId: 'org-123',
-                    organizationName: 'Test Organization',
-                },
-                'org-123',
-                'correlation-456'
-            );
             expect(result).toEqual(mockOrganization);
         });
 
@@ -105,12 +86,15 @@ describe('OrganizationService', () => {
     describe('getAllOrganizations', () => {
         it('should return all organizations', async () => {
             const organizations = [mockOrganization];
+            const paginationDto = { page: 1, limit: 10 };
             mockOrganizationRepository.findMany.mockResolvedValue(organizations);
+            mockOrganizationRepository.countAll.mockResolvedValue(1);
 
-            const result = await service.getAllOrganizations();
+            const result = await service.getAllOrganizations(paginationDto);
 
-            expect(mockOrganizationRepository.findMany).toHaveBeenCalled();
-            expect(result).toEqual(organizations);
+            expect(mockOrganizationRepository.findMany).toHaveBeenCalledWith(0, 10);
+            expect(result.data).toEqual(organizations);
+            expect(result.total).toBe(1);
         });
     });
 
@@ -124,12 +108,12 @@ describe('OrganizationService', () => {
             expect(result).toEqual(mockOrganization);
         });
 
-        it('should return null when organization not found', async () => {
+        it('should throw NotFoundException when organization not found', async () => {
             mockOrganizationRepository.findById.mockResolvedValue(null);
 
-            const result = await service.getOrganizationById('nonexistent');
-
-            expect(result).toBeNull();
+            await expect(service.getOrganizationById('nonexistent')).rejects.toThrow(
+                NotFoundException
+            );
         });
     });
 
@@ -147,26 +131,13 @@ describe('OrganizationService', () => {
             const result = await service.updateOrganization(
                 'org-123',
                 updateOrganizationDto,
-                'user-123',
-                'correlation-456'
+                'user-123'
             );
 
             expect(mockOrganizationRepository.findById).toHaveBeenCalledWith('org-123');
             expect(mockOrganizationRepository.update).toHaveBeenCalledWith(
                 'org-123',
                 updateOrganizationDto
-            );
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'ORGANIZATION_UPDATED',
-                {
-                    organizationId: 'org-123',
-                    changes: updateOrganizationDto,
-                    oldName: 'Test Organization',
-                    newName: 'Updated Organization',
-                },
-                'org-123',
-                'correlation-456'
             );
             expect(result).toEqual(updatedOrganization);
         });
@@ -198,20 +169,10 @@ describe('OrganizationService', () => {
             mockOrganizationRepository.findById.mockResolvedValue(mockOrganization);
             mockOrganizationRepository.delete.mockResolvedValue(undefined);
 
-            await service.deleteOrganization('org-123', 'user-123', 'correlation-456');
+            await service.deleteOrganization('org-123', 'user-123');
 
             expect(mockOrganizationRepository.findById).toHaveBeenCalledWith('org-123');
             expect(mockOrganizationRepository.delete).toHaveBeenCalledWith('org-123');
-            expect(mockLogger.logUserAction).toHaveBeenCalledWith(
-                'user-123',
-                'ORGANIZATION_DELETED',
-                {
-                    organizationId: 'org-123',
-                    organizationName: 'Test Organization',
-                },
-                'org-123',
-                'correlation-456'
-            );
         });
 
         it('should throw NotFoundException when organization not found', async () => {
@@ -272,7 +233,7 @@ describe('OrganizationService', () => {
 
             const result = await service.searchOrganizations('test');
 
-            expect(mockOrganizationRepository.findMany).toHaveBeenCalledWith({
+            expect(mockOrganizationRepository.findMany).toHaveBeenCalledWith(0, 10, {
                 name: {
                     contains: 'test',
                     mode: 'insensitive',

@@ -13,14 +13,18 @@ import {
 import {
     ApiBearerAuth,
     ApiBody,
+    ApiExtraModels,
     ApiOperation,
     ApiParam,
     ApiQuery,
     ApiResponse,
     ApiTags,
+    getSchemaPath,
 } from '@nestjs/swagger';
 import { DeviceService } from './device.service';
 import {
+    ApiErrorResponse,
+    ApiSuccessResponse,
     CommandResponseDto,
     CreateDeviceDto,
     CreateDeviceTemplateDto,
@@ -32,15 +36,14 @@ import {
     DeviceResponseDto,
     DeviceStatsResponseDto,
     DeviceSyncEmployeesDto,
-    ErrorResponseDto,
     PaginationDto,
-    PaginationResponseDto,
     RetrySyncResponseDto,
     SimplifiedDeviceCreationDto,
     SyncStatusResponseDto,
     TestConnectionResponseDto,
     UpdateDeviceDto,
     UpdateDeviceTemplateDto,
+    DeviceTemplateResponseDto,
 } from '@/shared/dto';
 import {
     CreateWebhookDto,
@@ -49,11 +52,13 @@ import {
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
-import { plainToClass } from 'class-transformer';
+import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
+import { Device, DeviceTemplate } from '@prisma/client';
 
 @ApiTags('Devices')
 @ApiBearerAuth()
 @Controller('devices')
+@ApiExtraModels(ApiSuccessResponse, DeviceResponseDto, DeviceStatsResponseDto, DeviceHealthResponseDto, TestConnectionResponseDto, CommandResponseDto, SyncStatusResponseDto, RetrySyncResponseDto, DeviceConfigurationResponseDto, DeviceTemplateResponseDto, WebhookConfigurationResponseDto, DeviceCountResponseDto)
 export class DeviceController {
     constructor(private readonly deviceService: DeviceService) {}
 
@@ -64,22 +69,27 @@ export class DeviceController {
     @ApiResponse({
         status: 201,
         description: 'The device has been successfully created.',
-        type: DeviceResponseDto,
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(DeviceResponseDto) },
+                    },
+                },
+            ],
+        }
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async createDevice(
         @Body() createDeviceDto: CreateDeviceDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.createDevice(createDeviceDto, scope, user.sub);
-        return plainToClass(DeviceResponseDto, device);
+    ): Promise<Device> {
+        return this.deviceService.createDevice(createDeviceDto, scope, user.sub);
     }
 
-  
-  
-    
     @Post('simplified')
     @Permissions(PERMISSIONS.DEVICE.CREATE)
     @ApiOperation({
@@ -90,129 +100,99 @@ export class DeviceController {
     @ApiResponse({
         status: 201,
         description: 'The device has been successfully created with auto-discovered information.',
-        type: DeviceResponseDto,
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(DeviceResponseDto) },
+                    },
+                },
+            ],
+        }
     })
     @ApiResponse({
         status: 400,
         description: 'Invalid input or device not reachable.',
-        type: ErrorResponseDto,
+        type: ApiErrorResponse,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async createDeviceWithSimplifiedInfo(
         @Body() simplifiedInfo: SimplifiedDeviceCreationDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.createDeviceWithSimplifiedInfo(
+    ): Promise<Device> {
+        return this.deviceService.createDeviceWithSimplifiedInfo(
             simplifiedInfo,
             scope,
             user.sub
         );
-        return plainToClass(DeviceResponseDto, device);
     }
 
-    
     @Get()
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all devices with pagination' })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
-    @ApiResponse({
-        status: 200,
-        description: 'A paginated list of devices.',
-        type: PaginationResponseDto<DeviceResponseDto>,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiOkResponsePaginated(DeviceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getDevices(
         @Scope() scope: DataScope,
         @Query() paginationDto: PaginationDto
-    ): Promise<PaginationResponseDto<DeviceResponseDto>> {
-        const devices = await this.deviceService.getDevices(scope);
-
-        // Simple pagination (in a real app, you'd do this at the database level)
-        const { page = 1, limit = 10 } = paginationDto;
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginatedDevices = devices.slice(startIndex, endIndex);
-
-        const responseDevices = paginatedDevices.map(device =>
-            plainToClass(DeviceResponseDto, device)
-        );
-
-        return new PaginationResponseDto(responseDevices, devices.length, page, limit);
+    ) {
+        return this.deviceService.getDevices(scope, paginationDto);
     }
 
     @Get('search')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Search for devices' })
     @ApiQuery({ name: 'q', description: 'Search term (at least 2 characters)' })
-    @ApiResponse({
-        status: 200,
-        description: 'A list of devices matching the search term.',
-        type: [DeviceResponseDto],
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiOkResponsePaginated(DeviceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async searchDevices(
         @Query('q') searchTerm: string,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto[]> {
+    ): Promise<Device[]> {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
         }
-
-        const devices = await this.deviceService.searchDevices(searchTerm.trim(), scope);
-
-        return devices.map(device => plainToClass(DeviceResponseDto, device));
+        return this.deviceService.searchDevices(searchTerm.trim(), scope);
     }
 
     @Get('count')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get the total number of devices' })
-    @ApiResponse({
-        status: 200,
-        description: 'The total number of devices.',
-        type: DeviceCountResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    async getDeviceCount(@Scope() scope: DataScope): Promise<DeviceCountResponseDto> {
+    @ApiOkResponseData(DeviceCountResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    async getDeviceCount(@Scope() scope: DataScope): Promise<{ count: number }> {
         const count = await this.deviceService.getDeviceCount(scope);
         return { count };
     }
 
-    
     @Get('branch/:branchId')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all devices for a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
-    @ApiResponse({
-        status: 200,
-        description: 'A list of devices for the branch.',
-        type: [DeviceResponseDto],
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
+    @ApiOkResponsePaginated(DeviceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ApiErrorResponse })
     async getDevicesByBranch(
         @Param('branchId') branchId: string,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto[]> {
-        const devices = await this.deviceService.getDevicesByBranch(branchId, scope);
-        return devices.map(device => plainToClass(DeviceResponseDto, device));
+    ): Promise<Device[]> {
+        return this.deviceService.getDevicesByBranch(branchId, scope);
     }
 
     @Get('branch/:branchId/count')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get the number of devices in a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
-    @ApiResponse({
-        status: 200,
-        description: 'The number of devices in the branch.',
-        type: DeviceCountResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceCountResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ApiErrorResponse })
     async getDeviceCountByBranch(
         @Param('branchId') branchId: string,
         @Scope() scope: DataScope
-    ): Promise<DeviceCountResponseDto> {
+    ): Promise<{ count: number }> {
         const count = await this.deviceService.getDeviceCountByBranch(branchId, scope);
         return { count };
     }
@@ -221,68 +201,51 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get a device by its unique identifier' })
     @ApiParam({ name: 'identifier', description: 'Unique identifier of the device' })
-    @ApiResponse({ status: 200, description: 'The device details.', type: DeviceResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async getDeviceByIdentifier(
         @Param('identifier') identifier: string,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.getDeviceByIdentifier(identifier, scope);
-        if (!device) {
-            throw new Error('Device not found');
-        }
-        return plainToClass(DeviceResponseDto, device);
+    ): Promise<Device> {
+        return this.deviceService.getDeviceByIdentifier(identifier, scope);
     }
 
     @Get(':id')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get a specific device by ID' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiResponse({ status: 200, description: 'The device details.', type: DeviceResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async getDeviceById(
         @Param('id') id: string,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.getDeviceById(id, scope);
-        if (!device) {
-            throw new Error('Device not found');
-        }
-        return plainToClass(DeviceResponseDto, device);
+    ): Promise<Device> {
+        return this.deviceService.getDeviceById(id, scope);
     }
 
     @Get(':id/stats')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get statistics for a specific device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiResponse({
-        status: 200,
-        description: 'The device statistics.',
-        type: DeviceStatsResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceStatsResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async getDeviceWithStats(
         @Param('id') id: string,
         @Scope() scope: DataScope
-    ): Promise<DeviceStatsResponseDto> {
-        const deviceWithStats = await this.deviceService.getDeviceWithStats(id, scope);
-        return plainToClass(DeviceStatsResponseDto, deviceWithStats);
+    ) {
+        return this.deviceService.getDeviceWithStats(id, scope);
     }
 
     @Get(':id/health')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get the health status of a specific device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiResponse({
-        status: 200,
-        description: 'The device health status.',
-        type: DeviceHealthResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceHealthResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async getDeviceHealth(
         @Param('id') id: string,
         @Scope() scope: DataScope
@@ -294,13 +257,9 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Test the connection to a device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiResponse({
-        status: 200,
-        description: 'Connection test result.',
-        type: TestConnectionResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(TestConnectionResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async testDeviceConnection(
         @Param('id') id: string,
         @Scope() scope: DataScope
@@ -313,14 +272,10 @@ export class DeviceController {
     @ApiOperation({ summary: 'Send a command to a device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiBody({ type: DeviceCommandDto })
-    @ApiResponse({
-        status: 200,
-        description: 'The result of the command.',
-        type: CommandResponseDto,
-    })
-    @ApiResponse({ status: 400, description: 'Invalid command.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(CommandResponseDto)
+    @ApiResponse({ status: 400, description: 'Invalid command.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async sendDeviceCommand(
         @Param('id') id: string,
         @Body() commandDto: DeviceCommandDto,
@@ -344,22 +299,17 @@ export class DeviceController {
     @ApiOperation({ summary: 'Update a device' })
     @ApiParam({ name: 'id', description: 'ID of the device to update' })
     @ApiBody({ type: UpdateDeviceDto })
-    @ApiResponse({
-        status: 200,
-        description: 'The device has been successfully updated.',
-        type: DeviceResponseDto,
-    })
-    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceResponseDto)
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async updateDevice(
         @Param('id') id: string,
         @Body() updateDeviceDto: UpdateDeviceDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.updateDevice(id, updateDeviceDto, scope, user.sub);
-        return plainToClass(DeviceResponseDto, device);
+    ): Promise<Device> {
+        return this.deviceService.updateDevice(id, updateDeviceDto, scope, user.sub);
     }
 
     @Patch(':id/status')
@@ -369,21 +319,16 @@ export class DeviceController {
     @ApiBody({
         schema: { type: 'object', properties: { isActive: { type: 'boolean' } } },
     })
-    @ApiResponse({
-        status: 200,
-        description: 'The device status has been updated.',
-        type: DeviceResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async toggleDeviceStatus(
         @Param('id') id: string,
         @Body('isActive') isActive: boolean,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.toggleDeviceStatus(id, isActive, scope, user.sub);
-        return plainToClass(DeviceResponseDto, device);
+    ): Promise<Device> {
+        return this.deviceService.toggleDeviceStatus(id, isActive, scope, user.sub);
     }
 
     @Post(':id/control')
@@ -391,14 +336,10 @@ export class DeviceController {
     @ApiOperation({ summary: 'Control device actions (open door, reboot, etc.)' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiBody({ type: DeviceControlDto })
-    @ApiResponse({
-        status: 200,
-        description: 'Device control result.',
-        type: CommandResponseDto,
-    })
-    @ApiResponse({ status: 400, description: 'Invalid control action.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(CommandResponseDto)
+    @ApiResponse({ status: 400, description: 'Invalid control action.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async controlDevice(
         @Param('id') id: string,
         @Body() controlDto: DeviceControlDto,
@@ -422,14 +363,10 @@ export class DeviceController {
     @ApiOperation({ summary: 'Sync employees to device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiBody({ type: DeviceSyncEmployeesDto })
-    @ApiResponse({
-        status: 200,
-        description: 'Employee sync result.',
-        type: SyncStatusResponseDto,
-    })
-    @ApiResponse({ status: 400, description: 'Invalid sync parameters.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(SyncStatusResponseDto)
+    @ApiResponse({ status: 400, description: 'Invalid sync parameters.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async syncEmployees(
         @Param('id') id: string,
         @Body() syncDto: DeviceSyncEmployeesDto,
@@ -454,52 +391,38 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get employee sync status for device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiResponse({
-        status: 200,
-        description: 'Employee sync status.',
-        type: SyncStatusResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(SyncStatusResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async getSyncStatus(
         @Param('id') id: string,
         @Scope() scope: DataScope
     ): Promise<SyncStatusResponseDto> {
-        const stats = await this.deviceService.getEmployeeSyncStatus(id, scope);
-        return plainToClass(SyncStatusResponseDto, stats);
+        return this.deviceService.getEmployeeSyncStatus(id, scope);
     }
 
     @Post(':id/retry-failed-syncs')
     @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Retry failed employee syncs for device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiResponse({
-        status: 200,
-        description: 'Retry sync result.',
-        type: RetrySyncResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(RetrySyncResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async retryFailedSyncs(
         @Param('id') id: string,
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<RetrySyncResponseDto> {
-        const stats = await this.deviceService.retryFailedSyncs(id, scope, user.sub);
-        return plainToClass(RetrySyncResponseDto, stats);
+        return this.deviceService.retryFailedSyncs(id, scope, user.sub);
     }
 
     @Get(':id/configuration')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get device configuration' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiResponse({
-        status: 200,
-        description: 'Device configuration.',
-        type: DeviceConfigurationResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceConfigurationResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async getDeviceConfiguration(
         @Param('id') id: string,
         @Scope() scope: DataScope
@@ -514,11 +437,20 @@ export class DeviceController {
     @ApiResponse({
         status: 201,
         description: 'Device configuration created.',
-        type: DeviceConfigurationResponseDto,
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(DeviceConfigurationResponseDto) },
+                    },
+                },
+            ],
+        }
     })
-    @ApiResponse({ status: 400, description: 'Invalid configuration.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 400, description: 'Invalid configuration.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async createDeviceConfiguration(
         @Param('id') id: string,
         @Body() configData: any,
@@ -532,14 +464,10 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
     @ApiOperation({ summary: 'Update device configuration' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiResponse({
-        status: 200,
-        description: 'Device configuration updated.',
-        type: DeviceConfigurationResponseDto,
-    })
-    @ApiResponse({ status: 400, description: 'Invalid configuration.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceConfigurationResponseDto)
+    @ApiResponse({ status: 400, description: 'Invalid configuration.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async updateDeviceConfiguration(
         @Param('id') id: string,
         @Body() configData: any,
@@ -554,8 +482,8 @@ export class DeviceController {
     @ApiOperation({ summary: 'Delete device configuration' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 204, description: 'Device configuration deleted.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async deleteDeviceConfiguration(
         @Param('id') id: string,
         @User() user: UserContext,
@@ -570,8 +498,8 @@ export class DeviceController {
     @ApiOperation({ summary: 'Delete a device' })
     @ApiParam({ name: 'id', description: 'ID of the device to delete' })
     @ApiResponse({ status: 204, description: 'The device has been successfully deleted.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async deleteDevice(
         @Param('id') id: string,
         @User() user: UserContext,
@@ -585,23 +513,36 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.CREATE)
     @ApiOperation({ summary: 'Create a device template' })
     @ApiBody({ type: CreateDeviceTemplateDto })
-    @ApiResponse({ status: 201, description: 'Device template created.' })
-    @ApiResponse({ status: 400, description: 'Invalid template data.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({
+        status: 201,
+        description: 'Device template created.',
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(DeviceTemplateResponseDto) },
+                    },
+                },
+            ],
+        }
+    })
+    @ApiResponse({ status: 400, description: 'Invalid template data.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async createTemplate(
         @Body() templateData: CreateDeviceTemplateDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ) {
+    ): Promise<DeviceTemplate> {
         return this.deviceService.createDeviceTemplate(templateData, scope, user.sub);
     }
 
     @Get('templates')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get all device templates' })
-    @ApiResponse({ status: 200, description: 'List of device templates.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    async getTemplates(@Scope() scope: DataScope) {
+    @ApiOkResponsePaginated(DeviceTemplateResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    async getTemplates(@Scope() scope: DataScope): Promise<DeviceTemplate[]> {
         return this.deviceService.getDeviceTemplates(scope);
     }
 
@@ -609,10 +550,10 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get a specific device template' })
     @ApiParam({ name: 'id', description: 'ID of the template' })
-    @ApiResponse({ status: 200, description: 'Device template details.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Template not found.', type: ErrorResponseDto })
-    async getTemplateById(@Param('id') id: string, @Scope() scope: DataScope) {
+    @ApiOkResponseData(DeviceTemplateResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Template not found.', type: ApiErrorResponse })
+    async getTemplateById(@Param('id') id: string, @Scope() scope: DataScope): Promise<DeviceTemplate> {
         return this.deviceService.getDeviceTemplateById(id, scope);
     }
 
@@ -621,16 +562,16 @@ export class DeviceController {
     @ApiOperation({ summary: 'Update a device template' })
     @ApiParam({ name: 'id', description: 'ID of the template' })
     @ApiBody({ type: UpdateDeviceTemplateDto })
-    @ApiResponse({ status: 200, description: 'Device template updated.' })
-    @ApiResponse({ status: 400, description: 'Invalid template data.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Template not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceTemplateResponseDto)
+    @ApiResponse({ status: 400, description: 'Invalid template data.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Template not found.', type: ApiErrorResponse })
     async updateTemplate(
         @Param('id') id: string,
         @Body() templateData: UpdateDeviceTemplateDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ) {
+    ): Promise<DeviceTemplate> {
         return this.deviceService.updateDeviceTemplate(id, templateData, scope, user.sub);
     }
 
@@ -640,8 +581,8 @@ export class DeviceController {
     @ApiOperation({ summary: 'Delete a device template' })
     @ApiParam({ name: 'id', description: 'ID of the template' })
     @ApiResponse({ status: 204, description: 'Device template deleted.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Template not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Template not found.', type: ApiErrorResponse })
     async deleteTemplate(
         @Param('id') id: string,
         @User() user: UserContext,
@@ -655,19 +596,19 @@ export class DeviceController {
     @ApiOperation({ summary: 'Apply a template to a device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiParam({ name: 'templateId', description: 'ID of the template' })
-    @ApiResponse({ status: 200, description: 'Template applied to device.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiOkResponseData(DeviceResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({
         status: 404,
         description: 'Device or template not found.',
-        type: ErrorResponseDto,
+        type: ApiErrorResponse,
     })
     async applyTemplateToDevice(
         @Param('id') id: string,
         @Param('templateId') templateId: string,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ) {
+    ): Promise<Device> {
         return this.deviceService.applyTemplateToDevice(templateId, id, scope, user.sub);
     }
 
@@ -678,9 +619,9 @@ export class DeviceController {
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiBody({ type: CreateWebhookDto })
     @ApiResponse({ status: 201, description: 'Webhook configured successfully.' })
-    @ApiResponse({ status: 400, description: 'Invalid webhook configuration.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 400, description: 'Invalid webhook configuration.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async configureWebhook(
         @Param('id') id: string,
         @Body() webhookConfig: CreateWebhookDto,
@@ -694,13 +635,9 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get webhook configurations for device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiResponse({ 
-        status: 200, 
-        description: 'Webhook configurations retrieved.',
-        type: WebhookConfigurationResponseDto
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(WebhookConfigurationResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async getWebhookConfiguration(
         @Param('id') id: string,
         @Scope() scope: DataScope
@@ -715,8 +652,8 @@ export class DeviceController {
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiParam({ name: 'hostId', description: 'ID of the webhook host' })
     @ApiResponse({ status: 204, description: 'Webhook removed successfully.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async removeWebhook(
         @Param('id') id: string,
         @Param('hostId') hostId: string,
@@ -732,8 +669,8 @@ export class DeviceController {
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiParam({ name: 'hostId', description: 'ID of the webhook host' })
     @ApiResponse({ status: 200, description: 'Webhook test result.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Device not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
     async testWebhook(
         @Param('id') id: string,
         @Param('hostId') hostId: string,

@@ -111,7 +111,7 @@ export class UserRepository {
         });
     }
 
-    async findOrganizationUsers(organizationId: string, scope: DataScope) {
+    async findOrganizationUsers(organizationId: string, scope: DataScope, skip: number, take: number) {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.organizationUser.findMany({
@@ -126,7 +126,19 @@ export class UserRepository {
                     },
                 },
             },
+            skip,
+            take,
             orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    async countOrganizationUsers(organizationId: string, scope: DataScope): Promise<number> {
+        const whereClause = QueryBuilder.buildOrganizationScope(scope);
+
+        return this.prisma.organizationUser.count({
+            where: {
+                organizationId: whereClause.organizationId,
+            },
         });
     }
 }

@@ -3,6 +3,7 @@ import { AuditLogController } from './audit-log.controller';
 import { AuditLogService } from '@/shared/services/audit-log.service';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { NotFoundException } from '@nestjs/common';
 
 describe('AuditLogController', () => {
     let controller: AuditLogController;
@@ -13,7 +14,7 @@ describe('AuditLogController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: [PERMISSIONS.AUDIT.READ_ORG, 'audit:export'],
+        permissions: [PERMISSIONS.AUDIT.READ_ALL, 'audit:export'],
     };
 
     const mockDataScope: DataScope = {
@@ -31,10 +32,16 @@ describe('AuditLogController', () => {
         method: 'POST',
         url: '/api/v1/employees',
         userAgent: 'Mozilla/5.0',
-        host: '192.168.1.1',
+        ipAddress: '192.168.1.1',
         status: 'SUCCESS',
         duration: 150,
         timestamp: new Date('2024-01-15T10:00:00Z'),
+        oldValues: null,
+        newValues: null,
+        errorMessage: null,
+        errorStack: null,
+        requestData: null,
+        responseData: null,
         user: {
             id: 'user-123',
             email: 'test@example.com',
@@ -119,7 +126,7 @@ describe('AuditLogController', () => {
                     { status: 'SUCCESS', count: 90 },
                     { status: 'FAILED', count: 10 },
                 ],
-                logsByUser: [{ userId: 'user-123', user: mockAuditLog.user, count: 50 }],
+                logsByUser: [{ userId: 'user-123', user: mockAuditLog.user as any, count: 50 }],
             };
 
             auditLogService.getAuditLogStats.mockResolvedValue(mockStats);
@@ -253,9 +260,9 @@ describe('AuditLogController', () => {
         it('should throw error when audit log not found', async () => {
             auditLogService.getAuditLogById.mockResolvedValue(null);
 
-            await expect(controller.getAuditLogById('audit-123', mockDataScope)).rejects.toThrow(
-                'Audit log not found'
-            );
+            await expect(
+                controller.getAuditLogById('audit-123', mockDataScope)
+            ).rejects.toThrow(NotFoundException);
         });
     });
 

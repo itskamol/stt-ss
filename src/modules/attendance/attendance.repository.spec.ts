@@ -145,35 +145,21 @@ describe('AttendanceRepository', () => {
 
             prismaService.attendance.findMany.mockResolvedValue([mockAttendanceRecord] as any);
 
-            const result = await repository.findMany(filters, mockDataScope);
+            const result = await repository.findMany(mockDataScope, 0, 50, filters);
 
             expect(prismaService.attendance.findMany).toHaveBeenCalledWith({
                 where: {
                     organizationId: mockDataScope.organizationId,
+                    branchId: 'branch-123', // Filtered to a specific branch
                     employeeId: filters.employeeId,
-                    branchId: filters.branchId,
                     timestamp: {
                         gte: filters.startDate,
                         lte: filters.endDate,
                     },
                 },
-                include: {
-                    employee: {
-                        select: {
-                            id: true,
-                            firstName: true,
-                            lastName: true,
-                            employeeCode: true,
-                        },
-                    },
-                    device: {
-                        select: {
-                            id: true,
-                            name: true,
-                            type: true,
-                        },
-                    },
-                },
+                skip: 0,
+                take: 50,
+                include: expect.any(Object),
                 orderBy: { timestamp: 'desc' },
             });
             expect(result).toEqual([mockAttendanceRecord]);
@@ -186,13 +172,16 @@ describe('AttendanceRepository', () => {
 
             prismaService.attendance.findMany.mockResolvedValue([mockAttendanceRecord] as any);
 
-            await repository.findMany(filters, mockDataScope);
+            await repository.findMany(mockDataScope, 0, 50, filters);
 
             expect(prismaService.attendance.findMany).toHaveBeenCalledWith({
                 where: {
                     organizationId: mockDataScope.organizationId,
+                    branchId: { in: mockDataScope.branchIds }, // Scoped to user's branches
                     employeeId: filters.employeeId,
                 },
+                skip: 0,
+                take: 50,
                 include: expect.any(Object),
                 orderBy: { timestamp: 'desc' },
             });

@@ -1,5 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
@@ -22,6 +22,7 @@ import { AttendanceModule } from '@/modules/attendance/attendance.module';
 import { GuestModule } from '@/modules/guest/guest.module';
 
 import { GlobalExceptionFilter } from '@/shared/filters';
+import { ResponseInterceptor } from '@/shared/interceptors/response.interceptor';
 import { DataScopeGuard, JwtAuthGuard, RolesGuard } from '@/shared/guards';
 import { CorrelationIdMiddleware, MorganLoggerMiddleware } from '@/shared/middleware';
 import { AuditModule } from '@/modules/audit/audit.module';
@@ -52,6 +53,10 @@ import { AuditModule } from '@/modules/audit/audit.module';
     controllers: [AppController],
     providers: [
         AppService,
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: ResponseInterceptor,
+        },
         {
             provide: APP_FILTER,
             useClass: GlobalExceptionFilter,

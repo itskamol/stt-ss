@@ -11,26 +11,29 @@ import {
     Query,
     UploadedFile,
     UseInterceptors,
+    NotFoundException,
 } from '@nestjs/common';
 import {
     ApiBearerAuth,
     ApiBody,
     ApiConsumes,
+    ApiExtraModels,
     ApiOperation,
     ApiParam,
     ApiQuery,
     ApiResponse,
     ApiTags,
+    getSchemaPath,
 } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
 import {
+    ApiErrorResponse,
+    ApiSuccessResponse,
     CreateEmployeeDto,
     EmployeeCountResponseDto,
     EmployeePhotoUploadResponseDto,
     EmployeeResponseDto,
-    ErrorResponseDto,
     PaginationDto,
-    PaginationResponseDto,
     UpdateEmployeeDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
@@ -38,11 +41,13 @@ import { DataScope, UserContext } from '@/shared/interfaces';
 import { AuditLog } from '@/shared/interceptors/audit-log.interceptor';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { plainToClass } from 'class-transformer';
+import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
+import { Employee } from '@prisma/client';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
 @Controller('employees')
+@ApiExtraModels(ApiSuccessResponse, EmployeeResponseDto, EmployeeCountResponseDto, EmployeePhotoUploadResponseDto)
 export class EmployeeController {
     constructor(private readonly employeeService: EmployeeService) {}
 
@@ -59,75 +64,66 @@ export class EmployeeController {
     @ApiResponse({
         status: 201,
         description: 'The employee has been successfully created.',
-        type: EmployeeResponseDto,
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(EmployeeResponseDto) },
+                    },
+                },
+            ],
+        }
     })
-    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async createEmployee(
         @Body() createEmployeeDto: CreateEmployeeDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<EmployeeResponseDto> {
-        const employee = await this.employeeService.createEmployee(
+    ): Promise<Employee> {
+        return this.employeeService.createEmployee(
             createEmployeeDto,
             scope,
             user.sub
         );
-        return plainToClass(EmployeeResponseDto, employee);
     }
 
     @Get()
     @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get all employees with pagination' })
     @ApiQuery({ name: 'paginationDto', type: PaginationDto })
-    @ApiResponse({
-        status: 200,
-        description: 'A paginated list of employees.',
-        type: PaginationResponseDto<EmployeeResponseDto>,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiOkResponsePaginated(EmployeeResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getEmployees(
         @Scope() scope: DataScope,
         @Query() paginationDto: PaginationDto
-    ): Promise<PaginationResponseDto<EmployeeResponseDto>> {
-        const { page = 1, limit = 10 } = paginationDto;
-
-        return this.employeeService.getPaginatedEmployees({}, scope, page, limit);
+    ) {
+        return this.employeeService.getPaginatedEmployees(scope, paginationDto);
     }
 
     @Get('search')
     @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Search for employees' })
     @ApiQuery({ name: 'q', description: 'Search term (at least 2 characters)' })
-    @ApiResponse({
-        status: 200,
-        description: 'A list of employees matching the search term.',
-        type: [EmployeeResponseDto],
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
+    @ApiOkResponsePaginated(EmployeeResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async searchEmployees(
         @Query('q') searchTerm: string,
         @Scope() scope: DataScope
-    ): Promise<EmployeeResponseDto[]> {
+    ): Promise<Employee[]> {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
         }
-
-        const employees = await this.employeeService.searchEmployees(searchTerm.trim(), scope);
-
-        return employees.map(employee => plainToClass(EmployeeResponseDto, employee));
+        return this.employeeService.searchEmployees(searchTerm.trim(), scope);
     }
 
     @Get('count')
     @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get the total number of employees' })
-    @ApiResponse({
-        status: 200,
-        description: 'The total number of employees.',
-        type: EmployeeCountResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    async getEmployeeCount(@Scope() scope: DataScope): Promise<EmployeeCountResponseDto> {
+    @ApiOkResponseData(EmployeeCountResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    async getEmployeeCount(@Scope() scope: DataScope): Promise<{ count: number }> {
         const count = await this.employeeService.getEmployeeCount(scope);
         return { count };
     }
@@ -136,36 +132,27 @@ export class EmployeeController {
     @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get all employees for a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
-    @ApiResponse({
-        status: 200,
-        description: 'A list of employees for the branch.',
-        type: [EmployeeResponseDto],
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
+    @ApiOkResponsePaginated(EmployeeResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ApiErrorResponse })
     async getEmployeesByBranch(
         @Param('branchId') branchId: string,
         @Scope() scope: DataScope
-    ): Promise<EmployeeResponseDto[]> {
-        const employees = await this.employeeService.getEmployeesByBranch(branchId, scope);
-        return employees.map(employee => plainToClass(EmployeeResponseDto, employee));
+    ): Promise<Employee[]> {
+        return this.employeeService.getEmployeesByBranch(branchId, scope);
     }
 
     @Get('branch/:branchId/count')
     @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get the number of employees in a specific branch' })
     @ApiParam({ name: 'branchId', description: 'ID of the branch' })
-    @ApiResponse({
-        status: 200,
-        description: 'The number of employees in the branch.',
-        type: EmployeeCountResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Branch not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(EmployeeCountResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Branch not found.', type: ApiErrorResponse })
     async getEmployeeCountByBranch(
         @Param('branchId') branchId: string,
         @Scope() scope: DataScope
-    ): Promise<EmployeeCountResponseDto> {
+    ): Promise<{ count: number }> {
         const count = await this.employeeService.getEmployeeCountByBranch(branchId, scope);
         return { count };
     }
@@ -174,36 +161,27 @@ export class EmployeeController {
     @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get all employees for a specific department' })
     @ApiParam({ name: 'departmentId', description: 'ID of the department' })
-    @ApiResponse({
-        status: 200,
-        description: 'A list of employees for the department.',
-        type: [EmployeeResponseDto],
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Department not found.', type: ErrorResponseDto })
+    @ApiOkResponsePaginated(EmployeeResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Department not found.', type: ApiErrorResponse })
     async getEmployeesByDepartment(
         @Param('departmentId') departmentId: string,
         @Scope() scope: DataScope
-    ): Promise<EmployeeResponseDto[]> {
-        const employees = await this.employeeService.getEmployeesByDepartment(departmentId, scope);
-        return employees.map(employee => plainToClass(EmployeeResponseDto, employee));
+    ): Promise<Employee[]> {
+        return this.employeeService.getEmployeesByDepartment(departmentId, scope);
     }
 
     @Get('department/:departmentId/count')
     @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get the number of employees in a specific department' })
     @ApiParam({ name: 'departmentId', description: 'ID of the department' })
-    @ApiResponse({
-        status: 200,
-        description: 'The number of employees in the department.',
-        type: EmployeeCountResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Department not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(EmployeeCountResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Department not found.', type: ApiErrorResponse })
     async getEmployeeCountByDepartment(
         @Param('departmentId') departmentId: string,
         @Scope() scope: DataScope
-    ): Promise<EmployeeCountResponseDto> {
+    ): Promise<{ count: number }> {
         const count = await this.employeeService.getEmployeeCountByDepartment(departmentId, scope);
         return { count };
     }
@@ -212,36 +190,36 @@ export class EmployeeController {
     @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get an employee by their employee code' })
     @ApiParam({ name: 'employeeCode', description: 'Employee code' })
-    @ApiResponse({ status: 200, description: 'The employee details.', type: EmployeeResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(EmployeeResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async getEmployeeByCode(
         @Param('employeeCode') employeeCode: string,
         @Scope() scope: DataScope
-    ): Promise<EmployeeResponseDto> {
+    ): Promise<Employee> {
         const employee = await this.employeeService.getEmployeeByCode(employeeCode, scope);
         if (!employee) {
-            throw new Error('Employee not found');
+            throw new NotFoundException('Employee not found.');
         }
-        return plainToClass(EmployeeResponseDto, employee);
+        return employee;
     }
 
     @Get(':id')
     @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
     @ApiOperation({ summary: 'Get a specific employee by ID' })
     @ApiParam({ name: 'id', description: 'ID of the employee' })
-    @ApiResponse({ status: 200, description: 'The employee details.', type: EmployeeResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(EmployeeResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async getEmployeeById(
         @Param('id') id: string,
         @Scope() scope: DataScope
-    ): Promise<EmployeeResponseDto> {
+    ): Promise<Employee> {
         const employee = await this.employeeService.getEmployeeById(id, scope);
         if (!employee) {
-            throw new Error('Employee not found');
+            throw new NotFoundException('Employee not found.');
         }
-        return plainToClass(EmployeeResponseDto, employee);
+        return employee;
     }
 
     @Patch(':id')
@@ -255,27 +233,22 @@ export class EmployeeController {
     @ApiOperation({ summary: 'Update an employee' })
     @ApiParam({ name: 'id', description: 'ID of the employee to update' })
     @ApiBody({ type: UpdateEmployeeDto })
-    @ApiResponse({
-        status: 200,
-        description: 'The employee has been successfully updated.',
-        type: EmployeeResponseDto,
-    })
-    @ApiResponse({ status: 400, description: 'Invalid input.', type: ErrorResponseDto })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(EmployeeResponseDto)
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async updateEmployee(
         @Param('id') id: string,
         @Body() updateEmployeeDto: UpdateEmployeeDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<EmployeeResponseDto> {
-        const employee = await this.employeeService.updateEmployee(
+    ): Promise<Employee> {
+        return this.employeeService.updateEmployee(
             id,
             updateEmployeeDto,
             scope,
             user.sub
         );
-        return plainToClass(EmployeeResponseDto, employee);
     }
 
     @Patch(':id/status')
@@ -291,26 +264,21 @@ export class EmployeeController {
     @ApiBody({
         schema: { type: 'object', properties: { isActive: { type: 'boolean' } } },
     })
-    @ApiResponse({
-        status: 200,
-        description: 'The employee status has been updated.',
-        type: EmployeeResponseDto,
-    })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
+    @ApiOkResponseData(EmployeeResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async toggleEmployeeStatus(
         @Param('id') id: string,
         @Body('isActive') isActive: boolean,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<EmployeeResponseDto> {
-        const employee = await this.employeeService.toggleEmployeeStatus(
+    ): Promise<Employee> {
+        return this.employeeService.toggleEmployeeStatus(
             id,
             isActive,
             scope,
             user.sub
         );
-        return plainToClass(EmployeeResponseDto, employee);
     }
 
     @Delete(':id')
@@ -324,8 +292,8 @@ export class EmployeeController {
     @ApiOperation({ summary: 'Delete an employee' })
     @ApiParam({ name: 'id', description: 'ID of the employee to delete' })
     @ApiResponse({ status: 204, description: 'The employee has been successfully deleted.' })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async deleteEmployee(
         @Param('id') id: string,
         @User() user: UserContext,
@@ -359,26 +327,21 @@ export class EmployeeController {
             required: ['photo'],
         },
     })
-    @ApiResponse({
-        status: 200,
-        description: 'The employee photo has been successfully uploaded.',
-        type: EmployeePhotoUploadResponseDto,
-    })
+    @ApiOkResponseData(EmployeePhotoUploadResponseDto)
     @ApiResponse({
         status: 400,
         description: 'Invalid file format or size.',
-        type: ErrorResponseDto,
+        type: ApiErrorResponse,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async uploadEmployeePhoto(
         @Param('id') id: string,
         @UploadedFile() file: Express.Multer.File,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<EmployeePhotoUploadResponseDto> {
-        const result = await this.employeeService.uploadEmployeePhoto(id, file, scope, user.sub);
-        return plainToClass(EmployeePhotoUploadResponseDto, result);
+    ): Promise<{ photoUrl: string }> {
+        return this.employeeService.uploadEmployeePhoto(id, file, scope, user.sub);
     }
 
     @Delete(':id/photo')
@@ -395,10 +358,10 @@ export class EmployeeController {
     @ApiResponse({
         status: 400,
         description: 'Employee does not have a photo.',
-        type: ErrorResponseDto,
+        type: ApiErrorResponse,
     })
-    @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    @ApiResponse({ status: 404, description: 'Employee not found.', type: ErrorResponseDto })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async deleteEmployeePhoto(
         @Param('id') id: string,
         @User() user: UserContext,

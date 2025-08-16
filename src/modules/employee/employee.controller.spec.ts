@@ -1,13 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmployeeController } from './employee.controller';
 import { EmployeeService } from './employee.service';
-import {
-    CreateEmployeeDto,
-    EmployeeResponseDto,
-    UpdateEmployeeDto,
-} from '@/shared/dto';
+import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { NotFoundException } from '@nestjs/common';
+import { Employee } from '@prisma/client';
 
 describe('EmployeeController', () => {
     let controller: EmployeeController;
@@ -18,7 +16,7 @@ describe('EmployeeController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL],
+        permissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL, PERMISSIONS.EMPLOYEE.UPDATE_MANAGED],
     };
 
     const mockDataScope: DataScope = {
@@ -26,7 +24,7 @@ describe('EmployeeController', () => {
         branchIds: ['branch-123'],
     };
 
-    const mockEmployee = {
+    const mockEmployee: Employee = {
         id: 'emp-123',
         organizationId: 'org-123',
         branchId: 'branch-123',
@@ -40,12 +38,15 @@ describe('EmployeeController', () => {
         photoKey: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        createdById: 'user-123',
+        updatedById: 'user-123',
+        accessGroupId: null,
     };
 
     beforeEach(async () => {
         const mockEmployeeService = {
             createEmployee: jest.fn(),
-            getEmployees: jest.fn(),
+            getPaginatedEmployees: jest.fn(),
             getEmployeesByBranch: jest.fn(),
             getEmployeesByDepartment: jest.fn(),
             getEmployeeById: jest.fn(),
@@ -57,6 +58,8 @@ describe('EmployeeController', () => {
             getEmployeeCountByBranch: jest.fn(),
             getEmployeeCountByDepartment: jest.fn(),
             toggleEmployeeStatus: jest.fn(),
+            uploadEmployeePhoto: jest.fn(),
+            deleteEmployeePhoto: jest.fn(),
         };
 
         const module: TestingModule = await Test.createTestingModule({
@@ -103,7 +106,7 @@ describe('EmployeeController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(EmployeeResponseDto);
+            expect(result).toEqual(mockEmployee);
             expect(result.id).toBe(mockEmployee.id);
         });
     });
@@ -111,11 +114,17 @@ describe('EmployeeController', () => {
     describe('getEmployees', () => {
         it('should return paginated employees', async () => {
             const employees = [mockEmployee];
-            employeeService.getEmployees.mockResolvedValue(employees);
+            const paginatedResult = {
+                data: employees,
+                total: 1,
+                page: 1,
+                limit: 10,
+            };
+            employeeService.getPaginatedEmployees.mockResolvedValue(paginatedResult);
+            const paginationDto = { page: 1, limit: 10 };
+            const result = await controller.getEmployees(mockDataScope, paginationDto);
 
-            const result = await controller.getEmployees(mockDataScope, { page: 1, limit: 10 });
-
-            expect(employeeService.getEmployees).toHaveBeenCalledWith(mockDataScope);
+            expect(employeeService.getPaginatedEmployees).toHaveBeenCalledWith(mockDataScope, paginationDto);
             expect(result.data).toHaveLength(1);
             expect(result.total).toBe(1);
             expect(result.page).toBe(1);
@@ -162,14 +171,14 @@ describe('EmployeeController', () => {
             const result = await controller.getEmployeeById('emp-123', mockDataScope);
 
             expect(employeeService.getEmployeeById).toHaveBeenCalledWith('emp-123', mockDataScope);
-            expect(result).toBeInstanceOf(EmployeeResponseDto);
+            expect(result).toEqual(mockEmployee);
             expect(result.id).toBe(mockEmployee.id);
         });
 
         it('should throw error when employee not found', async () => {
             employeeService.getEmployeeById.mockResolvedValue(null);
 
-            await expect(controller.getEmployeeById('nonexistent', mockDataScope)).rejects.toThrow();
+            await expect(controller.getEmployeeById('nonexistent', mockDataScope)).rejects.toThrow(NotFoundException);
         });
     });
 
@@ -180,7 +189,7 @@ describe('EmployeeController', () => {
             const result = await controller.getEmployeeByCode('EMP001', mockDataScope);
 
             expect(employeeService.getEmployeeByCode).toHaveBeenCalledWith('EMP001', mockDataScope);
-            expect(result).toBeInstanceOf(EmployeeResponseDto);
+            expect(result).toEqual(mockEmployee);
             expect(result.employeeCode).toBe(mockEmployee.employeeCode);
         });
 
@@ -189,7 +198,7 @@ describe('EmployeeController', () => {
 
             await expect(
                 controller.getEmployeeByCode('NONEXISTENT', mockDataScope)
-            ).rejects.toThrow();
+            ).rejects.toThrow(NotFoundException);
         });
     });
 
@@ -220,7 +229,7 @@ describe('EmployeeController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(EmployeeResponseDto);
+            expect(result).toEqual(updatedEmployee);
             expect(result.firstName).toBe('Jane');
         });
     });
@@ -243,7 +252,7 @@ describe('EmployeeController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(EmployeeResponseDto);
+            expect(result).toEqual(deactivatedEmployee);
             expect(result.isActive).toBe(false);
         });
     });
@@ -278,7 +287,7 @@ describe('EmployeeController', () => {
 
             expect(employeeService.searchEmployees).toHaveBeenCalledWith('john', mockDataScope);
             expect(result).toHaveLength(1);
-            expect(result[0]).toBeInstanceOf(EmployeeResponseDto);
+            expect(result[0]).toEqual(mockEmployee);
         });
     });
 
@@ -289,7 +298,7 @@ describe('EmployeeController', () => {
             const result = await controller.getEmployeeCount(mockDataScope);
 
             expect(employeeService.getEmployeeCount).toHaveBeenCalledWith(mockDataScope);
-            expect(result.count).toBe(10);
+            expect(result).toEqual({ count: 10 });
         });
     });
 
@@ -303,7 +312,7 @@ describe('EmployeeController', () => {
                 'branch-123',
                 mockDataScope
             );
-            expect(result.count).toBe(5);
+            expect(result).toEqual({ count: 5 });
         });
     });
 
@@ -317,7 +326,7 @@ describe('EmployeeController', () => {
                 'dept-123',
                 mockDataScope
             );
-            expect(result.count).toBe(3);
+            expect(result).toEqual({ count: 3 });
         });
     });
 });

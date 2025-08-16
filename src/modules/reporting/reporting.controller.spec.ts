@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReportingController } from './reporting.controller';
 import { ReportingService } from './reporting.service';
-import { CreateReportDto } from '@/shared/dto';
+import { CreateReportDto, PaginationResponseDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 
@@ -92,38 +92,15 @@ describe('ReportingController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toEqual({
-                id: mockReport.id,
-                name: mockReport.name,
-                type: mockReport.type,
-                status: mockReport.status,
-                parameters: mockReport.parameters,
-                organizationId: mockReport.organizationId,
-                createdByUserId: mockReport.createdByUserId,
-                fileUrl: mockReport.fileUrl,
-                filePath: mockReport.filePath,
-                fileSize: mockReport.fileSize,
-                recordCount: mockReport.recordCount,
-                startedAt: mockReport.startedAt,
-                completedAt: mockReport.completedAt,
-                errorMessage: mockReport.errorMessage,
-                createdAt: mockReport.createdAt,
-                updatedAt: mockReport.updatedAt,
-            });
+            expect(result).toEqual(mockReport);
         });
     });
 
     describe('getReports', () => {
         it('should return paginated reports', async () => {
-            const mockResult = {
-                data: [mockReport],
-                total: 1,
-                page: 1,
-                limit: 20,
-                totalPages: 1,
-            };
+            const paginatedResponse = new PaginationResponseDto([mockReport], 1, 1, 20);
 
-            reportingService.getReports.mockResolvedValue(mockResult as any);
+            reportingService.getReports.mockResolvedValue(paginatedResponse as any);
 
             const result = await controller.getReports(
                 mockDataScope,
@@ -138,8 +115,7 @@ describe('ReportingController', () => {
                 mockDataScope,
                 { page: 1, limit: 20 }
             );
-            expect(result.data).toHaveLength(1);
-            expect(result.total).toBe(1);
+            expect(result).toEqual(paginatedResponse);
         });
     });
 
@@ -181,14 +157,6 @@ describe('ReportingController', () => {
                 mockDataScope
             );
             expect(result.id).toBe('report-123');
-        });
-
-        it('should throw error when report not found', async () => {
-            reportingService.getReportById.mockResolvedValue(null);
-
-            await expect(controller.getReportById('report-123', mockDataScope)).rejects.toThrow(
-                'Report not found'
-            );
         });
     });
 

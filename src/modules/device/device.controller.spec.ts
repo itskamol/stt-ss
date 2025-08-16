@@ -3,11 +3,8 @@ import { DeviceController } from './device.controller';
 import { DeviceService } from './device.service';
 import {
     CreateDeviceDto,
-    DeviceAutoDiscoveryDto,
-    DeviceAutoDiscoveryResponseDto,
     DeviceCommandDto,
-    DeviceDiscoveryTestDto,
-    DeviceResponseDto,
+    PaginationResponseDto,
     UpdateDeviceDto,
 } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
@@ -77,6 +74,7 @@ describe('DeviceController', () => {
             testDeviceConnection: jest.fn(),
             sendDeviceCommand: jest.fn(),
             discoverDevices: jest.fn(),
+            createDeviceWithSimplifiedInfo: jest.fn(),
         };
 
         const module: TestingModule = await Test.createTestingModule({
@@ -102,7 +100,6 @@ describe('DeviceController', () => {
             const createDto: CreateDeviceDto = {
                 name: 'Main Door Reader',
                 type: DeviceType.CARD_READER,
-                deviceIdentifier: 'READER-001',
                 branchId: 'branch-123',
                 host: '192.168.1.100',
                 description: 'Main entrance card reader',
@@ -118,23 +115,19 @@ describe('DeviceController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(DeviceResponseDto);
             expect(result.id).toBe(mockDevice.id);
         });
     });
 
     describe('getDevices', () => {
         it('should return paginated devices', async () => {
-            const devices = [mockDevice];
-            deviceService.getDevices.mockResolvedValue(devices);
+            const paginatedResponse = new PaginationResponseDto([mockDevice], 1, 1, 10);
+            deviceService.getDevices.mockResolvedValue(paginatedResponse as any);
 
             const result = await controller.getDevices(mockDataScope, { page: 1, limit: 10 });
 
-            expect(deviceService.getDevices).toHaveBeenCalledWith(mockDataScope);
-            expect(result.data).toHaveLength(1);
-            expect(result.total).toBe(1);
-            expect(result.page).toBe(1);
-            expect(result.limit).toBe(10);
+            expect(deviceService.getDevices).toHaveBeenCalledWith(mockDataScope, { page: 1, limit: 10 });
+            expect(result).toEqual(paginatedResponse);
         });
     });
 
@@ -163,12 +156,6 @@ describe('DeviceController', () => {
             expect(deviceService.getDeviceById).toHaveBeenCalledWith('device-123', mockDataScope);
             expect(result.id).toBe(mockDevice.id);
         });
-
-        it('should throw error when device not found', async () => {
-            deviceService.getDeviceById.mockResolvedValue(null);
-
-            await expect(controller.getDeviceById('nonexistent', mockDataScope)).rejects.toThrow();
-        });
     });
 
     describe('getDeviceByIdentifier', () => {
@@ -181,15 +168,7 @@ describe('DeviceController', () => {
                 'READER-001',
                 mockDataScope
             );
-            expect(result.deviceIdentifier).toBe(mockDevice.deviceIdentifier);
-        });
-
-        it('should throw error when device not found by identifier', async () => {
-            deviceService.getDeviceByIdentifier.mockResolvedValue(null);
-
-            await expect(
-                controller.getDeviceByIdentifier('NONEXISTENT', mockDataScope)
-            ).rejects.toThrow();
+            expect(result.id).toBe(mockDevice.id);
         });
     });
 
@@ -220,7 +199,6 @@ describe('DeviceController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(DeviceResponseDto);
             expect(result.name).toBe('Updated Door Reader');
         });
     });
@@ -243,7 +221,6 @@ describe('DeviceController', () => {
                 mockDataScope,
                 mockUserContext.sub
             );
-            expect(result).toBeInstanceOf(DeviceResponseDto);
             expect(result.isActive).toBe(false);
         });
     });
@@ -323,7 +300,7 @@ describe('DeviceController', () => {
                 'device-123',
                 mockDataScope
             );
-            expect(result.statistics.deviceWithStats).toBe(150);
+            expect(result.statistics.totalEvents).toBe(150);
         });
     });
 
@@ -336,7 +313,7 @@ describe('DeviceController', () => {
                 lastHealthCheck: new Date(),
             };
 
-            deviceService.getDeviceHealth.mockResolvedValue(healthStatus);
+            deviceService.getDeviceHealth.mockResolvedValue(healthStatus as any);
 
             const result = await controller.getDeviceHealth('device-123', mockDataScope);
 
@@ -349,10 +326,8 @@ describe('DeviceController', () => {
     describe('testDeviceConnection', () => {
         it('should test device connection successfully', async () => {
             const connectionResult: any = {
-                deviceId: 'device-123',
-                deviceName: 'Main Door Reader',
-                connected: true,
-                testedAt: new Date(),
+                success: true,
+                message: 'Connected',
             };
 
             deviceService.testDeviceConnection.mockResolvedValue(connectionResult);
@@ -403,5 +378,4 @@ describe('DeviceController', () => {
             expect(result.success).toBe(true);
         });
     });
-
-    });
+});

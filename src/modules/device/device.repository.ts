@@ -60,7 +60,7 @@ export class DeviceRepository {
         });
     }
 
-    async findMany(filters: any = {}, scope: DataScope): Promise<Device[]> {
+    async findMany(scope: DataScope, skip: number, take: number, filters: any = {}): Promise<Device[]> {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
         return this.prisma.device.findMany({
@@ -68,6 +68,8 @@ export class DeviceRepository {
                 ...filters,
                 branch: whereClause,
             },
+            skip,
+            take,
             orderBy: { name: 'asc' },
         });
     }
@@ -97,7 +99,7 @@ export class DeviceRepository {
         });
     }
 
-    async count(filters: any = {}, scope: DataScope): Promise<number> {
+    async count(scope: DataScope, filters: any = {}): Promise<number> {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
         return this.prisma.device.count({
@@ -126,7 +128,7 @@ export class DeviceRepository {
         });
     }
 
-    async searchDevices(searchTerm: string, scope: DataScope): Promise<Device[]> {
+    async searchDevices(searchTerm: string, scope: DataScope, skip: number, take: number): Promise<Device[]> {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
         return this.prisma.device.findMany({
@@ -139,6 +141,8 @@ export class DeviceRepository {
                     { host: { contains: searchTerm, mode: 'insensitive' } },
                 ],
             },
+            skip,
+            take,
             orderBy: { name: 'asc' },
         });
     }

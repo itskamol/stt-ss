@@ -42,13 +42,15 @@ export class GuestRepository {
     }
 
     async findMany(
+        scope: DataScope,
+        skip: number,
+        take: number,
         filters: {
             status?: string;
             branchId?: string;
             startDate?: Date;
             endDate?: Date;
-        },
-        scope: DataScope
+        }
     ): Promise<GuestVisit[]> {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
@@ -76,7 +78,47 @@ export class GuestRepository {
 
         return this.prisma.guestVisit.findMany({
             where,
+            skip,
+            take,
             orderBy: { scheduledEntryTime: 'desc' },
+        });
+    }
+
+    async count(
+        scope: DataScope,
+        filters: {
+            status?: string;
+            branchId?: string;
+            startDate?: Date;
+            endDate?: Date;
+        }
+    ): Promise<number> {
+        const whereClause = QueryBuilder.buildBranchScope(scope);
+
+        const where: any = {
+            branch: whereClause,
+        };
+
+        if (filters.status) {
+            where.status = filters.status;
+        }
+
+        if (filters.branchId) {
+            where.branchId = filters.branchId;
+        }
+
+        if (filters.startDate || filters.endDate) {
+            where.scheduledEntryTime = {};
+            if (filters.startDate) {
+                where.scheduledEntryTime.gte = filters.startDate;
+            }
+            if (filters.endDate) {
+                where.scheduledEntryTime.lte = filters.endDate;
+            }
+        }
+
+        return this.prisma.guestVisit.count({
+            where,
         });
     }
 
@@ -129,7 +171,7 @@ export class GuestRepository {
         });
     }
 
-    async searchGuestVisits(searchTerm: string, scope: DataScope): Promise<GuestVisit[]> {
+    async searchGuestVisits(searchTerm: string, scope: DataScope, skip: number, take: number): Promise<GuestVisit[]> {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
         return this.prisma.guestVisit.findMany({
@@ -140,6 +182,8 @@ export class GuestRepository {
                     { guestContact: { contains: searchTerm, mode: 'insensitive' } },
                 ],
             },
+            skip,
+            take,
             orderBy: { scheduledEntryTime: 'desc' },
         });
     }
