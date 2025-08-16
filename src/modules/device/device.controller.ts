@@ -103,10 +103,11 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.createDeviceWithSimplifiedInfo(
+        const device = await this.deviceService.createDevice(
             simplifiedInfo,
             scope,
-            user.sub
+            user.sub,
+            { preScan: true }
         );
         return plainToClass(DeviceResponseDto, device);
     }
