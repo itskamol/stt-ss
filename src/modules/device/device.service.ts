@@ -64,7 +64,6 @@ export class DeviceService {
 
             // Create type-safe device config for discovery
             const discoveryConfig: DeviceDiscoveryConfig = {
-                type: DeviceType.ACCESS_CONTROL,
                 protocol: connectionDetails.protocol || DeviceProtocol.HTTP,
                 host: connectionDetails.host,
                 port: connectionDetails.port,
@@ -74,12 +73,16 @@ export class DeviceService {
             };
 
             // Try to get device information using adapter
-            const deviceInfo = await this.deviceAdapterStrategy.getDeviceInfoByConfig(discoveryConfig);
+            const deviceInfo =
+                await this.deviceAdapterStrategy.getDeviceInfoByConfig(discoveryConfig);
 
             // Extract device details with fallbacks
             const discoveredInfo: DeviceInfo = {
                 name: deviceInfo.name || `${connectionDetails.brand} Device`,
-                deviceId: deviceInfo.deviceId || deviceInfo.serialNumber || `${connectionDetails.host}_${Date.now()}`,
+                deviceId:
+                    deviceInfo.deviceId ||
+                    deviceInfo.serialNumber ||
+                    `${connectionDetails.host}_${Date.now()}`,
                 model: deviceInfo.model || 'Unknown Model',
                 serialNumber: deviceInfo.serialNumber || '',
                 macAddress: deviceInfo.macAddress || this.extractMacAddress(deviceInfo) || '',
@@ -202,7 +205,7 @@ export class DeviceService {
                     model: deviceData.model || discoveredInfo.model,
                     firmware: deviceData.firmware || discoveredInfo.firmwareVersion,
                     macAddress: deviceData.macAddress || discoveredInfo.macAddress,
-                  };
+                };
 
                 this.logger.debug('Device information auto-filled', {
                     original: createDeviceDto,
@@ -222,7 +225,6 @@ export class DeviceService {
                 }
             }
 
-  
             deviceData.password = this.encryptionService.encrypt(deviceData.password);
 
             const device = await this.deviceRepository.create(deviceData, scope);
@@ -269,7 +271,7 @@ export class DeviceService {
                 username: scanInfo.username || '',
                 password: scanInfo.password || '',
                 protocol: scanInfo.protocol,
-                brand: 'unknown',
+                brand: scanInfo.protocol,
             });
 
             return {
@@ -278,9 +280,10 @@ export class DeviceService {
                     name: discoveredInfo.name,
                     manufacturer: discoveredInfo.manufacturer,
                     model: discoveredInfo.model,
+                    type: discoveredInfo.deviceType,
                     firmware: discoveredInfo.firmwareVersion,
                     macAddress: discoveredInfo.macAddress,
-                                        capabilities: discoveredInfo.capabilities.map(cap => cap.toString()),
+                    capabilities: discoveredInfo.capabilities.map(cap => cap.toString()),
                     status: discoveredInfo.status,
                 },
                 scannedAt: new Date(),
@@ -319,14 +322,16 @@ export class DeviceService {
         const scanResult = await this.scanDeviceForCreation(simplifiedInfo);
 
         if (!scanResult.found) {
-            throw new BadRequestException(`Device not found at ${simplifiedInfo.host}:${simplifiedInfo.port}. ${scanResult.error || ''}`);
+            throw new BadRequestException(
+                `Device not found at ${simplifiedInfo.host}:${simplifiedInfo.port}. ${scanResult.error || ''}`
+            );
         }
 
         // Create full device DTO with discovered information
         const createDeviceDto: CreateDeviceDto = {
             name: simplifiedInfo.name,
-            type: simplifiedInfo.type || DeviceType.ACCESS_CONTROL,
-                        host: simplifiedInfo.host,
+            type: DeviceType.ACCESS_CONTROL,
+            host: simplifiedInfo.host,
             username: simplifiedInfo.username,
             password: simplifiedInfo.password,
             port: simplifiedInfo.port || 80,
@@ -335,14 +340,13 @@ export class DeviceService {
             manufacturer: scanResult.deviceInfo.manufacturer,
             model: scanResult.deviceInfo.model,
             firmware: scanResult.deviceInfo.firmware,
-            description: simplifiedInfo.description || `Auto-discovered ${scanResult.deviceInfo.manufacturer} device`,
+            description:
+                simplifiedInfo.description ||
+                `Auto-discovered ${scanResult.deviceInfo.manufacturer} device`,
             branchId: simplifiedInfo.branchId,
             isActive: true,
-            timeout: 5000,
-            retryAttempts: 3,
-            keepAlive: true,
         };
-
+        return;
         return this.createDevice(createDeviceDto, scope, createdByUserId, correlationId);
     }
 
@@ -364,8 +368,8 @@ export class DeviceService {
         // Create full device DTO with pre-scanned information
         const createDeviceDto: CreateDeviceDto = {
             name: preScannedInfo.name,
-            type: preScannedInfo.type || DeviceType.ACCESS_CONTROL,
-                        host: preScannedInfo.host,
+            type: DeviceType.ACCESS_CONTROL,
+            host: preScannedInfo.host,
             username: preScannedInfo.username,
             password: preScannedInfo.password,
             port: preScannedInfo.port || 80,
@@ -377,9 +381,6 @@ export class DeviceService {
             description: preScannedInfo.description || `Device at ${preScannedInfo.host}`,
             branchId: preScannedInfo.branchId,
             isActive: true,
-            timeout: 5000,
-            retryAttempts: 3,
-            keepAlive: true,
         };
 
         return this.createDevice(createDeviceDto, scope, createdByUserId, correlationId);
@@ -425,7 +426,7 @@ export class DeviceService {
         const createDeviceDto: CreateDeviceDto = {
             name: basicInfo.name,
             type: DeviceType.ACCESS_CONTROL,
-                        host: basicInfo.host,
+            host: basicInfo.host,
             username: basicInfo.username,
             password: basicInfo.password,
             port: basicInfo.port,
@@ -438,9 +439,6 @@ export class DeviceService {
                 basicInfo.description || `Auto-discovered ${discoveredInfo.manufacturer} device`,
             branchId: basicInfo.branchId,
             isActive: true,
-            timeout: 5000,
-            retryAttempts: 3,
-            keepAlive: true,
         };
 
         return this.createDevice(createDeviceDto, scope, createdByUserId, correlationId);
@@ -482,8 +480,8 @@ export class DeviceService {
     /**
      * Get device by identifier
      */
-    async getDeviceByIdentifier(identifier: string, scope: DataScope): Promise<Device | null> {
-        return this.deviceRepository.findByDeviceIdentifier(identifier, scope);
+    async getDeviceBySerialNumber(serialNumber: string, scope: DataScope): Promise<Device | null> {
+        return this.deviceRepository.findByDeviceSerialNumber(serialNumber, scope);
     }
 
     /**
@@ -632,7 +630,7 @@ export class DeviceService {
             {
                 deviceId: id,
                 deviceName: existingDevice.name,
-                                previousStatus: existingDevice.isActive,
+                previousStatus: existingDevice.isActive,
                 newStatus: isActive,
                 organizationId: scope.organizationId,
                 correlationId,
@@ -657,7 +655,7 @@ export class DeviceService {
             branchId: deviceWithStats.branchId,
             name: deviceWithStats.name,
             type: deviceWithStats.type,
-                        host: deviceWithStats.host,
+            host: deviceWithStats.host,
             isActive: deviceWithStats.isActive,
             lastSeen: deviceWithStats.lastSeen,
             createdAt: deviceWithStats.createdAt,

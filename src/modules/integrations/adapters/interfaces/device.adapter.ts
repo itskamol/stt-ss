@@ -2,7 +2,6 @@ import { DeviceProtocol, DeviceStatus, DeviceType, EventType } from '@prisma/cli
 import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
 
 export interface DeviceDiscoveryConfig {
-    type: DeviceType;
     protocol: DeviceProtocol;
     host: string;
     port: number;
@@ -19,7 +18,7 @@ export interface DeviceInfo {
     macAddress: string;
     firmwareVersion: string;
     firmwareReleasedDate?: string;
-    deviceType: string;
+    deviceType: DeviceType;
     manufacturer: string;
     capabilities: DeviceCapability[];
     status?: 'online' | 'offline' | 'unknown';

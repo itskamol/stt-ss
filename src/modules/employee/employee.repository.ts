@@ -67,13 +67,13 @@ export class EmployeeRepository {
         page: number,
         limit: number
     ): Promise<Employee[]> {
-        const branchScope = QueryBuilder.buildBranchScope(scope);
+        const whereClause = QueryBuilder.buildBranchScope(scope);
         const skip = (page - 1) * limit;
 
         return this.prisma.employee.findMany({
             where: {
                 ...filters,
-                branch: branchScope,
+                branch: whereClause,
             },
             include: {
                 branch: true,

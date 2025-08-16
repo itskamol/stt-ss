@@ -28,6 +28,7 @@ describe('EmployeeService', () => {
         lastName: 'Doe',
         employeeCode: 'EMP001',
         email: 'john.doe@example.com',
+        position: 'Software Engineer',
         phone: '+1234567890',
         isActive: true,
         photoKey: null,
@@ -472,6 +473,7 @@ describe('EmployeeService', () => {
             employeeRepository.update.mockResolvedValue({
                 ...employeeWithPhoto,
                 photoKey: 'employees/org-123/emp-123/photo.jpg',
+                position: 'Software Engineer',
             });
 
             await service.uploadEmployeePhoto('emp-123', mockFile, mockDataScope, 'user-123');
@@ -493,6 +495,7 @@ describe('EmployeeService', () => {
             employeeRepository.update.mockResolvedValue({
                 ...employeeWithPhoto,
                 photoKey: null,
+                position: 'Software Engineer',
             });
 
             await service.deleteEmployeePhoto('emp-123', mockDataScope, 'user-123');

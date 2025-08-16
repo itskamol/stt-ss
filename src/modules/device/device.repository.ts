@@ -46,15 +46,15 @@ export class DeviceRepository {
         });
     }
 
-    async findByDeviceIdentifier(
-        macAddress: string,
+    async findByDeviceSerialNumber(
+        serialNumber: string,
         scope: DataScope
     ): Promise<Device | null> {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.device.findFirst({
             where: {
-                macAddress,
+                serialNumber,
                 ...whereClause,
             },
         });

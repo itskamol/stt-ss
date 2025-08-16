@@ -228,7 +228,7 @@ export class DeviceController {
         @Param('identifier') identifier: string,
         @Scope() scope: DataScope
     ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.getDeviceByIdentifier(identifier, scope);
+        const device = await this.deviceService.getDeviceBySerialNumber(identifier, scope);
         if (!device) {
             throw new Error('Device not found');
         }

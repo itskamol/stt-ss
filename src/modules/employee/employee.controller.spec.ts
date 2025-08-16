@@ -35,6 +35,7 @@ describe('EmployeeController', () => {
         lastName: 'Doe',
         employeeCode: 'EMP001',
         email: 'john.doe@example.com',
+        position: 'Software Engineer',
         phone: '+1234567890',
         isActive: true,
         photoKey: null,

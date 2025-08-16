@@ -11,7 +11,6 @@ import {
 } from '@/modules/integrations/adapters';
 
 export interface DeviceConnectionConfig {
-    type: DeviceType;
     protocol: DeviceProtocol;
     host: string;
     port: number;
@@ -48,7 +47,6 @@ export class DeviceAdapterStrategy {
      */
     private createContext(device: Device): DeviceOperationContext {
         const config: DeviceConnectionConfig = {
-            type: device.type,
             protocol: device.protocol,
             host: device.host,
             port: device.port || 80,
@@ -278,7 +276,6 @@ export class DeviceAdapterStrategy {
         // Create virtual device object for discovery
         const virtualDevice: Partial<Device> = {
             id: `discovery_${Date.now()}`,
-            type: config.type,
             protocol: config.protocol,
             host: config.host,
             port: config.port,
@@ -296,7 +293,6 @@ export class DeviceAdapterStrategy {
         const context: DeviceOperationContext = {
             device: virtualDevice as Device,
             config: {
-                type: config.type,
                 protocol: config.protocol,
                 host: config.host,
                 port: config.port,

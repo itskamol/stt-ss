@@ -101,6 +101,32 @@ async function main() {
 
     console.log('✅ Created main branch:', branch.name);
 
+    // Create a branch admin user
+    const branchAdminPassword = await bcrypt.hash('BranchAdmin123!', 12);
+    const branchAdmin = await prisma.user.upsert({
+        where: { email: 'branchadmin@demo.com' },
+        update: {},
+        create: {
+            email: 'branchadmin@demo.com',
+            passwordHash: branchAdminPassword,
+            fullName: 'Branch Administrator',
+            isActive: true,
+            organizationLinks: {
+                create: {
+                    organizationId: organization.id,
+                    role: Role.BRANCH_MANAGER,
+                    managedBranches: {
+                        create: {
+                            branchId: branch.id,
+                            assignedAt: new Date(),
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    console.log('✅ Created branch admin user:', branchAdmin.email);
     // Create a sample department
     const department = await prisma.department.upsert({
         where: {
@@ -118,6 +144,27 @@ async function main() {
 
     console.log('✅ Created IT department:', department.name);
 
+    // Create a test employee
+    const employee = await prisma.employee.upsert({
+        where: {
+            email: 'testemployee@demo.com',
+        },
+        update: {},
+        create: {
+            firstName: 'John',
+            lastName: 'Doe',
+            email: 'testemployee@demo.com',
+            phone: '+1234567890',
+            employeeCode: 'EMP-001',
+            isActive: true,
+            departmentId: department.id,
+            organizationId: organization.id,
+            branchId: branch.id,
+            position: 'Software Engineer',
+        },
+    });
+
+    console.log('✅ Created test employee:', employee.firstName, employee.lastName);
     // Create a test device
     const testDevice = await prisma.device.upsert({
         where: {
@@ -134,6 +181,7 @@ async function main() {
             macAddress: '00:11:22:33:44:55',
             host: '192.168.1.100',
             model: 'DS-2CD2143G0-I',
+            serialNumber: '123456789',
             description: 'Hikvision test camera for event processing',
         },
     });
@@ -144,7 +192,7 @@ async function main() {
 }
 
 main()
-    .catch((e) => {
+    .catch(e => {
         console.error('❌ Error during database seed:', e);
         process.exit(1);
     })
