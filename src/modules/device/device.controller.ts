@@ -49,7 +49,8 @@ import { Permissions, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
-import { Device, DeviceTemplate } from '@prisma/client';
+import { Device, DeviceConfiguration, DeviceTemplate } from '@prisma/client';
+import { plainToClass } from 'class-transformer';
 
 @ApiTags('Devices')
 @ApiBearerAuth()
@@ -131,12 +132,9 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.createDevice(
-            simplifiedInfo,
-            scope,
-            user.sub,
-            { preScan: true }
-        );
+        const device = await this.deviceService.createDevice(simplifiedInfo, scope, user.sub, {
+            preScan: true,
+        });
         return plainToClass(DeviceResponseDto, device);
     }
 
@@ -405,10 +403,10 @@ export class DeviceController {
         @Scope() scope: DataScope
     ): Promise<SyncStatusResponseDto> {
         const status = await this.deviceService.getEmployeeSyncStatus(id, scope);
-        return {
+        return plainToClass(SyncStatusResponseDto, {
             status: 'COMPLETED',
             ...status,
-        } as SyncStatusResponseDto;
+        });
     }
 
     @Post(':id/retry-failed-syncs')
@@ -626,7 +624,7 @@ export class DeviceController {
         @Param('templateId') templateId: string,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<Device> {
+    ): Promise<DeviceConfiguration> {
         return this.deviceService.applyTemplateToDevice(templateId, id, scope, user.sub);
     }
 

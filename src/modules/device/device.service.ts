@@ -29,6 +29,7 @@ import { DataScope } from '@/shared/interfaces';
 import { EncryptionService } from '@/shared/services/encryption.service';
 import { DeviceCommand, DeviceDiscoveryConfig, DeviceInfo } from '@/modules/integrations/adapters';
 import { CreateWebhookDto } from '@/shared/dto/webhook.dto';
+import { LoggerService } from '@/core/logger';
 
 @Injectable()
 export class DeviceService {
@@ -37,7 +38,8 @@ export class DeviceService {
         private readonly deviceConfigurationService: DeviceConfigurationService,
         private readonly employeeSyncService: EmployeeSyncService,
         private readonly deviceAdapterStrategy: DeviceAdapterStrategy,
-        private readonly encryptionService: EncryptionService
+        private readonly encryptionService: EncryptionService,
+        private readonly logger: LoggerService,
     ) {}
 
     /**
@@ -122,7 +124,6 @@ export class DeviceService {
 
         // Create type-safe device config for discovery
         const discoveryConfig: DeviceDiscoveryConfig = {
-            type: DeviceType.ACCESS_CONTROL,
             protocol: connectionDetails.protocol || DeviceProtocol.HTTP,
             host: connectionDetails.host,
             port: connectionDetails.port,
@@ -462,50 +463,6 @@ export class DeviceService {
     }
 
     /**
-     * Get device(s) by various criteria
-     */
-    async getDevice(
-        identifier: string | { branchId?: string; search?: string },
-        scope: DataScope,
-        options?: {
-            type?: 'id' | 'macAddress' | 'serialNumber' | 'branch' | 'all' | 'search';
-            includeStats?: boolean;
-        }
-    ): Promise<Device | Device[] | { device: Device; statistics: any } | null> {
-        const type = options?.type || 'id';
-
-        if (typeof identifier === 'object') {
-            // Object-based queries
-            if (identifier.branchId) {
-                // Validate branch access
-                if (scope.branchIds && !scope.branchIds.includes(identifier.branchId)) {
-                    throw new BadRequestException('Branch not accessible within your scope');
-                }
-                return this.deviceRepository.findByBranch(identifier.branchId, scope);
-            } else if (identifier.search) {
-                if (!identifier.search || identifier.search.trim().length < 2) {
-                    return [];
-                }
-                return this.deviceRepository.searchDevices(identifier.search.trim(), scope);
-            } else {
-                return this.deviceRepository.findMany({}, scope);
-            }
-        } else {
-            // String-based queries
-            switch (type) {
-                case 'id':
-                    return this.deviceRepository.findById(identifier, scope);
-                case 'macAddress':
-                    return this.deviceRepository.findByMacAddress(identifier, scope);
-                case 'serialNumber':
-                    return this.deviceRepository.findByDeviceSerialNumber(identifier, scope);
-                default:
-                    return this.deviceRepository.findById(identifier, scope);
-            }
-        }
-    }
-
-    /**
      * Update device
      */
     async updateDevice(
@@ -623,7 +580,6 @@ export class DeviceService {
                 previousStatus: existingDevice.isActive,
                 newStatus: isActive,
                 organizationId: scope.organizationId,
-                correlationId,
             }
         );
 
@@ -683,7 +639,6 @@ export class DeviceService {
                 success: result.success,
                 message: result.message,
                 organizationId: scope.organizationId,
-                correlationId,
             });
 
             return result;
@@ -694,7 +649,6 @@ export class DeviceService {
                 command: deviceCommand.command,
                 error: error.message,
                 organizationId: scope.organizationId,
-                correlationId,
             });
 
             throw error;

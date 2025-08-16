@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-    BadRequestException,
-    ConflictException,
-    NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { EmployeeRepository } from './employee.repository';
 import { LoggerService } from '@/core/logger';
@@ -37,6 +33,19 @@ describe('EmployeeService', () => {
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
+    };
+
+    const mockFile: Express.Multer.File = {
+        size: 1024 * 1024,
+        fieldname: 'string',
+        originalname: 'string',
+        encoding: 'string',
+        mimetype: 'string',
+        destination: 'string',
+        filename: 'string',
+        path: 'string',
+        stream: {} as any,
+        buffer: Buffer.from('test'),
     };
 
     beforeEach(async () => {
@@ -112,11 +121,7 @@ describe('EmployeeService', () => {
             employeeRepository.findByEmployeeCode.mockResolvedValue(null);
             employeeRepository.create.mockResolvedValue(mockEmployee as any);
 
-            const result = await service.createEmployee(
-                createDto,
-                mockDataScope,
-                'user-123'
-            );
+            const result = await service.createEmployee(createDto, mockDataScope, 'user-123');
 
             expect(employeeRepository.create).toHaveBeenCalledWith(createDto, mockDataScope);
             expect(result).toEqual(mockEmployee);
@@ -253,7 +258,7 @@ describe('EmployeeService', () => {
             storageAdapter.uploadFile.mockResolvedValue({
                 url: 'http://example.com/photo.jpg',
                 key: 'photo.jpg',
-                size: 1024 * 1024
+                size: 1024 * 1024,
             });
 
             const result = await service.uploadEmployeePhoto(
@@ -290,7 +295,7 @@ describe('EmployeeService', () => {
                 size: 6 * 1024 * 1024, // 6MB
             } as Express.Multer.File;
 
-            employeeRepository.findById.mockResolvedValue(mockEmployee);
+            employeeRepository.findById.mockResolvedValue(mockEmployee as any);
 
             await expect(
                 service.uploadEmployeePhoto('emp-123', largeFile, mockDataScope, 'user-123')
@@ -303,33 +308,35 @@ describe('EmployeeService', () => {
                 photoKey: 'employees/org-123/emp-123/old-photo.jpg',
             };
 
-            employeeRepository.findById.mockResolvedValue(employeeWithPhoto);
+            employeeRepository.findById.mockResolvedValue(employeeWithPhoto as any);
             storageAdapter.uploadFile.mockResolvedValue({
                 key: 'employees/org-123/emp-123/photo.jpg',
                 url: 'https://example.com/employees/org-123/emp-123/photo.jpg',
                 size: mockFile.size,
             });
-            employeeRepository.update.mockResolvedValue({
-                ...employeeWithPhoto,
-                photoKey: 'employees/org-123/emp-123/photo.jpg',
-                position: 'Software Engineer',
-            });
+            employeeRepository.update.mockResolvedValue(employeeWithPhoto as any);
 
             await service.uploadEmployeePhoto('emp-123', mockFile, mockDataScope, 'user-123');
 
-            expect(storageAdapter.deleteFile).toHaveBeenCalledWith('employees/org-123/emp-123/old-photo.jpg');
+            expect(storageAdapter.deleteFile).toHaveBeenCalledWith(
+                'employees/org-123/emp-123/old-photo.jpg'
+            );
         });
     });
 
     describe('deleteEmployeePhoto', () => {
         it('should delete employee photo successfully', async () => {
+            const employeeWithPhoto = {
+                ...mockEmployee,
+                photoKey: 'employees/org-123/emp-123/old-photo.jpg',
+            };
             employeeRepository.findById.mockResolvedValue(mockEmployee as any);
             storageAdapter.deleteFile.mockResolvedValue();
             employeeRepository.update.mockResolvedValue({
                 ...employeeWithPhoto,
                 photoKey: null,
                 position: 'Software Engineer',
-            });
+            } as any);
 
             await service.deleteEmployeePhoto('emp-123', mockDataScope, 'user-123');
 
