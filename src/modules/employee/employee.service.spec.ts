@@ -32,10 +32,8 @@ describe('EmployeeService', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john.doe@example.com',
-        branchId: 'branch-123',
-        organizationId: 'org-123',
-        departmentId: 'dept-123',
-        photoKey: 'photo.jpg',
+        position: 'Software Engineer',
+        phone: '+1234567890',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -285,12 +283,53 @@ describe('EmployeeService', () => {
                 service.uploadEmployeePhoto('emp-123', file, mockDataScope, 'user-123')
             ).rejects.toThrow(BadRequestException);
         });
+
+        it('should throw BadRequestException for file too large', async () => {
+            const largeFile = {
+                ...mockFile,
+                size: 6 * 1024 * 1024, // 6MB
+            } as Express.Multer.File;
+
+            employeeRepository.findById.mockResolvedValue(mockEmployee);
+
+            await expect(
+                service.uploadEmployeePhoto('emp-123', largeFile, mockDataScope, 'user-123')
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('should delete existing photo when uploading new one', async () => {
+            const employeeWithPhoto = {
+                ...mockEmployee,
+                photoKey: 'employees/org-123/emp-123/old-photo.jpg',
+            };
+
+            employeeRepository.findById.mockResolvedValue(employeeWithPhoto);
+            storageAdapter.uploadFile.mockResolvedValue({
+                key: 'employees/org-123/emp-123/photo.jpg',
+                url: 'https://example.com/employees/org-123/emp-123/photo.jpg',
+                size: mockFile.size,
+            });
+            employeeRepository.update.mockResolvedValue({
+                ...employeeWithPhoto,
+                photoKey: 'employees/org-123/emp-123/photo.jpg',
+                position: 'Software Engineer',
+            });
+
+            await service.uploadEmployeePhoto('emp-123', mockFile, mockDataScope, 'user-123');
+
+            expect(storageAdapter.deleteFile).toHaveBeenCalledWith('employees/org-123/emp-123/old-photo.jpg');
+        });
     });
 
     describe('deleteEmployeePhoto', () => {
         it('should delete employee photo successfully', async () => {
             employeeRepository.findById.mockResolvedValue(mockEmployee as any);
             storageAdapter.deleteFile.mockResolvedValue();
+            employeeRepository.update.mockResolvedValue({
+                ...employeeWithPhoto,
+                photoKey: null,
+                position: 'Software Engineer',
+            });
 
             await service.deleteEmployeePhoto('emp-123', mockDataScope, 'user-123');
 

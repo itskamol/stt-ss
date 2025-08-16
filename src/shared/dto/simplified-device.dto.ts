@@ -67,14 +67,12 @@ export class SimplifiedDeviceCreationDto {
     protocol?: DeviceProtocol = DeviceProtocol.HTTP;
 
     @ApiProperty({
-        description: 'The type of the device.',
-        enum: DeviceType,
-        default: DeviceType.ACCESS_CONTROL,
-        required: false,
+        description: 'The name of the brand where the device is manufactured.',
+        example: 'hikvision',
     })
-    @IsOptional()
-    @IsEnum(DeviceType)
-    type?: DeviceType = DeviceType.ACCESS_CONTROL;
+    @IsString()
+    @IsNotEmpty()
+    brand: string;
 
     @ApiProperty({
         description: 'A description of the device.',
@@ -105,6 +103,8 @@ export class NetworkScanResultDto {
         macAddress: string;
         capabilities: string[];
         status: string;
+        type: DeviceType;
+        serialNumber?: string;
     };
 
     @ApiProperty({

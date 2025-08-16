@@ -54,3 +54,7 @@ config/environments/docker.env
 
 # Uploads
 uploads/
+
+# agents 
+.kiro/*
+.claude/*

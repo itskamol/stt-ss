@@ -34,6 +34,7 @@ describe('DeviceEventProcessor', () => {
         departmentId: 'dept-123',
         firstName: 'John',
         lastName: 'Doe',
+        position: 'Software Engineer',
         employeeCode: 'EMP001',
         email: 'john.doe@example.com',
         phone: '+1234567890',

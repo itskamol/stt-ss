@@ -130,8 +130,14 @@ export class DeviceController {
         @Body() simplifiedInfo: SimplifiedDeviceCreationDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<Device> {
-        return this.deviceService.createDeviceWithSimplifiedInfo(simplifiedInfo, scope, user.sub);
+    ): Promise<DeviceResponseDto> {
+        const device = await this.deviceService.createDevice(
+            simplifiedInfo,
+            scope,
+            user.sub,
+            { preScan: true }
+        );
+        return plainToClass(DeviceResponseDto, device);
     }
 
     @Get()
@@ -209,8 +215,12 @@ export class DeviceController {
     async getDeviceByIdentifier(
         @Param('identifier') identifier: string,
         @Scope() scope: DataScope
-    ): Promise<Device> {
-        return this.deviceService.getDeviceByIdentifier(identifier, scope);
+    ): Promise<DeviceResponseDto> {
+        const device = await this.deviceService.getDeviceBySerialNumber(identifier, scope);
+        if (!device) {
+            throw new Error('Device not found');
+        }
+        return plainToClass(DeviceResponseDto, device);
     }
 
     @Get(':id')
