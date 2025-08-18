@@ -111,7 +111,12 @@ export class UserRepository {
         });
     }
 
-    async findOrganizationUsers(organizationId: string, scope: DataScope, skip: number, take: number) {
+    async findOrganizationUsers(
+        organizationId: string,
+        scope: DataScope,
+        skip: number,
+        take: number
+    ) {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.organizationUser.findMany({

@@ -47,7 +47,6 @@ export class EncryptionService {
      * Decrypt an encrypted string
      */
     decrypt(encryptedText: string): string {
-
         const decipher = crypto.createDecipheriv(this.algorithm, this.key, this.iv);
         decipher.setAutoPadding(true);
 

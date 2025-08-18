@@ -15,38 +15,38 @@ export interface LogContext {
     userId?: string;
     organizationId?: string;
     module?: string;
-    
+
     // Request context
     method?: string;
     url?: string;
     statusCode?: number;
     responseTime?: number;
-    
+
     // Error context
     error?: string;
     trace?: string;
     exceptionType?: string;
-    
+
     // Business context
     action?: string;
     businessEvent?: string;
     eventData?: any;
-    
+
     // Performance context
     operation?: string;
     duration?: number;
-    
+
     // System context
     timestamp?: Date;
     level?: LogLevel;
     ip?: string;
     userAgent?: string;
-    
+
     // Type indicators
     requestType?: 'api-request' | 'api-error' | 'business-event' | 'performance' | 'audit';
     eventType?: string;
     performanceType?: string;
-    
+
     // Flexible metadata
     [key: string]: any;
 }

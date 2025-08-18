@@ -29,7 +29,12 @@ export class BranchRepository {
         });
     }
 
-    async findMany(scope: DataScope, skip: number, take: number, filters: any = {}): Promise<Branch[]> {
+    async findMany(
+        scope: DataScope,
+        skip: number,
+        take: number,
+        filters: any = {}
+    ): Promise<Branch[]> {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.branch.findMany({
@@ -59,7 +64,7 @@ export class BranchRepository {
         return this.prisma.branch.findMany({
             where: {
                 organizationId: scope.organizationId,
-            }
+            },
         });
     }
 
@@ -152,7 +157,12 @@ export class BranchRepository {
         });
     }
 
-    async searchBranches(searchTerm: string, scope: DataScope, skip: number, take: number): Promise<Branch[]> {
+    async searchBranches(
+        searchTerm: string,
+        scope: DataScope,
+        skip: number,
+        take: number
+    ): Promise<Branch[]> {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.branch.findMany({

@@ -55,7 +55,15 @@ export interface DeviceAccessRule {
 }
 
 export interface DeviceCommand {
-    command: 'unlock_door' | 'lock_door' | 'reboot' | 'sync_users' | 'update_firmware' | 'configure_webhook' | 'remove_webhook' | 'test_webhook';
+    command:
+        | 'unlock_door'
+        | 'lock_door'
+        | 'reboot'
+        | 'sync_users'
+        | 'update_firmware'
+        | 'configure_webhook'
+        | 'remove_webhook'
+        | 'test_webhook';
     parameters?: Record<string, any>;
     timeout?: number; // seconds
 }
@@ -115,7 +123,10 @@ export interface IDeviceAdapter {
     /**
      * Send command to device
      */
-    sendCommand(context: DeviceOperationContext, command: DeviceCommand): Promise<DeviceCommandResult>;
+    sendCommand(
+        context: DeviceOperationContext,
+        command: DeviceCommand
+    ): Promise<DeviceCommandResult>;
 
     /**
      * Get device health status
@@ -125,7 +136,10 @@ export interface IDeviceAdapter {
     /**
      * Subscribe to device events
      */
-    subscribeToEvents(context: DeviceOperationContext, callback: (event: DeviceEvent) => void): Promise<void>;
+    subscribeToEvents(
+        context: DeviceOperationContext,
+        callback: (event: DeviceEvent) => void
+    ): Promise<void>;
 
     /**
      * Unsubscribe from device events
@@ -171,7 +185,11 @@ export interface IDeviceAdapter {
     /**
      * Get device logs
      */
-    getDeviceLogs(context: DeviceOperationContext, startDate?: Date, endDate?: Date): Promise<string[]>;
+    getDeviceLogs(
+        context: DeviceOperationContext,
+        startDate?: Date,
+        endDate?: Date
+    ): Promise<string[]>;
 
     /**
      * Clear device logs

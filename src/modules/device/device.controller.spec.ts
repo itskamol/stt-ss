@@ -127,7 +127,10 @@ describe('DeviceController', () => {
 
             const result = await controller.getDevices(mockDataScope, { page: 1, limit: 10 });
 
-            expect(deviceService.getDevices).toHaveBeenCalledWith(mockDataScope, { page: 1, limit: 10 });
+            expect(deviceService.getDevices).toHaveBeenCalledWith(mockDataScope, {
+                page: 1,
+                limit: 10,
+            });
             expect(result).toEqual(paginatedResponse);
         });
     });

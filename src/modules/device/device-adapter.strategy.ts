@@ -300,7 +300,7 @@ export class DeviceAdapterStrategy {
                 password: config.password,
                 brand: config.brand,
                 model: undefined,
-            }
+            },
         };
 
         const adapter = this.getAdapter(config);

@@ -171,7 +171,12 @@ export class GuestRepository {
         });
     }
 
-    async searchGuestVisits(searchTerm: string, scope: DataScope, skip: number, take: number): Promise<GuestVisit[]> {
+    async searchGuestVisits(
+        searchTerm: string,
+        scope: DataScope,
+        skip: number,
+        take: number
+    ): Promise<GuestVisit[]> {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
         return this.prisma.guestVisit.findMany({

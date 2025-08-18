@@ -13,7 +13,6 @@ export class PaginationService {
         limit: number,
         dtoClass?: ClassConstructor<DTO>
     ): Promise<PaginationResponseDto<DTO>> {
-        
         const [data, total] = await Promise.all([dataPromise, totalPromise]);
 
         const transformed = dtoClass

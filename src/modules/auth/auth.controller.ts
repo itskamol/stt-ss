@@ -25,7 +25,12 @@ import { ApiOkResponseData } from '@/shared/utils';
 
 @ApiTags('Authentication')
 @Controller('auth')
-@ApiExtraModels(ApiSuccessResponse, LoginResponseDto, RefreshTokenResponseDto, ValidateTokenResponseDto)
+@ApiExtraModels(
+    ApiSuccessResponse,
+    LoginResponseDto,
+    RefreshTokenResponseDto,
+    ValidateTokenResponseDto
+)
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
 
@@ -47,9 +52,7 @@ export class AuthController {
     @ApiBody({ type: RefreshTokenDto })
     @ApiOkResponseData(RefreshTokenResponseDto)
     @ApiResponse({ status: 401, description: 'Unauthorized', type: ApiErrorResponse })
-    async refreshToken(
-        @Body() refreshTokenDto: RefreshTokenDto
-    ): Promise<RefreshTokenResponseDto> {
+    async refreshToken(@Body() refreshTokenDto: RefreshTokenDto): Promise<RefreshTokenResponseDto> {
         return this.authService.refreshToken(refreshTokenDto);
     }
 
@@ -60,10 +63,7 @@ export class AuthController {
     @ApiBody({ type: LogoutDto })
     @ApiResponse({ status: 204, description: 'Logout successful' })
     @ApiResponse({ status: 401, description: 'Unauthorized', type: ApiErrorResponse })
-    async logout(
-        @Body() logoutDto: LogoutDto,
-        @User() user: UserContext
-    ): Promise<void> {
+    async logout(@Body() logoutDto: LogoutDto, @User() user: UserContext): Promise<void> {
         await this.authService.logout(logoutDto.refreshToken, user.sub);
     }
 

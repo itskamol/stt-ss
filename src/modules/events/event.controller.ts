@@ -64,11 +64,22 @@ export class EventController {
                     },
                 },
             ],
-        }
+        },
     })
-    @ApiResponse({ status: 400, description: 'Bad request (e.g., missing headers).', type: ApiErrorResponse })
-    @ApiResponse({ status: 401, description: 'Unauthorized (e.g., invalid signature).', type: ApiErrorResponse })
-    @ApiResponse({ status: 200, description: 'Duplicate event, already processed.', type: ApiSuccessResponse,
+    @ApiResponse({
+        status: 400,
+        description: 'Bad request (e.g., missing headers).',
+        type: ApiErrorResponse,
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Unauthorized (e.g., invalid signature).',
+        type: ApiErrorResponse,
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Duplicate event, already processed.',
+        type: ApiSuccessResponse,
         schema: {
             allOf: [
                 { $ref: getSchemaPath(ApiSuccessResponse) },
@@ -78,7 +89,7 @@ export class EventController {
                     },
                 },
             ],
-        }
+        },
     })
     async processRawEvent(
         @Body() createRawEventDto: CreateRawEventDto,

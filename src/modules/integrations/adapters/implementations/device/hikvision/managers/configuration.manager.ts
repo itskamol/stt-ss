@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
 import { XmlJsonService } from '@/shared/services/xml-json.service';
-import { DeviceConnectionConfig, DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
+import {
+    DeviceConnectionConfig,
+    DeviceOperationContext,
+} from '@/modules/device/device-adapter.strategy';
 
 export interface DeviceConfiguration {
     deviceInfo: {

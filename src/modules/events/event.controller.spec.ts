@@ -135,12 +135,7 @@ describe('EventController', () => {
             eventService.processRawEvent.mockRejectedValue(processingError);
 
             await expect(
-                controller.processRawEvent(
-                    createRawEventDto,
-                    deviceId,
-                    signature,
-                    'error-key'
-                )
+                controller.processRawEvent(createRawEventDto, deviceId, signature, 'error-key')
             ).rejects.toThrow('Processing failed');
         });
     });

@@ -1,6 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { EventType, ParameterFormatType } from '@prisma/client';
-import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsString, IsUrl, Max, Min, isString } from 'class-validator';
+import {
+    IsArray,
+    IsBoolean,
+    IsEnum,
+    IsNumber,
+    IsOptional,
+    IsString,
+    IsUrl,
+    Max,
+    Min,
+    isString,
+} from 'class-validator';
 
 export class CreateWebhookDto {
     @ApiProperty({ description: 'Webhook endpoint URL' })
@@ -20,7 +31,7 @@ export class CreateWebhookDto {
     @ApiProperty({
         description: 'Event types to subscribe to',
         type: [String],
-        example: ['ACCESS_GRANTED', 'ACCESS_DENIED', 'ALARM']
+        example: ['ACCESS_GRANTED', 'ACCESS_DENIED', 'ALARM'],
     })
     @IsArray()
     @IsEnum(EventType, { each: true })
@@ -29,7 +40,7 @@ export class CreateWebhookDto {
     @ApiProperty({
         description: 'Protocol type',
         enum: ['HTTP', 'HTTPS'],
-        default: 'HTTP'
+        default: 'HTTP',
     })
     @IsOptional()
     @IsEnum(['HTTP', 'HTTPS'])
@@ -38,7 +49,7 @@ export class CreateWebhookDto {
     @ApiProperty({
         description: 'Parameter format type',
         enum: ParameterFormatType,
-        default: ParameterFormatType.JSON
+        default: ParameterFormatType.JSON,
     })
     @IsOptional()
     @IsEnum(ParameterFormatType)

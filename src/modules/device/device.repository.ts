@@ -7,7 +7,7 @@ import { QueryBuilder } from '@/shared/utils/query-builder.util';
 
 @Injectable()
 export class DeviceRepository {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService) {}
 
     async create(data: CreateDeviceDto, scope: DataScope): Promise<Device> {
         return this.prisma.device.create({
@@ -46,10 +46,7 @@ export class DeviceRepository {
         });
     }
 
-    async findByDeviceSerialNumber(
-        serialNumber: string,
-        scope: DataScope
-    ): Promise<Device | null> {
+    async findByDeviceSerialNumber(serialNumber: string, scope: DataScope): Promise<Device | null> {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.device.findFirst({
@@ -60,7 +57,12 @@ export class DeviceRepository {
         });
     }
 
-    async findMany(scope: DataScope, skip: number, take: number, filters: any = {}): Promise<Device[]> {
+    async findMany(
+        scope: DataScope,
+        skip: number,
+        take: number,
+        filters: any = {}
+    ): Promise<Device[]> {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
         return this.prisma.device.findMany({
@@ -128,7 +130,12 @@ export class DeviceRepository {
         });
     }
 
-    async searchDevices(searchTerm: string, scope: DataScope, skip: number, take: number): Promise<Device[]> {
+    async searchDevices(
+        searchTerm: string,
+        scope: DataScope,
+        skip: number,
+        take: number
+    ): Promise<Device[]> {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
         return this.prisma.device.findMany({
@@ -215,14 +222,17 @@ export class DeviceRepository {
         });
     }
 
-    async updateWebhook(webhookId: string, data: {
-        isActive?: boolean;
-        triggerCount?: number;
-        lastTriggered?: Date;
-        lastError?: string | null;
-        lastErrorAt?: Date | null;
-        updatedAt?: Date;
-    }) {
+    async updateWebhook(
+        webhookId: string,
+        data: {
+            isActive?: boolean;
+            triggerCount?: number;
+            lastTriggered?: Date;
+            lastError?: string | null;
+            lastErrorAt?: Date | null;
+            updatedAt?: Date;
+        }
+    ) {
         return this.prisma.deviceWebhook.update({
             where: { id: webhookId },
             data,

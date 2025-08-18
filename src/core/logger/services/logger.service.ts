@@ -1,4 +1,10 @@
-import { Inject, Injectable, LoggerService as NestLoggerService, OnModuleDestroy, Optional } from '@nestjs/common';
+import {
+    Inject,
+    Injectable,
+    LoggerService as NestLoggerService,
+    OnModuleDestroy,
+    Optional,
+} from '@nestjs/common';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { LogContext, LogLevel } from '../interfaces/log-entry.interface';
@@ -43,13 +49,16 @@ export class LoggerService implements NestLoggerService, OnModuleDestroy {
             const sanitizedContext = {
                 timestamp: new Date(),
                 module: context.module || 'app',
-                ...this.dataSanitizer.sanitizeForLogging(context)
+                ...this.dataSanitizer.sanitizeForLogging(context),
             };
-            
+
             this.logger[level](message, { context: sanitizedContext });
         } catch (error) {
             // Fallback to console if Winston fails
-            console[level === 'info' ? 'log' : level](`${level.toUpperCase()}: ${message}`, context);
+            console[level === 'info' ? 'log' : level](
+                `${level.toUpperCase()}: ${message}`,
+                context
+            );
         }
     }
 
@@ -63,14 +72,12 @@ export class LoggerService implements NestLoggerService, OnModuleDestroy {
     error(message: any, trace?: string, context?: string | LogContext): void {
         const logContext = { ...this.getContext(context), ...(trace && { trace }) };
         const formattedMessage = this.formatMessage(message);
-        
+
         // Record error for monitoring
-        this.errorMonitoring?.recordError?.(
-            logContext.module || 'unknown',
-            formattedMessage,
-            logContext
-        ).catch(() => {}); // Silent fail
-        
+        this.errorMonitoring
+            ?.recordError?.(logContext.module || 'unknown', formattedMessage, logContext)
+            .catch(() => {}); // Silent fail
+
         this.logToWinston('error', formattedMessage, logContext);
     }
 
@@ -93,7 +100,12 @@ export class LoggerService implements NestLoggerService, OnModuleDestroy {
     }
 
     // Utility methods for common scenarios
-    logWithCorrelationId(correlationId: string, level: LogLevel, message: string, context?: LogContext): void {
+    logWithCorrelationId(
+        correlationId: string,
+        level: LogLevel,
+        message: string,
+        context?: LogContext
+    ): void {
         this[level](message, { ...context, correlationId });
     }
 
@@ -115,7 +127,13 @@ export class LoggerService implements NestLoggerService, OnModuleDestroy {
         });
     }
 
-    logApiError(method: string, url: string, statusCode: number, error: string, context?: LogContext): void {
+    logApiError(
+        method: string,
+        url: string,
+        statusCode: number,
+        error: string,
+        context?: LogContext
+    ): void {
         const errorContext = {
             module: 'api',
             method,
@@ -125,7 +143,11 @@ export class LoggerService implements NestLoggerService, OnModuleDestroy {
         };
 
         this.errorMonitoring?.recordError?.('api', error, errorContext).catch(() => {});
-        this.error(`API Request failed: ${method} ${url} - ${statusCode} - ${error}`, errorContext.trace, errorContext);
+        this.error(
+            `API Request failed: ${method} ${url} - ${statusCode} - ${error}`,
+            errorContext.trace,
+            errorContext
+        );
     }
 
     logPerformance(operation: string, duration: number, context?: LogContext): void {

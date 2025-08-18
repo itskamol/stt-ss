@@ -7,10 +7,7 @@ import { DataSanitizerService } from '@/shared/services/data-sanitizer.service';
 @Global()
 @Module({
     imports: [WinstonModule.forRoot(winstonConfig)],
-    providers: [
-        LoggerService,
-        DataSanitizerService,
-    ],
+    providers: [LoggerService, DataSanitizerService],
     exports: [LoggerService],
 })
 export class LoggerModule {}

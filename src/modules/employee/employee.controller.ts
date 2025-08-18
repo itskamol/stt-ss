@@ -47,7 +47,12 @@ import { Employee } from '@prisma/client';
 @ApiTags('Employees')
 @ApiBearerAuth()
 @Controller('employees')
-@ApiExtraModels(ApiSuccessResponse, EmployeeResponseDto, EmployeeCountResponseDto, EmployeePhotoUploadResponseDto)
+@ApiExtraModels(
+    ApiSuccessResponse,
+    EmployeeResponseDto,
+    EmployeeCountResponseDto,
+    EmployeePhotoUploadResponseDto
+)
 export class EmployeeController {
     constructor(private readonly employeeService: EmployeeService) {}
 
@@ -73,7 +78,7 @@ export class EmployeeController {
                     },
                 },
             ],
-        }
+        },
     })
     @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -82,11 +87,7 @@ export class EmployeeController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<Employee> {
-        return this.employeeService.createEmployee(
-            createEmployeeDto,
-            scope,
-            user.sub
-        );
+        return this.employeeService.createEmployee(createEmployeeDto, scope, user.sub);
     }
 
     @Get()
@@ -94,10 +95,7 @@ export class EmployeeController {
     @ApiOperation({ summary: 'Get all employees with pagination' })
     @ApiOkResponsePaginated(EmployeeResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
-    async getEmployees(
-        @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto
-    ) {
+    async getEmployees(@Scope() scope: DataScope, @Query() paginationDto: PaginationDto) {
         console.log('Fetching employees with pagination:', paginationDto);
         return this.employeeService.getPaginatedEmployees(scope, paginationDto);
     }
@@ -211,10 +209,7 @@ export class EmployeeController {
     @ApiOkResponseData(EmployeeResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
-    async getEmployeeById(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ): Promise<Employee> {
+    async getEmployeeById(@Param('id') id: string, @Scope() scope: DataScope): Promise<Employee> {
         const employee = await this.employeeService.getEmployeeById(id, scope);
         if (!employee) {
             throw new NotFoundException('Employee not found.');
@@ -243,12 +238,7 @@ export class EmployeeController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<Employee> {
-        return this.employeeService.updateEmployee(
-            id,
-            updateEmployeeDto,
-            scope,
-            user.sub
-        );
+        return this.employeeService.updateEmployee(id, updateEmployeeDto, scope, user.sub);
     }
 
     @Patch(':id/status')
@@ -273,12 +263,7 @@ export class EmployeeController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<Employee> {
-        return this.employeeService.toggleEmployeeStatus(
-            id,
-            isActive,
-            scope,
-            user.sub
-        );
+        return this.employeeService.toggleEmployeeStatus(id, isActive, scope, user.sub);
     }
 
     @Delete(':id')

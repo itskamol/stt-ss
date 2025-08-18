@@ -14,7 +14,7 @@ export class MorganLoggerMiddleware implements NestMiddleware {
             const userContext = req.user as any;
             const status = parseInt(tokens.status(req, res) || '500');
             const responseTime = parseFloat(tokens['response-time'](req, res) || '0');
-            
+
             const logContext = {
                 module: 'http',
                 method: tokens.method(req, res),
@@ -45,9 +45,11 @@ export class MorganLoggerMiddleware implements NestMiddleware {
         this.morganMiddleware = morgan('custom', {
             // Skip health check and favicon requests
             skip: (req: Request) => {
-                return req.url.includes('/health') || 
-                       req.url.includes('/favicon.ico') ||
-                       req.url.includes('/metrics');
+                return (
+                    req.url.includes('/health') ||
+                    req.url.includes('/favicon.ico') ||
+                    req.url.includes('/metrics')
+                );
             },
         });
     }

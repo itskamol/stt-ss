@@ -153,7 +153,12 @@ describe('AttendanceService', () => {
                 paginationDto
             );
 
-            expect(attendanceRepository.findMany).toHaveBeenCalledWith(mockDataScope, 0, 10, filters);
+            expect(attendanceRepository.findMany).toHaveBeenCalledWith(
+                mockDataScope,
+                0,
+                10,
+                filters
+            );
             expect(result.data).toEqual([mockAttendanceRecord]);
             expect(result.total).toBe(1);
         });

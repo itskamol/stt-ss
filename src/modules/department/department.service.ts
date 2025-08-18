@@ -138,11 +138,7 @@ export class DepartmentService {
                 }
             }
 
-            return await this.departmentRepository.update(
-                id,
-                updateDepartmentDto,
-                scope
-            );
+            return await this.departmentRepository.update(id, updateDepartmentDto, scope);
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -157,11 +153,7 @@ export class DepartmentService {
     /**
      * Delete department
      */
-    async deleteDepartment(
-        id: string,
-        scope: DataScope,
-        deletedByUserId: string
-    ): Promise<void> {
+    async deleteDepartment(id: string, scope: DataScope, deletedByUserId: string): Promise<void> {
         await this.getDepartmentById(id, scope); // Ensure department exists and is in scope
 
         // Check if department has children

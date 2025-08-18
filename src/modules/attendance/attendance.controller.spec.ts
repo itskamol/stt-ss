@@ -157,7 +157,12 @@ describe('AttendanceController', () => {
             const paginatedResponse = new PaginationResponseDto([mockAttendanceRecord], 1, 1, 50);
             attendanceService.getAttendanceRecords.mockResolvedValue(paginatedResponse as any);
 
-            const result = await controller.getEmployeeAttendance('emp-123', mockDataScope, {}, { page: 1, limit: 50 });
+            const result = await controller.getEmployeeAttendance(
+                'emp-123',
+                mockDataScope,
+                {},
+                { page: 1, limit: 50 }
+            );
 
             expect(attendanceService.getAttendanceRecords).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -222,7 +227,12 @@ describe('AttendanceController', () => {
             const paginatedResponse = new PaginationResponseDto([mockAttendanceRecord], 1, 1, 50);
             attendanceService.getAttendanceRecords.mockResolvedValue(paginatedResponse as any);
 
-            const result = await controller.getBranchAttendance('branch-123', mockDataScope, {}, { page: 1, limit: 50 });
+            const result = await controller.getBranchAttendance(
+                'branch-123',
+                mockDataScope,
+                {},
+                { page: 1, limit: 50 }
+            );
 
             expect(attendanceService.getAttendanceRecords).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -240,7 +250,11 @@ describe('AttendanceController', () => {
             const paginatedResponse = new PaginationResponseDto([mockAttendanceRecord], 1, 1, 50);
             attendanceService.getAttendanceRecords.mockResolvedValue(paginatedResponse as any);
 
-            const result = await controller.getTodayAttendance(mockDataScope, {}, { page: 1, limit: 50 });
+            const result = await controller.getTodayAttendance(
+                mockDataScope,
+                {},
+                { page: 1, limit: 50 }
+            );
 
             expect(attendanceService.getAttendanceRecords).toHaveBeenCalledWith(
                 expect.objectContaining({

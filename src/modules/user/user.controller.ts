@@ -45,7 +45,12 @@ import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
 @ApiTags('Users')
 @ApiBearerAuth()
 @Controller('users')
-@ApiExtraModels(ApiSuccessResponse, UserResponseDto, OrganizationUserResponseDto, UserWithOrganizationsResponseDto)
+@ApiExtraModels(
+    ApiSuccessResponse,
+    UserResponseDto,
+    OrganizationUserResponseDto,
+    UserWithOrganizationsResponseDto
+)
 export class UserController {
     constructor(
         private readonly userService: UserService,
@@ -69,7 +74,7 @@ export class UserController {
                     },
                 },
             ],
-        }
+        },
     })
     @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -88,10 +93,7 @@ export class UserController {
     @ApiOkResponseData(UserResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
-    async getUserById(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ): Promise<UserModel> {
+    async getUserById(@Param('id') id: string, @Scope() scope: DataScope): Promise<UserModel> {
         const user = await this.userService.findById(id);
         if (!user) {
             throw new NotFoundException('User not found');
@@ -104,10 +106,7 @@ export class UserController {
     @ApiOperation({ summary: 'Get all users in the current organization' })
     @ApiOkResponsePaginated(OrganizationUserResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
-    async getOrganizationUsers(
-        @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto
-    ) {
+    async getOrganizationUsers(@Scope() scope: DataScope, @Query() paginationDto: PaginationDto) {
         return this.userService.getOrganizationUsers(scope, paginationDto);
     }
 
@@ -152,7 +151,7 @@ export class UserController {
     @ApiOperation({ summary: 'Assign a user to an organization (Super Admin)' })
     @ApiParam({ name: 'id', description: 'ID of the user' })
     @ApiBody({ type: AssignUserToOrganizationDto })
-    @ApiResponse({ status: 201, description: 'User assigned successfully.'})
+    @ApiResponse({ status: 201, description: 'User assigned successfully.' })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({
         status: 404,
@@ -197,10 +196,7 @@ export class UserController {
     @ApiOkResponseData(UserResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
-    async activateUser(
-        @Param('id') id: string,
-        @User() user: UserContext
-    ): Promise<UserModel> {
+    async activateUser(@Param('id') id: string, @User() user: UserContext): Promise<UserModel> {
         return this.userService.activateUser(id, user.sub);
     }
 
@@ -211,10 +207,7 @@ export class UserController {
     @ApiOkResponseData(UserResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
-    async deactivateUser(
-        @Param('id') id: string,
-        @User() user: UserContext
-    ): Promise<UserModel> {
+    async deactivateUser(@Param('id') id: string, @User() user: UserContext): Promise<UserModel> {
         return this.userService.deactivateUser(id, user.sub);
     }
 
@@ -225,9 +218,7 @@ export class UserController {
     @ApiOkResponseData(UserWithOrganizationsResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
-    async getUserOrganizations(
-        @Param('id') id: string
-    ) {
+    async getUserOrganizations(@Param('id') id: string) {
         const userWithOrgs = await this.userService.getUserWithOrganizations(id);
 
         if (!userWithOrgs) {

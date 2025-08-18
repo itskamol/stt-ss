@@ -11,16 +11,25 @@ import { Attendance } from '@prisma/client';
 
 @Injectable()
 export class AttendanceService {
-    constructor(
-        private readonly attendanceRepository: AttendanceRepository
-    ) {}
+    constructor(private readonly attendanceRepository: AttendanceRepository) {}
 
-    async createAttendanceRecord(createAttendanceDto: CreateAttendanceDto, scope: DataScope): Promise<Attendance> {
+    async createAttendanceRecord(
+        createAttendanceDto: CreateAttendanceDto,
+        scope: DataScope
+    ): Promise<Attendance> {
         return this.attendanceRepository.create(createAttendanceDto, scope);
     }
 
-    async getLastAttendanceForEmployee(employeeId: string, date: Date, scope: DataScope): Promise<Attendance> {
-        const attendance = await this.attendanceRepository.findLastAttendanceForEmployee(employeeId, date, scope);
+    async getLastAttendanceForEmployee(
+        employeeId: string,
+        date: Date,
+        scope: DataScope
+    ): Promise<Attendance> {
+        const attendance = await this.attendanceRepository.findLastAttendanceForEmployee(
+            employeeId,
+            date,
+            scope
+        );
         if (!attendance) {
             throw new NotFoundException('Attendance record not found');
         }
@@ -62,7 +71,8 @@ export class AttendanceService {
         endDate: Date,
         scope: DataScope
     ) {
-        const attendanceRecords = await this.attendanceRepository.findMany(scope, 0, 1000, { // Assuming a reasonable limit for summary
+        const attendanceRecords = await this.attendanceRepository.findMany(scope, 0, 1000, {
+            // Assuming a reasonable limit for summary
             employeeId,
             startDate,
             endDate,
@@ -157,7 +167,12 @@ export class AttendanceService {
             endDate: endOfDay,
         };
 
-        const attendanceRecords = await this.attendanceRepository.findMany(scope, 0, 10000, filters); // Large limit for report
+        const attendanceRecords = await this.attendanceRepository.findMany(
+            scope,
+            0,
+            10000,
+            filters
+        ); // Large limit for report
 
         // Group by employee
         const employeeAttendance = new Map<
@@ -303,7 +318,12 @@ export class AttendanceService {
             endDate,
         };
 
-        const attendanceRecords = await this.attendanceRepository.findMany(scope, 0, 10000, filters); // Large limit for report
+        const attendanceRecords = await this.attendanceRepository.findMany(
+            scope,
+            0,
+            10000,
+            filters
+        ); // Large limit for report
 
         // Group by employee and date
         const employeeMonthlyData = new Map<
@@ -383,10 +403,7 @@ export class AttendanceService {
         };
     }
 
-    async getLiveAttendance(
-        scope: DataScope,
-        filtersDto: Pick<AttendanceFiltersDto, 'branchId'>
-    ) {
+    async getLiveAttendance(scope: DataScope, filtersDto: Pick<AttendanceFiltersDto, 'branchId'>) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 

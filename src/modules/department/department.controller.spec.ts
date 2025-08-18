@@ -177,7 +177,9 @@ describe('DepartmentController', () => {
                 ],
             };
 
-            departmentService.getDepartmentHierarchy.mockResolvedValue([hierarchyDepartment] as any);
+            departmentService.getDepartmentHierarchy.mockResolvedValue([
+                hierarchyDepartment,
+            ] as any);
 
             const result = await controller.getDepartmentHierarchy('branch-123', mockDataScope);
 

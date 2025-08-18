@@ -44,11 +44,7 @@ export class GuestService {
             throw new BadRequestException('Scheduled entry time cannot be in the past');
         }
 
-        return this.guestRepository.create(
-            createGuestVisitDto,
-            scope,
-            createdByUserId
-        );
+        return this.guestRepository.create(createGuestVisitDto, scope, createdByUserId);
     }
 
     /**

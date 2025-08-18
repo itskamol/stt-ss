@@ -46,7 +46,14 @@ import { Branch, ManagedBranch } from '@prisma/client';
 @ApiTags('Branches')
 @ApiBearerAuth()
 @Controller('branches')
-@ApiExtraModels(ApiSuccessResponse, BranchResponseDto, BranchStatsResponseDto, BranchCountResponseDto, BranchManagerResponseDto, ManagedBranchResponseDto)
+@ApiExtraModels(
+    ApiSuccessResponse,
+    BranchResponseDto,
+    BranchStatsResponseDto,
+    BranchCountResponseDto,
+    BranchManagerResponseDto,
+    ManagedBranchResponseDto
+)
 export class BranchController {
     constructor(private readonly branchService: BranchService) {}
 
@@ -66,7 +73,7 @@ export class BranchController {
                     },
                 },
             ],
-        }
+        },
     })
     @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -83,10 +90,7 @@ export class BranchController {
     @ApiOperation({ summary: 'Get all branches with pagination' })
     @ApiOkResponsePaginated(BranchResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
-    async getBranches(
-        @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto
-    ) {
+    async getBranches(@Scope() scope: DataScope, @Query() paginationDto: PaginationDto) {
         return this.branchService.getBranches(scope, paginationDto);
     }
 
@@ -123,10 +127,7 @@ export class BranchController {
     @ApiOkResponseData(BranchResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Branch not found.', type: ApiErrorResponse })
-    async getBranchById(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ): Promise<Branch> {
+    async getBranchById(@Param('id') id: string, @Scope() scope: DataScope): Promise<Branch> {
         const branch = await this.branchService.getBranchById(id, scope);
         if (!branch) {
             throw new NotFoundException('Branch not found.');
@@ -141,10 +142,7 @@ export class BranchController {
     @ApiOkResponseData(BranchStatsResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Branch not found.', type: ApiErrorResponse })
-    async getBranchWithStats(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ) {
+    async getBranchWithStats(@Param('id') id: string, @Scope() scope: DataScope) {
         return this.branchService.getBranchWithStats(id, scope);
     }
 
@@ -231,10 +229,7 @@ export class BranchController {
     @ApiOkResponsePaginated(BranchManagerResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Branch not found.', type: ApiErrorResponse })
-    async getBranchManagers(
-        @Param('branchId') branchId: string,
-        @Scope() scope: DataScope
-    ) {
+    async getBranchManagers(@Param('branchId') branchId: string, @Scope() scope: DataScope) {
         return this.branchService.getBranchManagers(branchId, scope);
     }
 }

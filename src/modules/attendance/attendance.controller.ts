@@ -60,7 +60,7 @@ export class AttendanceController {
                     },
                 },
             ],
-        }
+        },
     })
     @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -69,10 +69,7 @@ export class AttendanceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<Attendance> {
-        return this.attendanceService.createAttendanceRecord(
-            createAttendanceDto,
-            scope
-        );
+        return this.attendanceService.createAttendanceRecord(createAttendanceDto, scope);
     }
 
     @Get()
@@ -145,7 +142,11 @@ export class AttendanceController {
     @ApiQuery({ name: 'startDate', description: 'Start date for the summary (YYYY-MM-DD)' })
     @ApiQuery({ name: 'endDate', description: 'End date for the summary (YYYY-MM-DD)' })
     @ApiOkResponseData(AttendanceSummaryDto)
-    @ApiResponse({ status: 400, description: 'Start date and end date are required.', type: ApiErrorResponse })
+    @ApiResponse({
+        status: 400,
+        description: 'Start date and end date are required.',
+        type: ApiErrorResponse,
+    })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
     async getEmployeeAttendanceSummary(
@@ -243,7 +244,11 @@ export class AttendanceController {
     @ApiParam({ name: 'id', description: 'ID of the attendance record' })
     @ApiOkResponseData(AttendanceResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
-    @ApiResponse({ status: 404, description: 'Attendance record not found.', type: ApiErrorResponse })
+    @ApiResponse({
+        status: 404,
+        description: 'Attendance record not found.',
+        type: ApiErrorResponse,
+    })
     async getAttendanceById(
         @Param('id') id: string,
         @Scope() scope: DataScope
@@ -258,7 +263,11 @@ export class AttendanceController {
     @ApiParam({ name: 'id', description: 'ID of the attendance record to delete' })
     @ApiResponse({ status: 204, description: 'The record has been successfully deleted.' })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
-    @ApiResponse({ status: 404, description: 'Attendance record not found.', type: ApiErrorResponse })
+    @ApiResponse({
+        status: 404,
+        description: 'Attendance record not found.',
+        type: ApiErrorResponse,
+    })
     async deleteAttendanceRecord(
         @Param('id') id: string,
         @User() user: UserContext,
@@ -313,7 +322,11 @@ export class AttendanceController {
     @ApiQuery({ name: 'month', description: 'Month for the report (1-12)' })
     @ApiQuery({ name: 'branchId', description: 'Filter by branch ID', required: false })
     @ApiResponse({ status: 200, description: 'The monthly attendance report.' })
-    @ApiResponse({ status: 400, description: 'Year and month are required.', type: ApiErrorResponse })
+    @ApiResponse({
+        status: 400,
+        description: 'Year and month are required.',
+        type: ApiErrorResponse,
+    })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getMonthlyAttendanceReport(
         @Query('year') year: string,

@@ -24,11 +24,11 @@ export class FileController {
     async getFile(@Param('key') key: string, @Res() res: Response) {
         try {
             const result = await this.storageAdapter.downloadFile(key);
-            
+
             res.set({
                 'Content-Type': result.contentType || 'application/octet-stream',
                 'Content-Length': result.contentLength.toString(),
-                'ETag': `W/"${Date.now()}"`,
+                ETag: `W/"${Date.now()}"`,
                 'Cache-Control': 'public, max-age=3600',
             });
 

@@ -260,9 +260,9 @@ describe('AuditLogController', () => {
         it('should throw error when audit log not found', async () => {
             auditLogService.getAuditLogById.mockResolvedValue(null);
 
-            await expect(
-                controller.getAuditLogById('audit-123', mockDataScope)
-            ).rejects.toThrow(NotFoundException);
+            await expect(controller.getAuditLogById('audit-123', mockDataScope)).rejects.toThrow(
+                NotFoundException
+            );
         });
     });
 

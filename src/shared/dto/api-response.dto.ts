@@ -106,8 +106,7 @@ export class ApiErrorResponse {
     timestamp: string;
 
     @ApiProperty({
-        description:
-            'A unique identifier for the request, useful for logging and troubleshooting.',
+        description: 'A unique identifier for the request, useful for logging and troubleshooting.',
     })
     correlationId: string;
 

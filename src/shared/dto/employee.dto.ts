@@ -23,7 +23,7 @@ export class CreateEmployeeDto {
     lastName: string;
 
     @ApiProperty({
-        description: "The unique code for the employee.",
+        description: 'The unique code for the employee.',
         example: 'EMP12345',
         maxLength: 20,
     })
@@ -106,7 +106,7 @@ export class UpdateEmployeeDto {
     lastName?: string;
 
     @ApiProperty({
-        description: "The unique code for the employee.",
+        description: 'The unique code for the employee.',
         example: 'EMP12345',
         maxLength: 20,
         required: false,
@@ -215,7 +215,7 @@ export class EmployeeResponseDto {
     lastName: string;
 
     @ApiProperty({
-        description: "The unique code for the employee.",
+        description: 'The unique code for the employee.',
         example: 'EMP12345',
     })
     employeeCode: string;

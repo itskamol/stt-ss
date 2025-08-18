@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-    BadRequestException,
-    ConflictException,
-    NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { EmployeeRepository } from './employee.repository';
 import { LoggerService } from '@/core/logger';
@@ -114,11 +110,7 @@ describe('EmployeeService', () => {
             employeeRepository.findByEmployeeCode.mockResolvedValue(null);
             employeeRepository.create.mockResolvedValue(mockEmployee as any);
 
-            const result = await service.createEmployee(
-                createDto,
-                mockDataScope,
-                'user-123'
-            );
+            const result = await service.createEmployee(createDto, mockDataScope, 'user-123');
 
             expect(employeeRepository.create).toHaveBeenCalledWith(createDto, mockDataScope);
             expect(result).toEqual(mockEmployee);
@@ -255,7 +247,7 @@ describe('EmployeeService', () => {
             storageAdapter.uploadFile.mockResolvedValue({
                 url: 'http://example.com/photo.jpg',
                 key: 'photo.jpg',
-                size: 1024 * 1024
+                size: 1024 * 1024,
             });
 
             const result = await service.uploadEmployeePhoto(

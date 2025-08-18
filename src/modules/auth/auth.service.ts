@@ -36,9 +36,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        const userWithOrganizations = await this.userRepository.findUserWithOrganizations(
-            user.id
-        );
+        const userWithOrganizations = await this.userRepository.findUserWithOrganizations(user.id);
 
         const primaryOrgLink = userWithOrganizations?.organizationLinks?.[0];
         let organizationId: string | undefined;
@@ -81,9 +79,7 @@ export class AuthService {
     /**
      * Refresh access token using refresh token
      */
-    async refreshToken(
-        refreshTokenDto: RefreshTokenDto
-    ): Promise<RefreshTokenResponseDto> {
+    async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<RefreshTokenResponseDto> {
         const { refreshToken } = refreshTokenDto;
 
         const payload = this.jwtService.verifyRefreshToken(refreshToken);
@@ -99,9 +95,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid refresh token');
         }
 
-        const userWithOrganizations = await this.userRepository.findUserWithOrganizations(
-            user.id
-        );
+        const userWithOrganizations = await this.userRepository.findUserWithOrganizations(user.id);
         const primaryOrgLink = userWithOrganizations?.organizationLinks?.[0];
 
         let organizationId: string | undefined;
@@ -128,10 +122,7 @@ export class AuthService {
             permissions,
         };
 
-        const newTokens = this.jwtService.generateTokenPair(
-            jwtPayload,
-            payload.tokenVersion + 1
-        );
+        const newTokens = this.jwtService.generateTokenPair(jwtPayload, payload.tokenVersion + 1);
 
         return newTokens;
     }
@@ -235,10 +226,7 @@ export class AuthService {
                 PERMISSIONS.ATTENDANCE.DELETE_MANAGED,
                 PERMISSIONS.REPORT.GENERATE_BRANCH,
             ],
-            [Role.EMPLOYEE]: [
-                PERMISSIONS.EMPLOYEE.READ_SELF,
-                PERMISSIONS.ATTENDANCE.CREATE,
-            ],
+            [Role.EMPLOYEE]: [PERMISSIONS.EMPLOYEE.READ_SELF, PERMISSIONS.ATTENDANCE.CREATE],
         };
 
         return permissionMatrix[role] || [];

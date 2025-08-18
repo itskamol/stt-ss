@@ -157,9 +157,9 @@ describe('BranchController', () => {
         it('should throw error when branch not found', async () => {
             branchService.getBranchById.mockResolvedValue(null);
 
-            await expect(
-                controller.getBranchById('nonexistent', mockDataScope)
-            ).rejects.toThrow(NotFoundException);
+            await expect(controller.getBranchById('nonexistent', mockDataScope)).rejects.toThrow(
+                NotFoundException
+            );
         });
     });
 

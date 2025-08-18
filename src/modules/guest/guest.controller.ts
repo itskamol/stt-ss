@@ -63,7 +63,7 @@ export class GuestController {
                     },
                 },
             ],
-        }
+        },
     })
     @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -72,11 +72,7 @@ export class GuestController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<GuestVisit> {
-        return this.guestService.createGuestVisit(
-            createGuestVisitDto,
-            scope,
-            user.sub
-        );
+        return this.guestService.createGuestVisit(createGuestVisitDto, scope, user.sub);
     }
 
     @Get('visits')
@@ -180,12 +176,7 @@ export class GuestController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<GuestVisit> {
-        return this.guestService.updateGuestVisit(
-            id,
-            updateGuestVisitDto,
-            scope,
-            user.sub
-        );
+        return this.guestService.updateGuestVisit(id, updateGuestVisitDto, scope, user.sub);
     }
 
     @Post('visits/:id/approve')
@@ -202,12 +193,7 @@ export class GuestController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<GuestVisit> {
-        return this.guestService.approveGuestVisit(
-            id,
-            approveDto,
-            scope,
-            user.sub
-        );
+        return this.guestService.approveGuestVisit(id, approveDto, scope, user.sub);
     }
 
     @Post('visits/:id/reject')
@@ -224,12 +210,7 @@ export class GuestController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<GuestVisit> {
-        return this.guestService.rejectGuestVisit(
-            id,
-            rejectDto.reason,
-            scope,
-            user.sub
-        );
+        return this.guestService.rejectGuestVisit(id, rejectDto.reason, scope, user.sub);
     }
 
     @Post('visits/:id/activate')

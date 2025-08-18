@@ -42,7 +42,12 @@ import { Department } from '@prisma/client';
 @ApiTags('Departments')
 @ApiBearerAuth()
 @Controller('departments')
-@ApiExtraModels(ApiSuccessResponse, DepartmentResponseDto, DepartmentStatsResponseDto, DepartmentCountResponseDto)
+@ApiExtraModels(
+    ApiSuccessResponse,
+    DepartmentResponseDto,
+    DepartmentStatsResponseDto,
+    DepartmentCountResponseDto
+)
 export class DepartmentController {
     constructor(private readonly departmentService: DepartmentService) {}
 
@@ -62,7 +67,7 @@ export class DepartmentController {
                     },
                 },
             ],
-        }
+        },
     })
     @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -71,11 +76,7 @@ export class DepartmentController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<Department> {
-        return this.departmentService.createDepartment(
-            createDepartmentDto,
-            scope,
-            user.sub
-        );
+        return this.departmentService.createDepartment(createDepartmentDto, scope, user.sub);
     }
 
     @Get()
@@ -83,10 +84,7 @@ export class DepartmentController {
     @ApiOperation({ summary: 'Get all departments with pagination' })
     @ApiOkResponsePaginated(DepartmentResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
-    async getDepartments(
-        @Scope() scope: DataScope,
-        @Query() paginationDto: PaginationDto
-    ) {
+    async getDepartments(@Scope() scope: DataScope, @Query() paginationDto: PaginationDto) {
         return this.departmentService.getDepartments(scope, paginationDto);
     }
 
@@ -103,10 +101,7 @@ export class DepartmentController {
         if (!searchTerm || searchTerm.trim().length < 2) {
             return [];
         }
-        return this.departmentService.searchDepartments(
-            searchTerm.trim(),
-            scope
-        );
+        return this.departmentService.searchDepartments(searchTerm.trim(), scope);
     }
 
     @Get('count')
@@ -172,10 +167,7 @@ export class DepartmentController {
     @ApiOkResponseData(DepartmentStatsResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Department not found.', type: ApiErrorResponse })
-    async getDepartmentWithStats(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ) {
+    async getDepartmentWithStats(@Param('id') id: string, @Scope() scope: DataScope) {
         return this.departmentService.getDepartmentWithStats(id, scope);
     }
 
@@ -194,12 +186,7 @@ export class DepartmentController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<Department> {
-        return this.departmentService.updateDepartment(
-            id,
-            updateDepartmentDto,
-            scope,
-            user.sub
-        );
+        return this.departmentService.updateDepartment(id, updateDepartmentDto, scope, user.sub);
     }
 
     @Delete(':id')

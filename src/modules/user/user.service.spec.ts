@@ -157,7 +157,9 @@ describe('UserService', () => {
         it('should throw NotFoundException when user not found', async () => {
             mockUserRepository.findById.mockResolvedValue(null);
             // Add a specific mock for the update method for this test
-            mockUserRepository.update.mockRejectedValue(new Error('UPDATE SHOULD NOT HAVE BEEN CALLED'));
+            mockUserRepository.update.mockRejectedValue(
+                new Error('UPDATE SHOULD NOT HAVE BEEN CALLED')
+            );
 
             await expect(
                 service.updateUser('nonexistent', updateUserDto, 'user-123')
@@ -254,9 +256,9 @@ describe('UserService', () => {
             (DatabaseUtil.isUniqueConstraintError as jest.Mock).mockReturnValue(true);
             mockUserRepository.assignToOrganization.mockRejectedValue(uniqueError);
 
-            await expect(
-                service.assignToOrganization(assignDto, 'user-123')
-            ).rejects.toThrow(ConflictException);
+            await expect(service.assignToOrganization(assignDto, 'user-123')).rejects.toThrow(
+                ConflictException
+            );
         });
     });
 

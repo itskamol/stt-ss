@@ -92,11 +92,7 @@ export class BranchService {
     /**
      * Delete branch
      */
-    async deleteBranch(
-        id: string,
-        scope: DataScope,
-        deletedByUserId: string
-    ): Promise<void> {
+    async deleteBranch(id: string, scope: DataScope, deletedByUserId: string): Promise<void> {
         await this.getBranchById(id, scope); // Ensure branch exists and is in scope
         await this.branchRepository.delete(id, scope);
     }
@@ -130,10 +126,7 @@ export class BranchService {
     /**
      * Assign branch manager
      */
-    async assignBranchManager(
-        assignDto: AssignBranchManagerDto,
-        assignedByUserId: string
-    ) {
+    async assignBranchManager(assignDto: AssignBranchManagerDto, assignedByUserId: string) {
         // Here you might want to add validation to ensure the user and branch exist
         // and belong to the same organization before assigning.
         try {

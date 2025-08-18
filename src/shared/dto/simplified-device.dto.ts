@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsIP, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+    IsEnum,
+    IsIP,
+    IsNotEmpty,
+    IsNumber,
+    IsOptional,
+    IsString,
+    Max,
+    Min,
+} from 'class-validator';
 import { DeviceProtocol, DeviceType } from '@prisma/client';
 
 export class SimplifiedDeviceCreationDto {

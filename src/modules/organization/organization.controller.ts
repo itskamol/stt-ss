@@ -42,7 +42,12 @@ import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
 @ApiTags('Organizations')
 @ApiBearerAuth()
 @Controller('organizations')
-@ApiExtraModels(ApiSuccessResponse, OrganizationResponseDto, OrganizationStatsResponseDto, OrganizationCountResponseDto)
+@ApiExtraModels(
+    ApiSuccessResponse,
+    OrganizationResponseDto,
+    OrganizationStatsResponseDto,
+    OrganizationCountResponseDto
+)
 export class OrganizationController {
     constructor(private readonly organizationService: OrganizationService) {}
 
@@ -63,7 +68,7 @@ export class OrganizationController {
                     },
                 },
             ],
-        }
+        },
     })
     @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -71,10 +76,7 @@ export class OrganizationController {
         @Body() createOrganizationDto: CreateOrganizationDto,
         @User() user: UserContext
     ): Promise<Organization> {
-        return this.organizationService.createOrganization(
-            createOrganizationDto,
-            user.sub
-        );
+        return this.organizationService.createOrganization(createOrganizationDto, user.sub);
     }
 
     @Get()
@@ -201,11 +203,7 @@ export class OrganizationController {
         @Body() updateOrganizationDto: UpdateOrganizationDto,
         @User() user: UserContext
     ): Promise<Organization> {
-        return this.organizationService.updateOrganization(
-            id,
-            updateOrganizationDto,
-            user.sub
-        );
+        return this.organizationService.updateOrganization(id, updateOrganizationDto, user.sub);
     }
 
     @Delete(':id')

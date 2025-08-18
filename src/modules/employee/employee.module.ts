@@ -10,11 +10,7 @@ import { PaginationService } from '@/shared/services/pagination.service';
 @Module({
     imports: [DatabaseModule, LoggerModule, AdapterModule],
     controllers: [EmployeeController],
-    providers: [
-        EmployeeService, 
-        EmployeeRepository, 
-        PaginationService
-    ],
+    providers: [EmployeeService, EmployeeRepository, PaginationService],
     exports: [EmployeeService, EmployeeRepository],
 })
 export class EmployeeModule {}

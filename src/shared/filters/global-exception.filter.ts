@@ -1,10 +1,4 @@
-import {
-    ArgumentsHost,
-    Catch,
-    ExceptionFilter,
-    HttpException,
-    HttpStatus,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { LoggerService } from '@/core/logger';
@@ -37,8 +31,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         } else if (exception instanceof HttpException) {
             status = exception.getStatus();
             const response = exception.getResponse();
-            error.message =
-                typeof response === 'string' ? response : (response as any).message;
+            error.message = typeof response === 'string' ? response : (response as any).message;
             error.code = this.getErrorCodeFromStatus(status);
         } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
             // See https://www.prisma.io/docs/reference/api-reference/error-reference#error-codes
@@ -68,28 +61,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         }
 
         const userContext = request.user as any;
-        this.logger.logApiError(
-            request.method,
-            request.url,
-            status,
-            error.message,
-            {
-                userId: userContext?.sub || userContext?.id,
-                organizationId: userContext?.organizationId,
-                correlationId,
-                userAgent: request.headers['user-agent'],
-                ip: request.ip,
-                trace: exception instanceof Error ? exception.stack : String(exception),
-                exceptionType: exception?.constructor?.name || 'Unknown',
-                details: error.details,
-            }
-        );
+        this.logger.logApiError(request.method, request.url, status, error.message, {
+            userId: userContext?.sub || userContext?.id,
+            organizationId: userContext?.organizationId,
+            correlationId,
+            userAgent: request.headers['user-agent'],
+            ip: request.ip,
+            trace: exception instanceof Error ? exception.stack : String(exception),
+            exceptionType: exception?.constructor?.name || 'Unknown',
+            details: error.details,
+        });
 
         // In production, hide sensitive error details
-        if (
-            status === HttpStatus.INTERNAL_SERVER_ERROR &&
-            process.env.NODE_ENV === 'production'
-        ) {
+        if (status === HttpStatus.INTERNAL_SERVER_ERROR && process.env.NODE_ENV === 'production') {
             error.message = 'An unexpected internal error occurred.';
             error.details = undefined;
         }

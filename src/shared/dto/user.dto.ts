@@ -20,7 +20,8 @@ export class CreateUserDto {
     email: string;
 
     @ApiProperty({
-        description: 'The password for the user account. It must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.',
+        description:
+            'The password for the user account. It must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.',
         example: 'Password123!',
     })
     @IsString()
@@ -90,7 +91,8 @@ export class ChangePasswordDto {
     currentPassword: string;
 
     @ApiProperty({
-        description: 'The new password for the user account. It must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.',
+        description:
+            'The new password for the user account. It must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.',
         example: 'NewPassword456!',
     })
     @IsString()

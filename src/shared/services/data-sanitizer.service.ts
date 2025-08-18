@@ -8,14 +8,35 @@ export interface SanitizationResult {
 @Injectable()
 export class DataSanitizerService {
     private readonly sensitiveFields = [
-        'password', 'passwd', 'pwd', 'token', 'secret', 'key', 'authorization',
-        'cookie', 'session', 'credential', 'username', 'email', 'pin', 'ssn',
-        'credit', 'card', 'cvv', 'account', 'medical', 'fingerprint', 'biometric'
+        'password',
+        'passwd',
+        'pwd',
+        'token',
+        'secret',
+        'key',
+        'authorization',
+        'cookie',
+        'session',
+        'credential',
+        'username',
+        'email',
+        'pin',
+        'ssn',
+        'credit',
+        'card',
+        'cvv',
+        'account',
+        'medical',
+        'fingerprint',
+        'biometric',
     ];
 
     private readonly piiPatterns = [
         { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, replacement: '[EMAIL]' },
-        { pattern: /(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/g, replacement: '[PHONE]' },
+        {
+            pattern: /(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/g,
+            replacement: '[PHONE]',
+        },
         { pattern: /\b\d{3}-\d{2}-\d{4}\b/g, replacement: '[SSN]' },
         { pattern: /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, replacement: '[CARD]' },
     ];
@@ -25,7 +46,7 @@ export class DataSanitizerService {
      */
     sanitize(data: any, maxDepth = 5): SanitizationResult {
         const redactedFields: string[] = [];
-        
+
         const sanitizeRecursive = (obj: any, depth = 0, path = ''): any => {
             if (depth > maxDepth || obj === null || obj === undefined) {
                 return obj;
@@ -38,16 +59,16 @@ export class DataSanitizerService {
 
             // Handle arrays
             if (Array.isArray(obj)) {
-                return obj.slice(0, 100).map((item, index) => 
-                    sanitizeRecursive(item, depth + 1, `${path}[${index}]`)
-                );
+                return obj
+                    .slice(0, 100)
+                    .map((item, index) => sanitizeRecursive(item, depth + 1, `${path}[${index}]`));
             }
 
             // Handle objects
             const result: any = {};
             for (const [key, value] of Object.entries(obj)) {
                 const fieldPath = path ? `${path}.${key}` : key;
-                
+
                 if (this.isSensitiveField(key)) {
                     result[key] = this.redactValue(value);
                     redactedFields.push(fieldPath);
@@ -92,7 +113,7 @@ export class DataSanitizerService {
         if (typeof value === 'string') {
             // Truncate long strings
             let sanitized = value.length > 500 ? `${value.substring(0, 500)}[...]` : value;
-            
+
             // Remove PII patterns
             for (const { pattern, replacement } of this.piiPatterns) {
                 if (pattern.test(sanitized)) {
@@ -126,8 +147,6 @@ export class DataSanitizerService {
 
     private isSensitiveField(fieldName: string): boolean {
         const lowerFieldName = fieldName.toLowerCase();
-        return this.sensitiveFields.some(field => 
-            lowerFieldName.includes(field)
-        );
+        return this.sensitiveFields.some(field => lowerFieldName.includes(field));
     }
 }

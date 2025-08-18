@@ -163,11 +163,7 @@ export class EmployeeService {
                 }
             }
 
-            return await this.employeeRepository.update(
-                id,
-                updateEmployeeDto,
-                scope
-            );
+            return await this.employeeRepository.update(id, updateEmployeeDto, scope);
         } catch (error) {
             if (DatabaseUtil.isUniqueConstraintError(error)) {
                 const fields = DatabaseUtil.getUniqueConstraintFields(error);
@@ -182,11 +178,7 @@ export class EmployeeService {
     /**
      * Delete employee
      */
-    async deleteEmployee(
-        id: string,
-        scope: DataScope,
-        deletedByUserId: string
-    ): Promise<void> {
+    async deleteEmployee(id: string, scope: DataScope, deletedByUserId: string): Promise<void> {
         await this.getEmployeeById(id, scope);
         await this.employeeRepository.delete(id, scope);
     }

@@ -55,7 +55,7 @@ export class ReportingController {
                     },
                 },
             ],
-        }
+        },
     })
     @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
@@ -106,10 +106,7 @@ export class ReportingController {
     @ApiOkResponseData(ReportResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Report not found.', type: ApiErrorResponse })
-    async getReportById(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ): Promise<Report> {
+    async getReportById(@Param('id') id: string, @Scope() scope: DataScope): Promise<Report> {
         return this.reportingService.getReportById(id, scope);
     }
 
@@ -119,7 +116,11 @@ export class ReportingController {
     @ApiParam({ name: 'id', description: 'ID of the report' })
     @ApiResponse({ status: 200, description: 'A temporary download URL for the report.' })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
-    @ApiResponse({ status: 404, description: 'Report not found or not completed.', type: ApiErrorResponse })
+    @ApiResponse({
+        status: 404,
+        description: 'Report not found or not completed.',
+        type: ApiErrorResponse,
+    })
     async downloadReport(
         @Param('id') id: string,
         @Scope() scope: DataScope
@@ -183,7 +184,7 @@ export class ReportingController {
                     },
                 },
             ],
-        }
+        },
     })
     async generateDailyAttendanceReport(
         @Body()
@@ -242,7 +243,7 @@ export class ReportingController {
                     },
                 },
             ],
-        }
+        },
     })
     async generateMonthlyAttendanceReport(
         @Body()
@@ -303,7 +304,7 @@ export class ReportingController {
                     },
                 },
             ],
-        }
+        },
     })
     async generateEmployeeListReport(
         @Body()
@@ -364,7 +365,7 @@ export class ReportingController {
                     },
                 },
             ],
-        }
+        },
     })
     async generateSecurityAuditReport(
         @Body()

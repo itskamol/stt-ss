@@ -85,9 +85,7 @@ describe('AuthController', () => {
             const loginError = new UnauthorizedException('Invalid credentials');
             mockAuthService.login.mockRejectedValue(loginError);
 
-            await expect(controller.login(loginDto)).rejects.toThrow(
-                UnauthorizedException
-            );
+            await expect(controller.login(loginDto)).rejects.toThrow(UnauthorizedException);
         });
     });
 
@@ -140,9 +138,7 @@ describe('AuthController', () => {
             const logoutError = new Error('Logout failed');
             mockAuthService.logout.mockRejectedValue(logoutError);
 
-            await expect(controller.logout(logoutDto, mockUser)).rejects.toThrow(
-                Error
-            );
+            await expect(controller.logout(logoutDto, mockUser)).rejects.toThrow(Error);
         });
     });
 

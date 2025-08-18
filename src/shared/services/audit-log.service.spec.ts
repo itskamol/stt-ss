@@ -157,14 +157,10 @@ describe('AuditLogService', () => {
                 limit: 50,
             });
 
-            expect(auditLogRepository.findMany).toHaveBeenCalledWith(
-                filters,
-                mockDataScope,
-                {
-                    page: 1,
-                    limit: 50,
-                }
-            );
+            expect(auditLogRepository.findMany).toHaveBeenCalledWith(filters, mockDataScope, {
+                page: 1,
+                limit: 50,
+            });
             expect(result).toEqual(mockResult);
         });
     });

@@ -1288,7 +1288,7 @@ export class DeviceStatsResponseDto extends DeviceResponseDto {
         example: '192.168.100.111',
     })
     host: string;
-    
+
     @ApiProperty({
         description: 'Statistics of the device.',
         example: {

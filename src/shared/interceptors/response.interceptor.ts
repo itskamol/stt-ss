@@ -16,10 +16,7 @@ import { BYPASS_RESPONSE_INTERCEPTOR } from '../decorators/bypass-interceptor.de
 export class ResponseInterceptor<T> implements NestInterceptor<T, ApiSuccessResponse<T>> {
     constructor(private readonly reflector: Reflector) {}
 
-    intercept(
-        context: ExecutionContext,
-        next: CallHandler
-    ): Observable<any> {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         const bypass = this.reflector.get<boolean>(
             BYPASS_RESPONSE_INTERCEPTOR,
             context.getHandler()
@@ -52,7 +49,9 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiSuccessResp
                 ) {
                     const paginatedData = data as PaginationResponseDto<any>;
                     const meta = new ApiMetaDto();
-                    meta.itemCount = Array.isArray(paginatedData.data) ? paginatedData.data.length : 1;
+                    meta.itemCount = Array.isArray(paginatedData.data)
+                        ? paginatedData.data.length
+                        : 1;
                     meta.totalItems = paginatedData.total;
                     meta.itemsPerPage = paginatedData.limit;
                     meta.totalPages = Math.ceil(paginatedData.total / paginatedData.limit);

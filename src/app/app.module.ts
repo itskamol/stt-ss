@@ -77,12 +77,8 @@ import { AuditModule } from '@/modules/audit/audit.module';
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
-        consumer
-            .apply(CorrelationIdMiddleware)
-            .forRoutes({ path: '', method: RequestMethod.ALL });
-        
-        consumer
-            .apply(MorganLoggerMiddleware)
-            .forRoutes({ path: '', method: RequestMethod.ALL });
+        consumer.apply(CorrelationIdMiddleware).forRoutes({ path: '', method: RequestMethod.ALL });
+
+        consumer.apply(MorganLoggerMiddleware).forRoutes({ path: '', method: RequestMethod.ALL });
     }
 }

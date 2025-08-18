@@ -16,7 +16,11 @@ describe('EmployeeController', () => {
         email: 'test@example.com',
         organizationId: 'org-123',
         roles: ['ADMIN'],
-        permissions: [PERMISSIONS.EMPLOYEE.CREATE, PERMISSIONS.EMPLOYEE.READ_ALL, PERMISSIONS.EMPLOYEE.UPDATE_MANAGED],
+        permissions: [
+            PERMISSIONS.EMPLOYEE.CREATE,
+            PERMISSIONS.EMPLOYEE.READ_ALL,
+            PERMISSIONS.EMPLOYEE.UPDATE_MANAGED,
+        ],
     };
 
     const mockDataScope: DataScope = {
@@ -123,7 +127,10 @@ describe('EmployeeController', () => {
             const paginationDto = { page: 1, limit: 10 };
             const result = await controller.getEmployees(mockDataScope, paginationDto);
 
-            expect(employeeService.getPaginatedEmployees).toHaveBeenCalledWith(mockDataScope, paginationDto);
+            expect(employeeService.getPaginatedEmployees).toHaveBeenCalledWith(
+                mockDataScope,
+                paginationDto
+            );
             expect(result.data).toHaveLength(1);
             expect(result.total).toBe(1);
             expect(result.page).toBe(1);
@@ -177,7 +184,9 @@ describe('EmployeeController', () => {
         it('should throw error when employee not found', async () => {
             employeeService.getEmployeeById.mockResolvedValue(null);
 
-            await expect(controller.getEmployeeById('nonexistent', mockDataScope)).rejects.toThrow(NotFoundException);
+            await expect(controller.getEmployeeById('nonexistent', mockDataScope)).rejects.toThrow(
+                NotFoundException
+            );
         });
     });
 

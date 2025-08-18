@@ -55,7 +55,9 @@ export class QueueController {
         type: QueueStatsResponseDto,
     })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    async getQueueStatsByName(@Param('queueName') queueName: string): Promise<QueueStatsResponseDto> {
+    async getQueueStatsByName(
+        @Param('queueName') queueName: string
+    ): Promise<QueueStatsResponseDto> {
         const stats = await this.queueService.getQueueStats(queueName);
         return { queues: [stats] };
     }
@@ -131,14 +133,14 @@ export class QueueController {
         type: TriggerJobResponseDto,
     })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ErrorResponseDto })
-    async triggerHealthCheck(
-        @Body('checkType') checkType: string
-    ): Promise<TriggerJobResponseDto> {
+    async triggerHealthCheck(@Body('checkType') checkType: string): Promise<TriggerJobResponseDto> {
         const allowedTypes = ['database', 'redis', 'external-api', 'disk-space', 'memory'] as const;
         if (!allowedTypes.includes(checkType as any)) {
             throw new Error(`Invalid checkType: ${checkType}`);
         }
-        const job = await this.queueProducer.scheduleHealthCheck({ checkType: checkType as typeof allowedTypes[number] });
+        const job = await this.queueProducer.scheduleHealthCheck({
+            checkType: checkType as (typeof allowedTypes)[number],
+        });
 
         return {
             jobId: String(job.id),

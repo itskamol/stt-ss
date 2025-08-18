@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, NotFoundException } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Param,
+    Post,
+    Query,
+    NotFoundException,
+} from '@nestjs/common';
 import {
     ApiBearerAuth,
     ApiBody,
@@ -81,7 +91,11 @@ export class AuditLogController {
     @ApiQuery({ name: 'startDate', description: 'Start date for the summary (YYYY-MM-DD)' })
     @ApiQuery({ name: 'endDate', description: 'End date for the summary (YYYY-MM-DD)' })
     @ApiResponse({ status: 200, description: 'User activity summary.' })
-    @ApiResponse({ status: 400, description: 'Start date and end date are required.', type: ApiErrorResponse })
+    @ApiResponse({
+        status: 400,
+        description: 'Start date and end date are required.',
+        type: ApiErrorResponse,
+    })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'User not found.', type: ApiErrorResponse })
     async getUserActivitySummary(
@@ -155,10 +169,7 @@ export class AuditLogController {
     @ApiOkResponseData(AuditLogResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Audit log not found.', type: ApiErrorResponse })
-    async getAuditLogById(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ): Promise<AuditLog> {
+    async getAuditLogById(@Param('id') id: string, @Scope() scope: DataScope): Promise<AuditLog> {
         const auditLog = await this.auditLogService.getAuditLogById(id, scope);
         if (!auditLog) {
             throw new NotFoundException('Audit log not found.');

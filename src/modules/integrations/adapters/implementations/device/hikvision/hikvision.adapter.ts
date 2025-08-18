@@ -176,7 +176,11 @@ export class HikvisionAdapter implements IDeviceAdapter {
 
             return {
                 name: deviceInfo.deviceName || deviceInfo.name || 'Hikvision Device',
-                deviceId: deviceInfo.deviceID || deviceInfo.deviceId || deviceInfo.serialNumber || context.device.id,
+                deviceId:
+                    deviceInfo.deviceID ||
+                    deviceInfo.deviceId ||
+                    deviceInfo.serialNumber ||
+                    context.device.id,
                 model: deviceInfo.model || 'Unknown Model',
                 serialNumber: deviceInfo.serialNumber || '',
                 macAddress: deviceInfo.macAddress || '',
