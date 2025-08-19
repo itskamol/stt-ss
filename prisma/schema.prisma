@@ -250,7 +250,7 @@ model Employee {
   firstName    String
   lastName     String
   employeeCode String // Must be unique within the organization  
-  email        String? @unique
+  email        String?
   phone        String?
   photoKey     String?
   isActive     Boolean @default(true)
@@ -262,6 +262,7 @@ model Employee {
   responsibleForGuests GuestVisit[]
 
   @@unique([organizationId, employeeCode])
+  @@unique([organizationId, email])
   @@index([organizationId])
   @@index([branchId])
   @@index([departmentId])
@@ -340,11 +341,11 @@ model GuestVisit {
 
 // 8. Attendance  
 model Attendance {
-  id             String @id @default(uuid())
+  id           String @id @default(uuid())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  branchId       String
   branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId       String
 
   employee   Employee?   @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   employeeId String?
@@ -365,10 +366,9 @@ model Attendance {
 
 // 9. Events and Audit logs  
 model DeviceEventLog {
-  id             String @id @default(uuid())
-  organizationId String
-  deviceId       String
-  device         Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  deviceId String
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   eventType     EventType
   timestamp     DateTime
@@ -378,7 +378,7 @@ model DeviceEventLog {
 
   createdAt DateTime @default(now())
 
-  @@index([organizationId, deviceId, timestamp])
+  @@index([deviceId, timestamp])
 }
 
 model AuditLog {

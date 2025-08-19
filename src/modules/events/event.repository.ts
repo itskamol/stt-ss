@@ -32,8 +32,7 @@ export class EventRepository {
                 eventType: data.eventType,
                 metadata: data.metadata,
                 rawPayloadUrl: data.rawPayloadUrl,
-                timestamp: data.timestamp,
-                organizationId: data.organizationId,
+                timestamp: data.timestamp
             },
         });
     }

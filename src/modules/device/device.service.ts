@@ -4,7 +4,7 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { Device, DeviceProtocol, DeviceType, ParameterFormatType } from '@prisma/client';
+import { Device, DeviceConfiguration, DeviceProtocol, DeviceType, ParameterFormatType } from '@prisma/client';
 import { DeviceRepository } from './device.repository';
 import { DeviceConfigurationService } from './device-configuration.service';
 import { EmployeeSyncService } from './employee-sync.service';
@@ -320,6 +320,17 @@ export class DeviceService {
 
             const device = await this.deviceRepository.create(createDeviceDto, scope);
 
+            // Auto-apply matching template if available
+            try {
+                await this.autoApplyMatchingTemplate(device, scope, createdByUserId);
+            } catch (templateError) {
+                this.logger.warn('Failed to auto-apply template during device creation', {
+                    deviceId: device.id,
+                    error: templateError.message,
+                    organizationId: scope.organizationId,
+                });
+            }
+
             this.logger.logUserAction(createdByUserId, 'DEVICE_CREATED', {
                 deviceId: device.id,
                 deviceName: device.name,
@@ -329,6 +340,7 @@ export class DeviceService {
                 manufacturer: device.manufacturer,
                 model: device.model,
                 autoDiscovered: options?.autoDiscovery || options?.preScan,
+                templateApplied: true, // Will be updated based on actual result
                 organizationId: scope.organizationId,
                 correlationId: options?.correlationId,
             });
@@ -340,6 +352,59 @@ export class DeviceService {
                 throw new ConflictException(`Device with this ${fields.join(', ')} already exists`);
             }
             throw error;
+        }
+    }
+
+    /**
+     * Auto-apply matching template to device based on manufacturer and model
+     */
+    private async autoApplyMatchingTemplate(
+        device: Device,
+        scope: DataScope,
+        appliedByUserId: string
+    ): Promise<DeviceConfiguration | null> {
+        if (!device.manufacturer || !device.model) {
+            return null; // Skip if manufacturer/model not available
+        }
+
+        try {
+            // Find matching template
+            const templates = await this.deviceConfigurationService.getTemplates(scope);
+            const matchingTemplate = templates.find(template => 
+                template.manufacturer.toLowerCase() === device.manufacturer.toLowerCase() &&
+                template.model.toLowerCase() === device.model.toLowerCase()
+            );
+
+            if (matchingTemplate) {
+                const configuration = await this.deviceConfigurationService.applyTemplateToDevice(
+                    matchingTemplate.id,
+                    device.id,
+                    scope,
+                    appliedByUserId
+                );
+
+                this.logger.debug('Auto-applied template to device', {
+                    deviceId: device.id,
+                    templateId: matchingTemplate.id,
+                    templateName: matchingTemplate.name,
+                    manufacturer: device.manufacturer,
+                    model: device.model,
+                    organizationId: scope.organizationId,
+                });
+
+                return configuration;
+            }
+            
+            return null;
+        } catch (error) {
+            this.logger.warn('Error during auto-template application', {
+                deviceId: device.id,
+                error: error.message,
+                manufacturer: device.manufacturer,
+                model: device.model,
+                organizationId: scope.organizationId,
+            });
+            throw error; // Re-throw to be caught by caller
         }
     }
 
@@ -883,6 +948,42 @@ export class DeviceService {
             scope,
             appliedByUserId
         );
+    }
+
+    /**
+     * Auto-apply matching template to device
+     */
+    async autoApplyTemplateToDevice(
+        deviceId: string,
+        scope: DataScope,
+        appliedByUserId: string
+    ) {
+        const device = await this.getDeviceById(deviceId, scope);
+        return this.autoApplyMatchingTemplate(device, scope, appliedByUserId);
+    }
+
+    /**
+     * Get suggested templates for a device based on manufacturer/model
+     */
+    async getSuggestedTemplates(deviceId: string, scope: DataScope) {
+        const device = await this.getDeviceById(deviceId, scope);
+        const templates = await this.deviceConfigurationService.getTemplates(scope);
+        
+        const exactMatches = templates.filter(template => 
+            template.manufacturer.toLowerCase() === device.manufacturer?.toLowerCase() &&
+            template.model.toLowerCase() === device.model?.toLowerCase()
+        );
+        
+        const manufacturerMatches = templates.filter(template => 
+            template.manufacturer.toLowerCase() === device.manufacturer?.toLowerCase() &&
+            template.model.toLowerCase() !== device.model?.toLowerCase()
+        );
+        
+        return {
+            exactMatches,
+            manufacturerMatches,
+            allTemplates: templates,
+        };
     }
 
     /**

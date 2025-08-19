@@ -627,6 +627,38 @@ export class DeviceController {
         return this.deviceService.applyTemplateToDevice(templateId, id, scope, user.sub);
     }
 
+    @Post(':id/auto-apply-template')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
+    @ApiOperation({ summary: 'Auto-apply matching template to device based on manufacturer/model' })
+    @ApiParam({ name: 'id', description: 'ID of the device' })
+    @ApiOkResponseData(DeviceConfigurationResponseDto)
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
+    async autoApplyTemplate(
+        @Param('id') id: string,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ): Promise<DeviceConfiguration> {
+        const configuration = await this.deviceService.autoApplyTemplateToDevice(id, scope, user.sub);
+        if (!configuration) {
+            throw new Error('No matching template found for this device');
+        }
+        return configuration;
+    }
+
+    @Get(':id/suggested-templates')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
+    @ApiOperation({ summary: 'Get suggested templates for a device based on manufacturer/model' })
+    @ApiParam({ name: 'id', description: 'ID of the device' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
+    async getSuggestedTemplates(
+        @Param('id') id: string,
+        @Scope() scope: DataScope
+    ) {
+        return this.deviceService.getSuggestedTemplates(id, scope);
+    }
+
     // Webhook Management Endpoints
     @Post(':id/webhook')
     @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
