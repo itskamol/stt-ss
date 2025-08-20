@@ -1,0 +1,278 @@
+{
+  "deviceInfo": {
+    "deviceInfo_primary": {
+      "success": true,
+      "data": {
+        "deviceName": "Access Controller",
+        "deviceID": "255",
+        "model": "DS-K1T342EWX",
+        "serialNumber": "DS-K1T342EWX20211229V030305ENK00871574",
+        "macAddress": "AC:B9:2F:FC:AE:7B",
+        "firmwareVersion": "V3.3.5",
+        "firmwareReleasedDate": "build 211229",
+        "encoderVersion": "V1.0",
+        "encoderReleasedDate": "build 191119",
+        "deviceType": "ACS",
+        "telecontrolID": "1",
+        "supportBeep": "false",
+        "localZoneNum": "0",
+        "alarmOutNum": "0",
+        "electroLockNum": "1",
+        "RS485Num": "1",
+        "manufacturer": "hikvision",
+        "OEMCode": "1",
+        "marketType": "2"
+      }
+    },
+    "deviceInfo_lower": {
+      "success": true,
+      "data": {
+        "deviceName": "Access Controller",
+        "deviceID": "255",
+        "model": "DS-K1T342EWX",
+        "serialNumber": "DS-K1T342EWX20211229V030305ENK00871574",
+        "macAddress": "AC:B9:2F:FC:AE:7B",
+        "firmwareVersion": "V3.3.5",
+        "firmwareReleasedDate": "build 211229",
+        "encoderVersion": "V1.0",
+        "encoderReleasedDate": "build 191119",
+        "deviceType": "ACS",
+        "telecontrolID": "1",
+        "supportBeep": "false",
+        "localZoneNum": "0",
+        "alarmOutNum": "0",
+        "electroLockNum": "1",
+        "RS485Num": "1",
+        "manufacturer": "hikvision",
+        "OEMCode": "1",
+        "marketType": "2"
+      }
+    },
+    "deviceInfo_system": {
+      "success": true,
+      "data": {
+        "deviceName": "Access Controller",
+        "deviceID": "255",
+        "model": "DS-K1T342EWX",
+        "serialNumber": "DS-K1T342EWX20211229V030305ENK00871574",
+        "macAddress": "AC:B9:2F:FC:AE:7B",
+        "firmwareVersion": "V3.3.5",
+        "firmwareReleasedDate": "build 211229",
+        "encoderVersion": "V1.0",
+        "encoderReleasedDate": "build 191119",
+        "deviceType": "ACS",
+        "telecontrolID": "1",
+        "supportBeep": "false",
+        "localZoneNum": "0",
+        "alarmOutNum": "0",
+        "electroLockNum": "1",
+        "RS485Num": "1",
+        "manufacturer": "hikvision",
+        "OEMCode": "1",
+        "marketType": "2"
+      }
+    },
+    "capabilities": {
+      "success": true,
+      "data": {
+        "isSupportReboot": "true",
+        "isSupportDeviceInfo": "true",
+        "isSupportTimeCap": "true",
+        "isSupportUpdatefirmware": "true",
+        "isSupportPostUpdateFirmware": "true",
+        "isSupportFactoryReset": "true",
+        "isSupportDst": "true",
+        "isSupportWireless": "true",
+        "isSupportPPPoE": "false",
+        "isSupportBond": "false",
+        "isSupport802_1x": "false",
+        "isSupportNtp": "true",
+        "isSupportFtp": "false",
+        "isSupportUpnp": "false",
+        "isSupportDdns": "false",
+        "isSupportHttps": "true",
+        "isSupport": "false",
+        "isSupportExtNetCfg": "false",
+        "isSupportSSH": "true",
+        "isSupportEZVIZ": "true",
+        "isSupportEhome": "true",
+        "isSupportWirelessDial": "false",
+        "isSupportWirelessServer": "false",
+        "isSupportEZVIZUnbind": "true",
+        "isSupportEZVIZQRcode": "true",
+        "rs485PortNums": "1",
+        "videoInputPortNums": "1",
+        "videoOutputPortNums": "0",
+        "isSupportHeatmap": "false",
+        "isSupportCounting": "false",
+        "isSupportPreviewSwitch": "false",
+        "isSupportRecodStatus": "false",
+        "isSupportPrivacyMask": "false",
+        "isSupportBinocularPreviewSwitch": "false",
+        "isSupportCalibCheck": "false",
+        "isSupportPIP": "false",
+        "audioInputNums": "1",
+        "audioOutputNums": "1",
+        "mixAudioInSet": "false",
+        "mixAudioOutSet": "false",
+        "isSupportAudioMixing": "false",
+        "isSupportSubscribeEvent": "true",
+        "voicetalkNums": "1",
+        "isSupportSnapshot": "true",
+        "isSupportPictureServer": "true",
+        "supportImageChannel": "true",
+        "supportUserNums": "1",
+        "userBondIpNums": "1",
+        "userBondMacNums": "1",
+        "isSupCertificate": "false",
+        "issupIllegalLoginLock": "true",
+        "isSupportOnlineUser": "false",
+        "isSupportAnonymous": "false",
+        "isSupportStreamEncryption": "false",
+        "keyIterateNum": "100",
+        "isSupportUserCheck": "true",
+        "isSupportGUIDFileDataExport": "true",
+        "isSupportSecurityQuestionConfig": "false",
+        "isSupportGetOnlineUserListSC": "false",
+        "isSupportONVIFUserManagement": "false",
+        "isSupportConfigFileImport": "true",
+        "isSupportConfigFileExport": "true",
+        "isSupportMaintenanceDataExport": "true",
+        "isSupportUserDataImport": "false",
+        "isSupportUserDataExport": "false",
+        "isSupportDeviceCertificatesManagement": "true",
+        "isSupportEncryptCertificate": "false",
+        "isSupportCertificateCustomID": "true",
+        "isSupportLogServer": "true",
+        "isSupportAcsUpdate": "true",
+        "isSupportAccessControlCap": "true",
+        "isSupportAlgorithmsInfo": "true",
+        "isSupportClientProxyWEB": "true",
+        "WEBLocation": "local",
+        "isSupportEZVIZParameterTest": "true"
+      }
+    }
+  },
+  "system": {
+    "systemTime": {
+      "success": true,
+      "data": {
+        "timeMode": "manual",
+        "localTime": "2025-08-19T18:31:57+05:00",
+        "timeZone": "CST-5:00:00"
+      }
+    }
+  },
+  "network": {
+    "networkInterfaces": {
+      "success": true,
+      "data": {
+        "id": "2",
+        "ipVersion": "v4",
+        "addressingType": "dynamic",
+        "ipAddress": "8.8.4.4",
+        "subnetMask": "255.255.255.0",
+        "DNSEnable": "true",
+        "MACAddress": "ac:b9:2f:fc:ae:7b",
+        "autoNegotiation": "true",
+        "speed": "100",
+        "duplex": "full",
+        "MTU": "1500",
+        "macAddress": "40:24:b2:c8:69:4e",
+        "enabled": "true",
+        "securityMode": "disable"
+      }
+    },
+    "networkInterface1": {
+      "success": true,
+      "data": {
+        "id": "1",
+        "ipVersion": "v4",
+        "addressingType": "static",
+        "ipAddress": "8.8.4.4",
+        "subnetMask": "255.255.255.0",
+        "DNSEnable": "false",
+        "MACAddress": "ac:b9:2f:fc:ae:7b",
+        "autoNegotiation": "true",
+        "speed": "100",
+        "duplex": "full",
+        "MTU": "1500",
+        "macAddress": "ac:b9:2f:fc:ae:7b"
+      }
+    }
+  },
+  "users": {
+    "systemUsers": {
+      "success": true,
+      "data": {
+        "id": "1",
+        "userName": "admin",
+        "userLevel": "Administrator"
+      }
+    },
+    "userCount": {
+      "success": true,
+      "data": "{\n\t\"UserInfoCount\":\t{\n\t\t\"userNumber\":\t1\n\t}\n}"
+    },
+    "userCheck": {
+      "success": true,
+      "data": {
+        "statusValue": "200",
+        "statusString": "OK",
+        "isDefaultPassword": "false",
+        "isRiskPassword": "false",
+        "isActivated": "true"
+      }
+    }
+  },
+  "accessControl": {
+    "doorParam": {
+      "success": true,
+      "data": {
+        "doorName": "",
+        "magneticType": "alwaysOpen",
+        "openButtonType": "alwaysOpen",
+        "openDuration": "3",
+        "disabledOpenDuration": "15",
+        "magneticAlarmTimeout": "30",
+        "enableLeaderCard": "false",
+        "leaderCardOpenDuration": "10"
+      }
+    },
+    "accessControlCapabilities": {
+      "success": true,
+      "data": "<AccessControl version=\"2.0\" xmlns=\"http://www.isapi.org/ver20/XMLSchema\"><isSupportWiegandCfg>true</isSupportWiegandCfg><isSupportM1CardEncryptCfg>true</isSupportM1CardEncryptCfg><isSupportModuleStatus>true</isSupportModuleStatus><isSupportSNAPConfig>true</isSupportSNAPConfig><isSupportDeployInfo>true</isSupportDeployInfo><isSupportIdentityTerminal>true</isSupportIdentityTerminal><isSupportFaceCompareCond>true</isSupportFaceCompareCond><isSupportRemoteControlDoor>true</isSupportRemoteControlDoor><isSupportUserInfo>true</isSupportUserInfo><EmployeeNoInfo><employeeNo min=\"1\" max=\"32\"></employeeNo><characterType opt=\"any\"></characterType></EmployeeNoInfo><isSupportCardInfo>true</isSupportCardInfo><isSupportUserInfoDetailDelete>true</isSupportUserInfoDetailDelete><isSupportFingerPrintCfg>true</isSupportFingerPrintCfg><isSupportFingerPrintDelete>true</isSupportFingerPrintDelete><isSupportDoorStatusWeekPlanCfg>true</isSupportDoorStatusWeekPlanCfg><isSupportVerifyWeekPlanCfg>true</isSupportVerifyWeekPlanCfg><isSupportCardRightWeekPlanCfg>true</isSupportCardRightWeekPlanCfg><isSupportDoorStatusHolidayPlanCfg>true</isSupportDoorStatusHolidayPlanCfg><isSupportVerifyHolidayPlanCfg>true</isSupportVerifyHolidayPlanCfg><isSupportCardRightHolidayPlanCfg>true</isSupportCardRightHolidayPlanCfg><isSupportDoorStatusHolidayGroupCfg>true</isSupportDoorStatusHolidayGroupCfg><isSupportVerifyHolidayGroupCfg>true</isSupportVerifyHolidayGroupCfg><isSupportUserRightHolidayGroupCfg>true</isSupportUserRightHolidayGroupCfg><isSupportDoorStatusPlanTemplate>true</isSupportDoorStatusPlanTemplate><isSupportVerifyPlanTemplate>true</isSupportVerifyPlanTemplate><isSupportUserRightPlanTemplate>true</isSupportUserRightPlanTemplate><isSupportDoorStatusPlan>true</isSupportDoorStatusPlan><isSupportCardReaderPlan>true</isSupportCardReaderPlan><isSupportClearPlansCfg>true</isSupportClearPlansCfg><isSupportEventCardLinkageCfg>true</isSupportEventCardLinkageCfg><isSupportClearEventCardLinkageCfg>true</isSupportClearEventCardLinkageCfg><isSupportAcsEvent>true</isSupportAcsEvent><isSupportAcsEventTotalNum>true</isSupportAcsEventTotalNum><isSupportEventOptimizationCfg>true</isSupportEventOptimizationCfg><isSupportAcsWorkStatus>true</isSupportAcsWorkStatus><isSupportDoorCfg>true</isSupportDoorCfg><isSupportCardReaderCfg>true</isSupportCardReaderCfg><isSupportAcsCfg>true</isSupportAcsCfg><isSupportGroupCfg>true</isSupportGroupCfg><isSupportClearGroupCfg>true</isSupportClearGroupCfg><isSupportMultiCardCfg>true</isSupportMultiCardCfg><isSupportAntiSneakCfg>true</isSupportAntiSneakCfg><isSupportCardReaderAntiSneakCfg>true</isSupportCardReaderAntiSneakCfg><isSupportClearAntiSneakCfg>true</isSupportClearAntiSneakCfg><isSupportAttendanceStatusModeCfg>false</isSupportAttendanceStatusModeCfg><isSupportAttendanceStatusRuleCfg>false</isSupportAttendanceStatusRuleCfg><FactoryReset><isSupportFactoryReset>true</isSupportFactoryReset><mode opt=\"full,basic,part\"></mode></FactoryReset><isSupportCaptureFace>true</isSupportCaptureFace><isSupportCaptureInfraredFace>true</isSupportCaptureInfraredFace><isSupportFaceRecognizeMode>true</isSupportFaceRecognizeMode><isSupportFDLib>true</isSupportFDLib><isSupportNFCCfg>true</isSupportNFCCfg><isSupportRFCardCfg>true</isSupportRFCardCfg><isSupportTTSText>true</isSupportTTSText><isSupportUserDataImport>false</isSupportUserDataImport><isSupportUserDataExport>false</isSupportUserDataExport><isSupportMaintenanceDataExport>true</isSupportMaintenanceDataExport><isSupportLockTypeCfg>true</isSupportLockTypeCfg><isSupportKeyCfgAttendance>true</isSupportKeyCfgAttendance><isSupportKeyCfgWeekPlan>true</isSupportKeyCfgWeekPlan><isSupportClearKeyCfgPlan>true</isSupportClearKeyCfgPlan><isSupportClearAttendancePlan>true</isSupportClearAttendancePlan><isSupportAttendanceStatusPlan>true</isSupportAttendanceStatusPlan><isSupportAttendanceMode>true</isSupportAttendanceMode><isSupportAttendanceWeekPlan>true</isSupportAttendanceWeekPlan><isSupportAttendancePlanTemplate>true</isSupportAttendancePlanTemplate><isSupportAttendancePlanTemplateList>true</isSupportAttendancePlanTemplateList><isSupportMaskDetection>true</isSupportMaskDetection><isSupportClearPictureCfg>true</isSupportClearPictureCfg><isSupportEventStorageCfg>true</isSupportEventStorageCfg><isSupportAsyncImportDatas>true</isSupportAsyncImportDatas><isSupportAsyncImportPic>true</isSupportAsyncImportPic><isSupportCardVerificationRule>true</isSupportCardVerificationRule><isSupportEncryption>true</isSupportEncryption><isSupportFingerDataEncryption>true</isSupportFingerDataEncryption><isSupportAddCustomAudio>true</isSupportAddCustomAudio><isSupportDeleteCustomAudio>true</isSupportDeleteCustomAudio><isSupportSearchCustomAudio>true</isSupportSearchCustomAudio><isSupportCustomPrompt>true</isSupportCustomPrompt></AccessControl>\n"
+    }
+  },
+  "events": {
+    "httpHosts": {
+      "success": true,
+      "data": {
+        "id": "2",
+        "url": "http://192.168.100.225:80/api/hikvision/webhook",
+        "protocolType": "HTTP",
+        "parameterFormatType": "",
+        "addressingFormatType": "ipaddress",
+        "ipAddress": "192.168.100.225",
+        "portNo": "3001",
+        "httpAuthenticationMethod": "",
+        "heartbeat": "30",
+        "eventMode": "all"
+      }
+    }
+  },
+  "capabilities": {
+    "videoInputs": {
+      "success": true,
+      "data": {
+        "id": "1",
+        "inputPort": "1",
+        "videoInputEnabled": "true",
+        "name": "K00871574",
+        "videoFormat": "PAL"
+      }
+    }
+  },
+  "errors": [],
+  "summary": {}
+}

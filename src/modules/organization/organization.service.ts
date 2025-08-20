@@ -4,9 +4,9 @@ import { OrganizationRepository } from './organization.repository';
 import { DatabaseUtil } from '@/shared/utils';
 import {
     CreateOrganizationDto,
-    UpdateOrganizationDto,
     PaginationDto,
     PaginationResponseDto,
+    UpdateOrganizationDto,
 } from '@/shared/dto';
 
 @Injectable()

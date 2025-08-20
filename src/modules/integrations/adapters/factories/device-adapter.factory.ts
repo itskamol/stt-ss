@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { IDeviceAdapter } from '../interfaces';
-import { HikvisionAdapter, StubDeviceAdapter } from '../implementations';
+import { HikvisionAdapter } from '../implementations';
 import { LoggerService } from '@/core/logger';
 
 export type AdapterType = 'hikvision' | 'stub' | 'zkteco' | 'dahua';
@@ -23,7 +23,6 @@ export class DeviceAdapterFactory {
         private readonly logger: LoggerService,
         private readonly configService: ConfigService,
         private readonly hikvisionAdapter: HikvisionAdapter,
-        private readonly stubAdapter: StubDeviceAdapter
     ) {}
 
     /**
@@ -37,21 +36,21 @@ export class DeviceAdapterFactory {
                 return this.hikvisionAdapter;
 
             case 'stub':
-                return this.stubAdapter;
+                return // Future implementation;
 
             case 'zkteco':
                 // Future implementation
                 this.logger.warn('ZKTeco adapter not implemented, falling back to stub');
-                return this.stubAdapter;
+                return // Future implementation;
 
             case 'dahua':
                 // Future implementation
                 this.logger.warn('Dahua adapter not implemented, falling back to stub');
-                return this.stubAdapter;
+                return // Future implementation;
 
             default:
                 this.logger.warn('Unknown adapter type, falling back to stub', { type });
-                return this.stubAdapter;
+                return // Future implementation;
         }
     }
 
@@ -61,32 +60,6 @@ export class DeviceAdapterFactory {
     createAdapterFromConfig(): IDeviceAdapter {
         const adapterType = this.getAdapterTypeFromConfig();
         return this.createAdapter(adapterType);
-    }
-
-    /**
-     * Create adapter with automatic failover
-     */
-    async createAdapterWithFailover(preferredTypes: AdapterType[]): Promise<IDeviceAdapter> {
-        this.logger.log('Creating adapter with failover', { preferredTypes });
-
-        for (const type of preferredTypes) {
-            try {
-                const adapter = this.createAdapter(type);
-                const isHealthy = await this.checkAdapterHealth(adapter, type);
-
-                if (isHealthy) {
-                    this.logger.log('Selected healthy adapter', { type });
-                    return adapter;
-                }
-            } catch (error) {
-                this.logger.warn('Adapter health check failed', { type, error: error.message });
-                this.updateHealthStatus(type, false, error.message);
-            }
-        }
-
-        // Fallback to stub adapter
-        this.logger.warn('All preferred adapters failed, falling back to stub');
-        return this.stubAdapter;
     }
 
     /**
@@ -124,63 +97,6 @@ export class DeviceAdapterFactory {
         return Array.from(this.adapterHealthStatus.values());
     }
 
-    /**
-     * Perform health check on all supported adapters
-     */
-    async performHealthCheckOnAllAdapters(): Promise<AdapterHealthStatus[]> {
-        const supportedTypes = this.getSupportedAdapterTypes();
-        const healthChecks = supportedTypes.map(async type => {
-            try {
-                const adapter = this.createAdapter(type);
-                const isHealthy = await this.checkAdapterHealth(adapter, type);
-                this.updateHealthStatus(type, isHealthy);
-                return this.getAdapterHealthStatus(type)!;
-            } catch (error) {
-                this.updateHealthStatus(type, false, error.message);
-                return this.getAdapterHealthStatus(type)!;
-            }
-        });
-
-        return Promise.all(healthChecks);
-    }
-
-    /**
-     * Get recommended adapter type based on environment and health
-     */
-    async getRecommendedAdapterType(): Promise<AdapterType> {
-        // Check environment preference
-        const envType = this.getAdapterTypeFromConfig();
-
-        if (envType !== 'stub') {
-            // Check if preferred type is healthy
-            try {
-                const adapter = this.createAdapter(envType);
-                const isHealthy = await this.checkAdapterHealth(adapter, envType);
-
-                if (isHealthy) {
-                    return envType;
-                }
-            } catch (error) {
-                this.logger.warn('Preferred adapter type is unhealthy', {
-                    type: envType,
-                    error: error.message,
-                });
-            }
-        }
-
-        // Fallback logic
-        const healthStatuses = await this.performHealthCheckOnAllAdapters();
-        const healthyAdapters = healthStatuses.filter(status => status.healthy);
-
-        if (healthyAdapters.length > 0) {
-            // Return the healthiest non-stub adapter, or stub if it's the only healthy one
-            const nonStubHealthy = healthyAdapters.filter(status => status.type !== 'stub');
-            return nonStubHealthy.length > 0 ? nonStubHealthy[0].type : 'stub';
-        }
-
-        // Ultimate fallback
-        return 'stub';
-    }
 
     // ==================== Private Methods ====================
 
@@ -195,31 +111,6 @@ export class DeviceAdapterFactory {
             configType,
         });
         return 'hikvision';
-    }
-
-    private async checkAdapterHealth(adapter: IDeviceAdapter, type: AdapterType): Promise<boolean> {
-        const startTime = Date.now();
-
-        try {
-            // Basic health check - try to discover devices with timeout
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Health check timeout')), 5000);
-            });
-
-            const healthCheckPromise = adapter.discoverDevices();
-
-            await Promise.race([healthCheckPromise, timeoutPromise]);
-
-            const responseTime = Date.now() - startTime;
-            this.updateHealthStatus(type, true, undefined, responseTime);
-
-            return true;
-        } catch (error) {
-            const responseTime = Date.now() - startTime;
-            this.updateHealthStatus(type, false, error.message, responseTime);
-
-            return false;
-        }
     }
 
     private updateHealthStatus(

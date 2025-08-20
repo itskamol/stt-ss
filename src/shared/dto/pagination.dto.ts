@@ -40,13 +40,13 @@ export class PaginationResponseDto<T> {
         description: 'The total number of items.',
         example: 100,
     })
-    total: number;
+    total?: number;
 
     @ApiProperty({
         description: 'The current page number.',
         example: 1,
     })
-    page: number;
+    page?: number;
 
     @ApiProperty({
         description: 'The number of items per page.',
@@ -58,7 +58,7 @@ export class PaginationResponseDto<T> {
         description: 'The total number of pages.',
         example: 10,
     })
-    totalPages: number;
+    totalPages?: number;
 
     constructor(data: T[], total: number, page: number, limit: number) {
         this.data = data;

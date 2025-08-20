@@ -23,7 +23,6 @@ export {
     HikvisionEventHostManager,
     HikvisionScheduleManager,
     HikvisionSystemManager,
-    StubDeviceAdapter,
 } from './implementations/device';
 
 export { StubMatchingAdapter } from './implementations/biometric';

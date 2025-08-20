@@ -5,13 +5,13 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    NotFoundException,
     Param,
     Patch,
     Post,
     Query,
     UploadedFile,
     UseInterceptors,
-    NotFoundException,
 } from '@nestjs/common';
 import {
     ApiBearerAuth,
@@ -96,7 +96,6 @@ export class EmployeeController {
     @ApiOkResponsePaginated(EmployeeResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getEmployees(@Scope() scope: DataScope, @Query() paginationDto: PaginationDto) {
-        console.log('Fetching employees with pagination:', paginationDto);
         return this.employeeService.getPaginatedEmployees(scope, paginationDto);
     }
 

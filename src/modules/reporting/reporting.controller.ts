@@ -5,7 +5,6 @@ import {
     ApiExtraModels,
     ApiOperation,
     ApiParam,
-    ApiQuery,
     ApiResponse,
     ApiTags,
     getSchemaPath,

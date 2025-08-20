@@ -1,0 +1,201 @@
+{
+  "operations": {
+    "deviceInfo": {
+      "deviceName": "Access Controller",
+      "model": "DS-K1T342EWX",
+      "serialNumber": "DS-K1T342EWX20211229V030305ENK00871574",
+      "firmwareVersion": "V3.3.5",
+      "manufacturer": "hikvision",
+      "deviceType": "ACS",
+      "macAddress": "AC:B9:2F:FC:AE:7B"
+    },
+    "capabilities": {
+      "supportReboot": true,
+      "supportDeviceInfo": true,
+      "supportTimeCap": true,
+      "supportFactoryReset": true,
+      "supportFaceRecognition": false,
+      "supportFingerprint": false,
+      "supportCardManagement": false,
+      "supportEventSubscription": true
+    },
+    "systemTime": {
+      "timeMode": "manual",
+      "localTime": "2025-08-19T17:56:55+05:00",
+      "timeZone": "CST-5:00:00"
+    },
+    "networkInterfaces": [
+      {
+        "id": "1",
+        "ipVersion": "v4",
+        "addressingType": "static",
+        "ipAddress": "8.8.4.4",
+        "subnetMask": "255.255.255.0",
+        "DNSEnable": "false",
+        "MACAddress": "ac:b9:2f:fc:ae:7b",
+        "autoNegotiation": "true",
+        "speed": "100",
+        "duplex": "full",
+        "MTU": "1500",
+        "macAddress": "ac:b9:2f:fc:ae:7b"
+      },
+      {
+        "id": "2",
+        "ipVersion": "v4",
+        "addressingType": "dynamic",
+        "ipAddress": "8.8.4.4",
+        "subnetMask": "255.255.255.0",
+        "DNSEnable": "true",
+        "enabled": "true",
+        "securityMode": "disable",
+        "macAddress": "40:24:b2:c8:69:4e"
+      }
+    ],
+    "interface1": {
+      "id": "1",
+      "ipVersion": "v4",
+      "addressingType": "static",
+      "ipAddress": "8.8.4.4",
+      "subnetMask": "255.255.255.0",
+      "DNSEnable": "false",
+      "MACAddress": "ac:b9:2f:fc:ae:7b",
+      "autoNegotiation": "true",
+      "speed": "100",
+      "duplex": "full",
+      "MTU": "1500",
+      "macAddress": "ac:b9:2f:fc:ae:7b"
+    },
+    "userCount": {
+      "UserInfoCount": {
+        "userNumber": 1
+      }
+    },
+    "userList": [
+      {
+        "id": "1",
+        "userName": "admin",
+        "userLevel": "Administrator"
+      }
+    ],
+    "userDetail": {
+      "id": "1",
+      "userName": "admin",
+      "userLevel": "Administrator"
+    },
+    "eventHosts": [
+      {
+        "id": "1",
+        "url": "",
+        "protocolType": "HTTP",
+        "parameterFormatType": "",
+        "addressingFormatType": "ipaddress",
+        "ipAddress": "0.0.0.0",
+        "portNo": "0",
+        "httpAuthenticationMethod": ""
+      },
+      {
+        "id": "2",
+        "url": "http://192.168.100.225:80/api/hikvision/webhook",
+        "protocolType": "HTTP",
+        "parameterFormatType": "",
+        "addressingFormatType": "ipaddress",
+        "ipAddress": "192.168.100.225",
+        "portNo": "3001",
+        "httpAuthenticationMethod": "",
+        "heartbeat": "30",
+        "eventMode": "all"
+      }
+    ],
+    "doorParam": {
+      "doorName": "",
+      "magneticType": "alwaysOpen",
+      "openButtonType": "alwaysOpen",
+      "openDuration": "3",
+      "disabledOpenDuration": "15",
+      "magneticAlarmTimeout": "30",
+      "enableLeaderCard": "false",
+      "leaderCardOpenDuration": "10"
+    },
+    "accessCapabilities": {
+      "isSupportWiegandCfg": "true",
+      "isSupportM1CardEncryptCfg": "true",
+      "isSupportModuleStatus": "true",
+      "isSupportSNAPConfig": "true",
+      "isSupportDeployInfo": "true",
+      "isSupportIdentityTerminal": "true",
+      "isSupportFaceCompareCond": "true",
+      "isSupportRemoteControlDoor": "true",
+      "isSupportUserInfo": "true",
+      "isSupportCardInfo": "true",
+      "isSupportUserInfoDetailDelete": "true",
+      "isSupportFingerPrintCfg": "true",
+      "isSupportFingerPrintDelete": "true",
+      "isSupportDoorStatusWeekPlanCfg": "true",
+      "isSupportVerifyWeekPlanCfg": "true",
+      "isSupportCardRightWeekPlanCfg": "true",
+      "isSupportDoorStatusHolidayPlanCfg": "true",
+      "isSupportVerifyHolidayPlanCfg": "true",
+      "isSupportCardRightHolidayPlanCfg": "true",
+      "isSupportDoorStatusHolidayGroupCfg": "true",
+      "isSupportVerifyHolidayGroupCfg": "true",
+      "isSupportUserRightHolidayGroupCfg": "true",
+      "isSupportDoorStatusPlanTemplate": "true",
+      "isSupportVerifyPlanTemplate": "true",
+      "isSupportUserRightPlanTemplate": "true",
+      "isSupportDoorStatusPlan": "true",
+      "isSupportCardReaderPlan": "true",
+      "isSupportClearPlansCfg": "true",
+      "isSupportEventCardLinkageCfg": "true",
+      "isSupportClearEventCardLinkageCfg": "true",
+      "isSupportAcsEvent": "true",
+      "isSupportAcsEventTotalNum": "true",
+      "isSupportEventOptimizationCfg": "true",
+      "isSupportAcsWorkStatus": "true",
+      "isSupportDoorCfg": "true",
+      "isSupportCardReaderCfg": "true",
+      "isSupportAcsCfg": "true",
+      "isSupportGroupCfg": "true",
+      "isSupportClearGroupCfg": "true",
+      "isSupportMultiCardCfg": "true",
+      "isSupportAntiSneakCfg": "true",
+      "isSupportCardReaderAntiSneakCfg": "true",
+      "isSupportClearAntiSneakCfg": "true",
+      "isSupportAttendanceStatusModeCfg": "false",
+      "isSupportAttendanceStatusRuleCfg": "false",
+      "isSupportFactoryReset": "true",
+      "isSupportCaptureFace": "true",
+      "isSupportCaptureInfraredFace": "true",
+      "isSupportFaceRecognizeMode": "true",
+      "isSupportFDLib": "true",
+      "isSupportNFCCfg": "true",
+      "isSupportRFCardCfg": "true",
+      "isSupportTTSText": "true",
+      "isSupportUserDataImport": "false",
+      "isSupportUserDataExport": "false",
+      "isSupportMaintenanceDataExport": "true",
+      "isSupportLockTypeCfg": "true",
+      "isSupportKeyCfgAttendance": "true",
+      "isSupportKeyCfgWeekPlan": "true",
+      "isSupportClearKeyCfgPlan": "true",
+      "isSupportClearAttendancePlan": "true",
+      "isSupportAttendanceStatusPlan": "true",
+      "isSupportAttendanceMode": "true",
+      "isSupportAttendanceWeekPlan": "true",
+      "isSupportAttendancePlanTemplate": "true",
+      "isSupportAttendancePlanTemplateList": "true",
+      "isSupportMaskDetection": "true",
+      "isSupportClearPictureCfg": "true",
+      "isSupportEventStorageCfg": "true",
+      "isSupportAsyncImportDatas": "true",
+      "isSupportAsyncImportPic": "true",
+      "isSupportCardVerificationRule": "true",
+      "isSupportEncryption": "true",
+      "isSupportFingerDataEncryption": "true",
+      "isSupportAddCustomAudio": "true",
+      "isSupportDeleteCustomAudio": "true",
+      "isSupportSearchCustomAudio": "true",
+      "isSupportCustomPrompt": "true"
+    }
+  },
+  "errors": []
+}

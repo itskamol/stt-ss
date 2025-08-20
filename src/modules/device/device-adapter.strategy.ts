@@ -62,7 +62,8 @@ export class DeviceAdapterStrategy {
     /**
      * Get appropriate adapter based on device configuration
      */
-    getAdapter(config: DeviceConnectionConfig): IDeviceAdapter {
+    getAdapter(device: Device): IDeviceAdapter {
+        const config = this.createContext(device).config;
         const adapterType = this.determineAdapterType(config);
 
         this.logger.log('Selecting device adapter', {
@@ -111,24 +112,24 @@ export class DeviceAdapterStrategy {
      */
     async executeCommand(device: Device, command: DeviceCommand): Promise<any> {
         const context = this.createContext(device);
-        const adapter = this.getAdapter(context.config);
+        const adapter = this.getAdapter(device);
 
         try {
             this.logger.log('Executing device command', {
                 command: command.command,
-                deviceHost: context.config.host,
-                deviceId: context.device.id,
-                deviceName: context.device.name,
+                deviceHost: device.host,
+                deviceId: device.id,
+                deviceName: device.name,
                 adapterType: this.determineAdapterType(context.config),
                 module: 'device-adapter-strategy',
             });
 
-            const result = await adapter.sendCommand(context, command);
+            const result = await adapter.sendCommand(device, command);
 
             this.logger.log('Device command executed successfully', {
                 command: command.command,
-                deviceHost: context.config.host,
-                deviceId: context.device.id,
+                deviceHost: device.host,
+                deviceId: device.id,
                 success: result.success,
                 module: 'device-adapter-strategy',
             });
@@ -137,8 +138,8 @@ export class DeviceAdapterStrategy {
         } catch (error) {
             this.logger.error('Device command failed', error.stack, {
                 command: command.command,
-                deviceHost: context.config.host,
-                deviceId: context.device.id,
+                deviceHost: device.host,
+                deviceId: device.id,
                 error: error.message,
                 module: 'device-adapter-strategy',
             });
@@ -150,16 +151,15 @@ export class DeviceAdapterStrategy {
      * Test device connection using appropriate adapter
      */
     async testConnection(device: Device): Promise<boolean> {
-        const context = this.createContext(device);
-        const adapter = this.getAdapter(context.config);
+        const adapter = this.getAdapter(device);
 
         try {
-            const result = await adapter.testConnection(context);
+            const result = await adapter.testConnection(device);
 
             this.logger.log('Device connection test result', {
-                deviceHost: context.config.host,
-                deviceId: context.device.id,
-                deviceName: context.device.name,
+                deviceHost: device.host,
+                deviceId: device.id,
+                deviceName: device.name,
                 success: result,
                 module: 'device-adapter-strategy',
             });
@@ -167,9 +167,9 @@ export class DeviceAdapterStrategy {
             return result;
         } catch (error) {
             this.logger.warn('Device connection test failed', {
-                deviceHost: context.config.host,
-                deviceId: context.device.id,
-                deviceName: context.device.name,
+                deviceHost: device.host,
+                deviceId: device.id,
+                deviceName: device.name,
                 error: error.message,
                 module: 'device-adapter-strategy',
             });
@@ -181,16 +181,15 @@ export class DeviceAdapterStrategy {
      * Get device configuration using appropriate adapter
      */
     async getDeviceConfiguration(device: Device): Promise<any> {
-        const context = this.createContext(device);
-        const adapter = this.getAdapter(context.config);
+        const adapter = this.getAdapter(device);
 
         try {
-            const result = await adapter.getDeviceConfiguration(context);
+            const result = await adapter.getDeviceConfiguration(device);
 
             this.logger.log('Get device configuration', {
-                deviceHost: context.config.host,
-                deviceId: context.device.id,
-                deviceName: context.device.name,
+                deviceHost: device.host,
+                deviceId: device.id,
+                deviceName: device.name,
                 success: result,
                 module: 'device-adapter-strategy',
             });
@@ -198,9 +197,9 @@ export class DeviceAdapterStrategy {
             return result;
         } catch (error) {
             this.logger.warn('Get device configuration filed', {
-                deviceHost: context.config.host,
-                deviceId: context.device.id,
-                deviceName: context.device.name,
+                deviceHost: device.host,
+                deviceId: device.id,
+                deviceName: device.name,
                 error: error.message,
                 module: 'device-adapter-strategy',
             });
@@ -212,16 +211,15 @@ export class DeviceAdapterStrategy {
      * Get device health using appropriate adapter
      */
     async getDeviceHealth(device: Device): Promise<any> {
-        const context = this.createContext(device);
-        const adapter = this.getAdapter(context.config);
+        const adapter = this.getAdapter(device);
 
         try {
-            const health = await adapter.getDeviceHealth(context);
+            const health = await adapter.getDeviceHealth(device);
 
             this.logger.log('Device health retrieved successfully', {
-                deviceId: context.device.id,
-                deviceHost: context.config.host,
-                deviceName: context.device.name,
+                deviceId: device.id,
+                deviceHost: device.host,
+                deviceName: device.name,
                 status: health.status,
                 module: 'device-adapter-strategy',
             });
@@ -229,9 +227,9 @@ export class DeviceAdapterStrategy {
             return health;
         } catch (error) {
             this.logger.warn('Failed to get device health', {
-                deviceId: context.device.id,
-                deviceHost: context.config.host,
-                deviceName: context.device.name,
+                deviceId: device.id,
+                deviceHost: device.host,
+                deviceName: device.name,
                 error: error.message,
                 module: 'device-adapter-strategy',
             });
@@ -243,15 +241,14 @@ export class DeviceAdapterStrategy {
      * Get device information using appropriate adapter
      */
     async getDeviceInfo(device: Device): Promise<any> {
-        const context = this.createContext(device);
-        const adapter = this.getAdapter(context.config);
+        const adapter = this.getAdapter(device);
 
         try {
-            const deviceInfo = await adapter.getDeviceInfo(context);
+            const deviceInfo = await adapter.getDeviceInfo(device);
 
             this.logger.log('Device information retrieved successfully', {
-                deviceId: context.device.id,
-                deviceHost: context.config.host,
+                deviceId: device.id,
+                deviceHost: device.host,
                 deviceName: deviceInfo.name,
                 module: 'device-adapter-strategy',
             });
@@ -259,9 +256,9 @@ export class DeviceAdapterStrategy {
             return deviceInfo;
         } catch (error) {
             this.logger.warn('Failed to get device information', {
-                deviceId: context.device.id,
-                deviceHost: context.config.host,
-                deviceName: context.device.name,
+                deviceId: device.id,
+                deviceHost: device.host,
+                deviceName: device.name,
                 error: error.message,
                 module: 'device-adapter-strategy',
             });
@@ -272,44 +269,31 @@ export class DeviceAdapterStrategy {
     /**
      * Get device information without persisted device (for discovery/testing)
      */
-    async getDeviceInfoByConfig(config: DeviceDiscoveryConfig): Promise<DeviceInfo> {
+    async getDeviceInfoByConfig(device: Device): Promise<DeviceInfo> {
         // Create virtual device object for discovery
         const virtualDevice: Partial<Device> = {
             id: `discovery_${Date.now()}`,
-            protocol: config.protocol,
-            host: config.host,
-            port: config.port,
-            username: config.username,
-            password: config.password,
-            manufacturer: config.brand,
+            protocol: device.protocol,
+            host: device.host,
+            port: device.port,
+            username: device.username,
+            password: device.password,
+            manufacturer: device.manufacturer,
             isActive: true,
             createdAt: new Date(),
             updatedAt: new Date(),
             branchId: '',
             organizationId: '',
-            name: `${config.brand} Discovery Device`,
+            name: `${device.manufacturer} Discovery Device`,
         };
 
-        const context: DeviceOperationContext = {
-            device: virtualDevice as Device,
-            config: {
-                protocol: config.protocol,
-                host: config.host,
-                port: config.port,
-                username: config.username,
-                password: config.password,
-                brand: config.brand,
-                model: undefined,
-            },
-        };
-
-        const adapter = this.getAdapter(config);
+        const adapter = this.getAdapter(device);
 
         try {
-            const deviceInfo = await adapter.getDeviceInfo(context);
+            const deviceInfo = await adapter.getDeviceInfo(device);
 
             this.logger.log('Device information retrieved successfully (discovery mode)', {
-                deviceHost: config.host,
+                deviceHost: device.host,
                 deviceName: deviceInfo.name,
                 module: 'device-adapter-strategy',
             });
@@ -317,34 +301,7 @@ export class DeviceAdapterStrategy {
             return deviceInfo;
         } catch (error) {
             this.logger.warn('Failed to get device information (discovery mode)', {
-                deviceHost: config.host,
-                error: error.message,
-                module: 'device-adapter-strategy',
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Discover devices using appropriate adapter
-     */
-    async discoverDevices(adapterType?: AdapterType): Promise<any> {
-        const type = adapterType || 'hikvision'; // Default
-        const adapter = this.adapterFactory.createAdapter(type);
-
-        try {
-            const devices = await adapter.discoverDevices();
-
-            this.logger.log('Device discovery completed', {
-                adapterType: type,
-                deviceCount: devices.length,
-                module: 'device-adapter-strategy',
-            });
-
-            return devices;
-        } catch (error) {
-            this.logger.warn('Device discovery failed', {
-                adapterType: type,
+                deviceHost: device.host,
                 error: error.message,
                 module: 'device-adapter-strategy',
             });

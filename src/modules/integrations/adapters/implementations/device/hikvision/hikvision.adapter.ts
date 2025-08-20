@@ -114,9 +114,9 @@ export class HikvisionAdapter implements IDeviceAdapter {
         private readonly xmlJsonService: XmlJsonService
     ) {
         // Initialize original managers
-        this.face = new HikvisionFaceManager(this.httpClient, this.logger);
+        this.face = new HikvisionFaceManager(this.httpClient, this.logger, this.xmlJsonService);
         this.card = new HikvisionCardManager(this.httpClient, this.logger);
-        this.user = new HikvisionUserManager(this.httpClient, this.logger);
+        this.user = new HikvisionUserManager(this.httpClient, this.logger, this.xmlJsonService);
         this.nfc = new HikvisionNFCManager(this.httpClient, this.logger);
         this.configuration = new HikvisionConfigurationManager(
             this.httpClient,
@@ -145,30 +145,11 @@ export class HikvisionAdapter implements IDeviceAdapter {
         this.system = new HikvisionSystemManager(this.httpClient, this.logger, this.xmlJsonService);
     }
 
-    // ==================== IDeviceAdapter Implementation ====================
-
-    async discoverDevices(): Promise<DeviceInfo[]> {
-        try {
-            this.logger.debug('Discovering Hikvision devices', {
-                module: 'hikvision-v2-adapter',
-            });
-
-            // Device discovery logic
-            // This would typically scan network for Hikvision devices
-            return [];
-        } catch (error) {
-            this.logger.error('Failed to discover devices', error.message, {
-                module: 'hikvision-v2-adapter',
-            });
-            throw error;
-        }
-    }
-
-    async getDeviceInfo(context: DeviceOperationContext): Promise<DeviceInfo> {
+    async getDeviceInfo(device: Device): Promise<DeviceInfo> {
         try {
             // Use configuration manager to get device info
-            const deviceInfo = await this.configuration.getDeviceInfo(context);
-            const capabilities = await this.configuration.getDeviceCapabilities(context);
+            const deviceInfo = await this.configuration.getDeviceInfo(device);
+            const capabilities = await this.configuration.getDeviceCapabilities(device);
 
             const deviceType: any = Object.keys(this.deviceTypes).find(type =>
                 this.deviceTypes[type].includes(deviceInfo.deviceType)
@@ -180,7 +161,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
                     deviceInfo.deviceID ||
                     deviceInfo.deviceId ||
                     deviceInfo.serialNumber ||
-                    context.device.id,
+                    device.id,
                 model: deviceInfo.model || 'Unknown Model',
                 serialNumber: deviceInfo.serialNumber || '',
                 macAddress: deviceInfo.macAddress || '',
@@ -188,24 +169,22 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 firmwareReleasedDate: deviceInfo.firmwareReleasedDate,
                 deviceType: deviceType || 'ACCESS_CONTROL',
                 manufacturer: deviceInfo.manufacturer || 'Hikvision',
-                capabilities: Array.isArray(capabilities) ? capabilities : [],
+                capabilities: capabilities,
                 status: 'online',
             };
         } catch (error) {
             this.logger.error(`Failed to get device info: ${error.message}`, error.trace, {
-                host: context.config.host,
+                host: device.host,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async getDeviceConfiguration(context: DeviceOperationContext): Promise<DeviceConfiguration> {
+    async getDeviceConfiguration(device: Device): Promise<DeviceConfiguration> {
         try {
-            const { device, config } = context;
-
             // Use configuration manager
-            const deviceConfig = await this.configuration.getConfiguration(config);
+            const deviceConfig = await this.configuration.getConfiguration(device);
 
             return {
                 deviceId: device.id,
@@ -218,7 +197,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             } as DeviceConfiguration;
         } catch (error) {
             this.logger.error('Failed to get device configuration', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
@@ -226,27 +205,25 @@ export class HikvisionAdapter implements IDeviceAdapter {
     }
 
     async updateDeviceConfiguration(
-        context: DeviceOperationContext,
+        device: Device,
         configuration: Partial<DeviceConfiguration>
     ): Promise<void> {
         try {
-            const { device, config } = context;
-
             // Update different configuration sections using managers
             if (configuration.settings?.network) {
                 await this.configuration.updateNetworkConfig(
-                    config,
+                    device,
                     configuration.settings.network
                 );
             }
 
             if (configuration.settings?.access) {
-                await this.configuration.updateAccessConfig(config, configuration.settings.access);
+                await this.configuration.updateAccessConfig(device, configuration.settings.access);
             }
 
             if (configuration.settings?.authentication) {
                 await this.configuration.updateAuthenticationConfig(
-                    config,
+                    device,
                     configuration.settings.authentication
                 );
             }
@@ -257,37 +234,38 @@ export class HikvisionAdapter implements IDeviceAdapter {
             });
         } catch (error) {
             this.logger.error('Failed to update device configuration', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async sendCommand(
-        context: DeviceOperationContext,
-        command: DeviceCommand
-    ): Promise<DeviceCommandResult> {
+    async sendCommand(device: Device, command: DeviceCommand): Promise<DeviceCommandResult> {
         try {
-            const { device, config } = context;
-
             let result: any;
 
             // Route commands to appropriate managers
             switch (command.command) {
                 case 'unlock_door':
-                    result = await this.httpClient.request(config, {
+                    result = await this.httpClient.request(device, {
                         method: 'PUT',
                         url: '/ISAPI/AccessControl/RemoteControl/door/1',
-                        data: { cmd: 'open' },
+                        data: { RemoteControlDoor: { cmd: 'open' } },
+                        headers: {
+                            'Content-Type': 'application/xml',
+                        },
                     });
                     break;
 
                 case 'lock_door':
-                    result = await this.httpClient.request(config, {
+                    result = await this.httpClient.request(device, {
                         method: 'PUT',
                         url: '/ISAPI/AccessControl/RemoteControl/door/1',
-                        data: { cmd: 'close' },
+                        data: { RemoteControlDoor: { cmd: 'close' } },
+                        headers: {
+                            'Content-Type': 'application/xml',
+                        },
                     });
                     break;
 
@@ -381,7 +359,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             };
         } catch (error) {
             this.logger.error('Failed to execute command', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 command: command.command,
                 module: 'hikvision-v2-adapter',
             });
@@ -394,11 +372,10 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async getDeviceHealth(context: DeviceOperationContext): Promise<DeviceHealth> {
-        const { device } = context;
+    async getDeviceHealth(device: Device): Promise<DeviceHealth> {
         try {
             // Get device info to check connectivity
-            const result = await this.configuration.getDeviceInfo(context);
+            const result = await this.configuration.getDeviceInfo(device);
             // const nfcStatus = await this.nfc.getNFCReaderStatus(device);
 
             return {
@@ -414,7 +391,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 //     : [],
             };
         } catch (error) {
-            console.log(error);
             this.logger.error('Failed to get device health', error.message, {
                 deviceId: device.id,
                 module: 'hikvision-v2-adapter',
@@ -434,13 +410,10 @@ export class HikvisionAdapter implements IDeviceAdapter {
 
     // ==================== IDeviceAdapter Required Methods ====================
 
-    async subscribeToEvents(
-        context: DeviceOperationContext,
-        callback: (event: DeviceEvent) => void
-    ): Promise<void> {
+    async subscribeToEvents(device: Device, callback: (event: DeviceEvent) => void): Promise<void> {
         try {
             this.logger.debug('Subscribing to device events', {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
 
@@ -448,24 +421,24 @@ export class HikvisionAdapter implements IDeviceAdapter {
             // For now, just log that subscription is set up
         } catch (error) {
             this.logger.error('Failed to subscribe to events', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async unsubscribeFromEvents(context: DeviceOperationContext): Promise<void> {
+    async unsubscribeFromEvents(device: Device): Promise<void> {
         try {
             this.logger.debug('Unsubscribing from device events', {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
 
             // Implementation would clean up event subscription
         } catch (error) {
             this.logger.error('Failed to unsubscribe from events', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
@@ -473,7 +446,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
     }
 
     async syncUsers(
-        context: DeviceOperationContext,
+        device: Device,
         users: Array<{
             userId: string;
             cardId?: string;
@@ -481,8 +454,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
             accessLevel: number;
         }>
     ): Promise<void> {
-        const device = context.device;
-
         for (const userData of users) {
             try {
                 // Add user
@@ -510,7 +481,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 }
             } catch (error) {
                 this.logger.error('Failed to sync user', error.message, {
-                    deviceId: context.device.id,
+                    deviceId: device.id,
                     userId: userData.userId,
                     module: 'hikvision-v2-adapter',
                 });
@@ -519,19 +490,17 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async removeUser(context: DeviceOperationContext, userId: string): Promise<void> {
-        const device = context.device;
-
+    async removeUser(device: Device, userId: string): Promise<void> {
         try {
             await this.user.deleteUser(device, userId);
             this.logger.debug('User removed successfully', {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 userId,
                 module: 'hikvision-v2-adapter',
             });
         } catch (error) {
             this.logger.error('Failed to remove user', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 userId,
                 module: 'hikvision-v2-adapter',
             });
@@ -539,38 +508,34 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async testConnection(context: DeviceOperationContext): Promise<boolean> {
+    async testConnection(device: Device): Promise<boolean> {
         try {
-            const device = context.device;
-
             if (!device) {
                 return false;
             }
 
             // Try to get device info to test connection
-            await this.configuration.getDeviceInfo(context);
+            await this.configuration.getDeviceInfo(device);
             return true;
         } catch (error) {
             this.logger.error('Connection test failed', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
             return false;
         }
     }
 
-    async rebootDevice(context: DeviceOperationContext): Promise<void> {
-        const device = context.device;
-
+    async rebootDevice(device: Device): Promise<void> {
         try {
             await this.configuration.rebootDevice(device);
             this.logger.debug('Device reboot initiated', {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
         } catch (error) {
             this.logger.error('Failed to reboot device', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
@@ -578,14 +543,14 @@ export class HikvisionAdapter implements IDeviceAdapter {
     }
 
     async updateFirmware(
-        context: DeviceOperationContext,
+        device: Device,
         firmwareUrl: string
     ): Promise<{ success: boolean; message: string }> {
         try {
             // Implementation would handle firmware update
             // For now, just return success
             this.logger.debug('Firmware update initiated', {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 firmwareUrl,
                 module: 'hikvision-v2-adapter',
             });
@@ -596,7 +561,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             };
         } catch (error) {
             this.logger.error('Failed to update firmware', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 firmwareUrl,
                 module: 'hikvision-v2-adapter',
             });
@@ -608,18 +573,12 @@ export class HikvisionAdapter implements IDeviceAdapter {
         }
     }
 
-    async getDeviceLogs(
-        context: DeviceOperationContext,
-        startDate?: Date,
-        endDate?: Date
-    ): Promise<string[]> {
+    async getDeviceLogs(device: Device, startDate?: Date, endDate?: Date): Promise<string[]> {
         try {
-            const device = context.device;
-
             // Implementation would fetch logs from device
             // For now, return empty array
             this.logger.debug('Fetching device logs', {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 startDate,
                 endDate,
                 module: 'hikvision-v2-adapter',
@@ -628,29 +587,23 @@ export class HikvisionAdapter implements IDeviceAdapter {
             return [];
         } catch (error) {
             this.logger.error('Failed to get device logs', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
         }
     }
 
-    async clearDeviceLogs(context: DeviceOperationContext): Promise<void> {
+    async clearDeviceLogs(device: Device): Promise<void> {
         try {
-            const device = context.device;
-
-            if (!device) {
-                throw new Error(`Device not found`);
-            }
-
             // Implementation would clear logs on device
             this.logger.debug('Clearing device logs', {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
         } catch (error) {
             this.logger.error('Failed to clear device logs', error.message, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-v2-adapter',
             });
             throw error;
@@ -662,7 +615,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
      * Bulk add users with all their credentials
      */
     async bulkAddUsers(
-        context: DeviceOperationContext,
+        device: Device,
         users: Array<{
             employeeNo: string;
             name: string;
@@ -671,8 +624,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
             nfcId?: string;
         }>
     ): Promise<void> {
-        const device = context.device;
-
         for (const userData of users) {
             try {
                 // Add user
@@ -709,13 +660,13 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 }
 
                 this.logger.debug('User added successfully', {
-                    deviceId: context.device.id,
+                    deviceId: device.id,
                     employeeNo: userData.employeeNo,
                     module: 'hikvision-v2-adapter',
                 });
             } catch (error) {
                 this.logger.error('Failed to add user', error.message, {
-                    deviceId: context.device.id,
+                    deviceId: device.id,
                     employeeNo: userData.employeeNo,
                     module: 'hikvision-v2-adapter',
                 });
@@ -727,9 +678,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Get complete user information including all credentials
      */
-    async getUserComplete(context: DeviceOperationContext, employeeNo: string) {
-        const device = context.device;
-
+    async getUserComplete(device: Device, employeeNo: string) {
         const [users, faces, cards, nfcs] = await Promise.all([
             this.user.getUsers(device, employeeNo),
             this.face.getFaces(device, employeeNo),
@@ -751,15 +700,13 @@ export class HikvisionAdapter implements IDeviceAdapter {
      * Advanced person management with ISAPI
      */
     async searchPersons(
-        context: DeviceOperationContext,
+        device: Device,
         searchCriteria: {
             searchID?: string;
             maxResults?: number;
             employeeNoList?: string[];
         }
     ) {
-        const device = context.device;
-
         return await this.person.searchPersons(device, {
             UserInfoSearchCond: {
                 searchID: searchCriteria.searchID || `search_${Date.now()}`,
@@ -774,7 +721,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
      * Advanced face library management
      */
     async createFaceLibrary(
-        context: DeviceOperationContext,
+        device: Device,
         libraryData: {
             faceLibType: 'blackFD' | 'staticFD';
             name: string;
@@ -782,8 +729,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
             FDID: string;
         }
     ) {
-        const device = context.device;
-
         return await this.faceLibrary.createFaceLibrary(device, libraryData);
     }
 
@@ -791,7 +736,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
      * Add face picture with image data
      */
     async addFacePictureWithImage(
-        context: DeviceOperationContext,
+        device: Device,
         faceData: {
             faceLibType: string;
             FDID: string;
@@ -800,8 +745,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
         },
         imageBuffer: Buffer
     ) {
-        const device = context.device;
-
         return await this.faceLibrary.addFacePicture(device, faceData, imageBuffer);
     }
 
@@ -809,7 +752,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
      * Fingerprint management
      */
     async addFingerprint(
-        context: DeviceOperationContext,
+        device: Device,
         fingerprintData: {
             employeeNo: string;
             fingerPrintID: string;
@@ -817,8 +760,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
             fingerData: string;
         }
     ) {
-        const device = context.device;
-
         return await this.fingerprint.addFingerprint(device, fingerprintData);
     }
 
@@ -826,7 +767,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
      * Configure event notification hosts
      */
     async configureEventHost(
-        context: DeviceOperationContext,
+        device: Device,
         hostID: string,
         hostConfig: {
             url: string;
@@ -837,8 +778,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
             eventTypes?: string[];
         }
     ) {
-        const device = context.device;
-
         const hostNotification = this.eventHost.createBasicHostConfig(
             hostID,
             hostConfig.url,
@@ -863,7 +802,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
      * Schedule management
      */
     async createWeekSchedule(
-        context: DeviceOperationContext,
+        device: Device,
         planNo: number,
         schedule: {
             timeSegments: Array<{
@@ -881,8 +820,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
             }>;
         }
     ) {
-        const device = context.device;
-
         const weekPlan = this.schedule.createBasicWeekPlan(schedule.timeSegments);
         return await this.schedule.setWeekPlan(device, planNo, weekPlan);
     }
@@ -891,7 +828,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
      * System user management
      */
     async createSystemUser(
-        context: DeviceOperationContext,
+        device: Device,
         userData: {
             id: number;
             userName: string;
@@ -900,8 +837,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
             enabled?: boolean;
         }
     ) {
-        const device = context.device;
-
         const userInfo = this.system.createBasicUser(
             userData.id,
             userData.userName,
@@ -917,7 +852,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
      * Card reader configuration
      */
     async configureCardReader(
-        context: DeviceOperationContext,
+        device: Device,
         cardReaderID: number,
         config: Partial<{
             enable: boolean;
@@ -928,8 +863,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
             cardReaderFunction: string[];
         }>
     ) {
-        const device = context.device;
-
         const cardReaderConfig = this.system.createBasicCardReaderConfig(config);
         return await this.system.setCardReaderConfig(device, cardReaderID, cardReaderConfig);
     }
@@ -937,87 +870,149 @@ export class HikvisionAdapter implements IDeviceAdapter {
     /**
      * Get device capabilities for different features
      */
-    async getDeviceCapabilities(context: DeviceOperationContext) {
-        const device = context.device;
+    async getDeviceCapabilities(device: Device): Promise<DeviceCapability> {
+        try {
+            // Use the new HTTP client method to get capabilities
+            const rawData = await this.httpClient.getDeviceCapabilities(device);
 
-        const [
-            faceLibrarySupport,
-            fingerprintSupport,
-            personCapabilities,
-            faceLibraryCapabilities,
-            fingerprintCapabilities,
-            scheduleCapabilities,
-            cardReaderCapabilities,
-        ] = await Promise.allSettled([
-            this.faceLibrary.checkFaceLibrarySupport(device),
-            this.fingerprint.checkFingerprintSupport(device),
-            this.person.getPersonCapabilities(device),
-            this.faceLibrary.getFaceLibraryCapabilities(device),
-            this.fingerprint.getFingerprintCapabilities(device),
-            this.schedule.getWeekPlanCapabilities(device),
-            this.system.getCardReaderCapabilities(device),
-        ]);
+            const capabilities = await this.xmlJsonService.xmlToJsonClean(rawData);
 
-        return {
-            faceLibrarySupport:
-                faceLibrarySupport.status === 'fulfilled' ? faceLibrarySupport.value : false,
-            fingerprintSupport:
-                fingerprintSupport.status === 'fulfilled' ? fingerprintSupport.value : false,
-            capabilities: {
-                person: personCapabilities.status === 'fulfilled' ? personCapabilities.value : null,
-                faceLibrary:
-                    faceLibraryCapabilities.status === 'fulfilled'
-                        ? faceLibraryCapabilities.value
-                        : null,
-                fingerprint:
-                    fingerprintCapabilities.status === 'fulfilled'
-                        ? fingerprintCapabilities.value
-                        : null,
-                schedule:
-                    scheduleCapabilities.status === 'fulfilled' ? scheduleCapabilities.value : null,
-                cardReader:
-                    cardReaderCapabilities.status === 'fulfilled'
-                        ? cardReaderCapabilities.value
-                        : null,
-            },
-        };
+            this.logger.debug('Device capabilities retrieved', {
+                deviceId: device.id,
+                capabilities,
+            });
+
+            const supported = [
+                'isSupportUserInfoDetailDelete',
+                'isSupportUserInfo',
+                'isSupportTTSText',
+                'isSupportTTSTextSearchHolidayPlan',
+                'isSupportTTSTextHolidayPlan',
+                'isSupportCaptureIrisData',
+                'isSupportIrisInfo',
+                'isSupportCaptureFace',
+                'isSupportFDLib',
+                'isSupportCaptureFingerPrint',
+                'isSupportFingerPrintDelete',
+                'isSupportFingerPrintCfg',
+                'isSupportCaptureCardInfo',
+                'isSupportCardInfo',
+            ];
+            
+            // isSupportUserInfoDetailDelete -> it indicates that the device supports person deleting.
+            // isSupportUserInfo -> it indicates that the device supports user management.
+            // isSupportTTSText -> it indicates that the device supports daily schedule management of voice prompt
+            // isSupportTTSTextSearchHolidayPlan -> it indicates that the device supports searching for holiday schedule parameters
+            // isSupportTTSTextHolidayPlan -> it indicates that the device supports holiday schedule management of voice prompt
+            // isSupportCaptureIrisData -> it indicates that the device supports iris data collecting
+            // isSupportIrisInfo -> it indicates that the device supports iris data management
+            // isSupportCaptureFace -> it indicates that the device supports face picture (captured in visible light) collecting
+            // isSupportFDLib -> it indicates that the device supports face picture management
+            // isSupportCaptureFingerPrint -> it indicates that the device supports face picture management.
+            // isSupportFingerPrintDelete -> it indicates that the device supports fingerprint deleting.
+            // isSupportFingerPrintCfg -> it indicates that the device supports fingerprint management.
+            // isSupportCaptureCardInfo -> it indicates that the device supports card collecting.
+            // isSupportCardInfo -> it indicates that the device supports card management.
+
+            return {
+                faceLibrarySupport: capabilities.faceRecognition,
+                fingerprintSupport: capabilities.fingerprint,
+                cardManagementSupport: 'isSupportCardInfo',
+                userManagementSupport: capabilities.userManagement,
+                eventSubscriptionSupport: capabilities.eventSubscription,
+                capabilities: capabilities.capabilities,
+            };
+        } catch (error) {
+            this.logger.error('Failed to get device capabilities', error.message, {
+                deviceId: device.id,
+            });
+
+            // Return default capabilities if detection fails
+            return {
+                faceLibrarySupport: false,
+                fingerprintSupport: false,
+                cardManagementSupport: false,
+                userManagementSupport: true,
+                eventSubscriptionSupport: true,
+                capabilities: {},
+            };
+        }
     }
 
     /**
      * Comprehensive device status check
      */
-    async getComprehensiveDeviceStatus(context: DeviceOperationContext) {
-        const device = context.device;
+    async getComprehensiveDeviceStatus(device: Device) {
+        try {
+            // Get device capabilities first to know what's supported
+            const capabilities = await this.getDeviceCapabilities(device);
 
-        const [
-            deviceHealth,
-            personCount,
-            faceLibraryCount,
-            fingerprintCount,
-            eventHosts,
-            systemUsers,
-        ] = await Promise.allSettled([
-            this.getDeviceHealth(context),
-            this.person.getPersonCount(device),
-            this.faceLibrary.getFaceLibraryCount(device),
-            this.fingerprint.getFingerprintCount(device),
-            this.eventHost.getAllListeningHosts(device),
-            this.system.getAllUsers(device),
-        ]);
+            const promises = [];
 
-        return {
-            health: deviceHealth.status === 'fulfilled' ? deviceHealth.value : null,
-            counts: {
-                persons: personCount.status === 'fulfilled' ? personCount.value : 0,
-                faceLibraries:
-                    faceLibraryCount.status === 'fulfilled'
-                        ? faceLibraryCount.value.totalRecordDataNumber
-                        : 0,
-                fingerprints: fingerprintCount.status === 'fulfilled' ? fingerprintCount.value : 0,
-                eventHosts: eventHosts.status === 'fulfilled' ? eventHosts.value.length : 0,
-                systemUsers: systemUsers.status === 'fulfilled' ? systemUsers.value.length : 0,
-            },
-            lastChecked: new Date(),
-        };
+            // Always get device health
+            promises.push(this.getDeviceHealth(device));
+
+            // Only get counts for supported features
+            if (capabilities.userManagementSupport) {
+                promises.push(this.system.getAllUsers(device));
+            }
+
+            if (capabilities.eventSubscriptionSupport) {
+                promises.push(this.eventHost.getAllListeningHosts(device));
+            }
+
+            if (capabilities.faceLibrarySupport) {
+                promises.push(this.faceLibrary.getFaceLibraryCount(device));
+            }
+
+            if (capabilities.fingerprintSupport) {
+                promises.push(this.fingerprint.getFingerprintCount(device));
+            }
+
+            if (capabilities.cardManagementSupport) {
+                promises.push(this.person.getPersonCount(device));
+            }
+
+            const results = await Promise.allSettled(promises);
+
+            return {
+                health: results[0]?.status === 'fulfilled' ? results[0].value : null,
+                capabilities,
+                counts: {
+                    systemUsers: results[1]?.status === 'fulfilled' ? results[1].value.length : 0,
+                    eventHosts: results[2]?.status === 'fulfilled' ? results[2].value.length : 0,
+                    faceLibraries:
+                        results[3]?.status === 'fulfilled'
+                            ? results[3].value.totalRecordDataNumber
+                            : 0,
+                    fingerprints: results[4]?.status === 'fulfilled' ? results[4].value : 0,
+                    persons: results[5]?.status === 'fulfilled' ? results[5].value : 0,
+                },
+                lastChecked: new Date(),
+            };
+        } catch (error) {
+            this.logger.error('Failed to get comprehensive device status', error.message, {
+                deviceId: device.id,
+            });
+
+            return {
+                health: null,
+                capabilities: {
+                    faceLibrarySupport: false,
+                    fingerprintSupport: false,
+                    cardManagementSupport: false,
+                    userManagementSupport: true,
+                    eventSubscriptionSupport: true,
+                },
+                counts: {
+                    systemUsers: 0,
+                    eventHosts: 0,
+                    faceLibraries: 0,
+                    fingerprints: 0,
+                    persons: 0,
+                },
+                lastChecked: new Date(),
+            };
+        }
     }
 }

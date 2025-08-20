@@ -5,11 +5,11 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    NotFoundException,
     Param,
     Patch,
     Post,
     Query,
-    NotFoundException,
 } from '@nestjs/common';
 import {
     ApiBearerAuth,

@@ -1180,7 +1180,15 @@ export class DeviceControlDto {
         'restart_services',
     ])
     @IsNotEmpty()
-    action: string;
+    command:
+        | 'unlock_door'
+        | 'lock_door'
+        | 'reboot'
+        | 'sync_users'
+        | 'update_firmware'
+        | 'configure_webhook'
+        | 'remove_webhook'
+        | 'test_webhook';
 
     @ApiProperty({
         description: 'Additional parameters for the action.',

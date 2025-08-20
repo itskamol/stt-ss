@@ -7,7 +7,7 @@ import { ReportGenerationData } from '../queue.producer';
 import { ReportingService } from '../../../modules/reporting/reporting.service';
 import { AttendanceService } from '../../../modules/attendance/attendance.service';
 import { EmployeeService } from '../../../modules/employee/employee.service';
-import { DeviceService } from '../../../modules/device/device.service';
+import { DeviceService } from '../../../modules/device/services/device.service';
 import { GuestService } from '../../../modules/guest/guest.service';
 import { AuditLogService } from '../../../shared/services/audit-log.service';
 import { DataScope } from '../../../shared/interfaces';
@@ -322,7 +322,7 @@ export class ReportGenerationProcessor extends BaseJobProcessor<ReportGeneration
 
         await this.updateProgress(job, 20, 'Fetching device data');
 
-        const devices = await this.deviceService.getDevices(scope, { page: 1, limit: 10000 });
+        const devices = await this.deviceService.getDevices({ page: 1, limit: 10000 }, scope);
 
         // Apply filters
         let filteredDevices = devices.data;

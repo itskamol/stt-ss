@@ -21,7 +21,6 @@ import {
     ApiTags,
     getSchemaPath,
 } from '@nestjs/swagger';
-import { DeviceService } from './device.service';
 import {
     ApiErrorResponse,
     ApiSuccessResponse,
@@ -37,6 +36,7 @@ import {
     DeviceStatsResponseDto,
     DeviceSyncEmployeesDto,
     PaginationDto,
+    PaginationResponseDto,
     RetrySyncResponseDto,
     SimplifiedDeviceCreationDto,
     SyncStatusResponseDto,
@@ -51,6 +51,11 @@ import { DataScope, UserContext } from '@/shared/interfaces';
 import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
 import { Device, DeviceConfiguration, DeviceTemplate } from '@prisma/client';
 import { plainToClass } from 'class-transformer';
+import { DeviceService } from '../services/device.service';
+import { DeviceDiscoveryService } from '../services/device-discovery.service';
+import { DeviceTemplateService } from '../services/device-template.service';
+import { DeviceWebhookService } from '../services/device-webhook.service';
+import { PaginationService } from '@/shared/services/pagination.service';
 
 @ApiTags('Devices')
 @ApiBearerAuth()
@@ -69,7 +74,13 @@ import { plainToClass } from 'class-transformer';
     DeviceCountResponseDto
 )
 export class DeviceController {
-    constructor(private readonly deviceService: DeviceService) {}
+    constructor(
+        private readonly deviceService: DeviceService,
+        private readonly deviceDiscoveryService: DeviceDiscoveryService,
+        private readonly deviceTemplateService: DeviceTemplateService,
+        private readonly deviceWebhookService: DeviceWebhookService,
+        private readonly paginationService: PaginationService
+    ) {}
 
     @Post()
     @Permissions(PERMISSIONS.DEVICE.CREATE)
@@ -96,7 +107,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<Device> {
-        return this.deviceService.createDevice(createDeviceDto, scope, user.sub);
+        return this.deviceService.createDevice(createDeviceDto, scope);
     }
 
     @Post('simplified')
@@ -110,7 +121,16 @@ export class DeviceController {
     @ApiResponse({
         status: 201,
         description: 'The device has been successfully created with auto-discovered information.',
-        schema: new DeviceResponseDto,
+        schema: {
+            allOf: [
+                { $ref: getSchemaPath(ApiSuccessResponse) },
+                {
+                    properties: {
+                        data: { $ref: getSchemaPath(DeviceResponseDto) },
+                    },
+                },
+            ],
+        },
     })
     @ApiResponse({
         status: 400,
@@ -122,11 +142,16 @@ export class DeviceController {
         @Body() simplifiedInfo: SimplifiedDeviceCreationDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<DeviceResponseDto> {
-        const device = await this.deviceService.createDevice(simplifiedInfo, scope, user.sub, {
-            preScan: true,
-        });
-        return plainToClass(DeviceResponseDto, device);
+    ): Promise<void> {
+    // ): Promise<DeviceResponseDto> {
+        const device = await this.deviceDiscoveryService.scanDeviceForCreationInternal(
+            simplifiedInfo,
+            scope
+        );
+        // console.log(device);
+        return;
+        // const createdDevice = await this.deviceService.createDevice(device, scope);
+        // return plainToClass(DeviceResponseDto, createdDevice);
     }
 
     @Get()
@@ -135,7 +160,13 @@ export class DeviceController {
     @ApiOkResponsePaginated(DeviceResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getDevices(@Scope() scope: DataScope, @Query() paginationDto: PaginationDto) {
-        return this.deviceService.getDevices(scope, paginationDto);
+        const result = await this.deviceService.getDevices(paginationDto, scope);
+        return this.paginationService.paginate<Device, DeviceResponseDto>(
+            Promise.resolve(result.data),
+            Promise.resolve(result.total),
+            paginationDto.page,
+            paginationDto.limit
+        );
     }
 
     @Get('search')
@@ -240,10 +271,7 @@ export class DeviceController {
     @ApiOkResponseData(DeviceHealthResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
-    async getDeviceHealth(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ): Promise<DeviceHealthResponseDto> {
+    async getDeviceHealth(@Param('id') id: string, @Scope() scope: DataScope): Promise<any> {
         return this.deviceService.getDeviceHealth(id, scope);
     }
 
@@ -254,10 +282,7 @@ export class DeviceController {
     @ApiOkResponseData(TestConnectionResponseDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
-    async testDeviceConnection(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ): Promise<TestConnectionResponseDto> {
+    async testDeviceConnection(@Param('id') id: string, @Scope() scope: DataScope): Promise<any> {
         return this.deviceService.testDeviceConnection(id, scope);
     }
 
@@ -283,8 +308,7 @@ export class DeviceController {
                 parameters: commandDto.parameters,
                 timeout: commandDto.timeout,
             },
-            scope,
-            user.sub
+            scope
         );
     }
 
@@ -303,7 +327,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<Device> {
-        return this.deviceService.updateDevice(id, updateDeviceDto, scope, user.sub);
+        return this.deviceService.updateDevice(id, updateDeviceDto, scope);
     }
 
     @Patch(':id/status')
@@ -322,7 +346,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<Device> {
-        return this.deviceService.toggleDeviceStatus(id, isActive, scope, user.sub);
+        return this.deviceService.toggleDeviceStatus(id, scope);
     }
 
     @Post(':id/control')
@@ -340,16 +364,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<CommandResponseDto> {
-        return this.deviceService.controlDevice(
-            id,
-            {
-                action: controlDto.action,
-                parameters: controlDto.parameters,
-                timeout: controlDto.timeout,
-            },
-            scope,
-            user.sub
-        );
+        return this.deviceService.controlDevice(id, controlDto, scope);
     }
 
     @Post(':id/sync-employees')
@@ -367,18 +382,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<SyncStatusResponseDto> {
-        return this.deviceService.syncEmployeesToDevice(
-            id,
-            {
-                employeeIds: syncDto.employeeIds,
-                departmentId: syncDto.departmentId,
-                branchId: syncDto.branchId,
-                forceSync: syncDto.forceSync,
-                removeMissing: syncDto.removeMissing,
-            },
-            scope,
-            user.sub
-        );
+        return this.deviceService.syncEmployeesToDevice(id, syncDto, scope, user.sub);
     }
 
     @Get(':id/sync-status')
@@ -537,7 +541,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<DeviceTemplate> {
-        return this.deviceService.createDeviceTemplate(templateData, scope, user.sub);
+        return this.deviceTemplateService.createDeviceTemplate(templateData, scope);
     }
 
     @Get('templates')
@@ -546,7 +550,7 @@ export class DeviceController {
     @ApiOkResponsePaginated(UpdateDeviceTemplateDto)
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     async getTemplates(@Scope() scope: DataScope): Promise<DeviceTemplate[]> {
-        return this.deviceService.getDeviceTemplates(scope);
+        return this.deviceTemplateService.getDeviceTemplates(scope);
     }
 
     @Get('templates/:id')
@@ -560,7 +564,7 @@ export class DeviceController {
         @Param('id') id: string,
         @Scope() scope: DataScope
     ): Promise<DeviceTemplate> {
-        return this.deviceService.getDeviceTemplateById(id, scope);
+        return this.deviceTemplateService.getDeviceTemplateById(id, scope);
     }
 
     @Patch('templates/:id')
@@ -578,7 +582,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<DeviceTemplate> {
-        return this.deviceService.updateDeviceTemplate(id, templateData, scope, user.sub);
+        return this.deviceTemplateService.updateDeviceTemplate(id, templateData, scope);
     }
 
     @Delete('templates/:id')
@@ -594,7 +598,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<void> {
-        await this.deviceService.deleteDeviceTemplate(id, scope, user.sub);
+        await this.deviceTemplateService.deleteDeviceTemplate(id, scope, user.sub);
     }
 
     @Post(':id/apply-template/:templateId')
@@ -614,8 +618,8 @@ export class DeviceController {
         @Param('templateId') templateId: string,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<DeviceConfiguration> {
-        return this.deviceService.applyTemplateToDevice(templateId, id, scope, user.sub);
+    ): Promise<void> {
+        await this.deviceTemplateService.applyTemplateToDevice(templateId, id, scope);
     }
 
     @Post(':id/auto-apply-template')
@@ -630,11 +634,9 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<DeviceConfiguration> {
-        const configuration = await this.deviceService.autoApplyTemplateToDevice(id, scope, user.sub);
-        if (!configuration) {
-            throw new Error('No matching template found for this device');
-        }
-        return configuration;
+        await this.deviceTemplateService.autoApplyTemplateToDevice(id, scope, user.sub);
+        const device = await this.deviceService.getDeviceById(id, scope);
+        return this.deviceService.getDeviceConfiguration(id, scope);
     }
 
     @Get(':id/suggested-templates')
@@ -643,11 +645,8 @@ export class DeviceController {
     @ApiParam({ name: 'id', description: 'ID of the device' })
     @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
     @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
-    async getSuggestedTemplates(
-        @Param('id') id: string,
-        @Scope() scope: DataScope
-    ) {
-        return this.deviceService.getSuggestedTemplates(id, scope);
+    async getSuggestedTemplates(@Param('id') id: string, @Scope() scope: DataScope) {
+        return this.deviceTemplateService.getSuggestedTemplates(id, scope);
     }
 
     // Webhook Management Endpoints
@@ -670,7 +669,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ) {
-        return this.deviceService.configureWebhook(id, webhookConfig, scope, user.sub);
+        return this.deviceWebhookService.configureWebhook(id, webhookConfig, scope);
     }
 
     @Get(':id/webhooks')
@@ -684,7 +683,11 @@ export class DeviceController {
         @Param('id') id: string,
         @Scope() scope: DataScope
     ): Promise<WebhookConfigurationResponseDto> {
-        return this.deviceService.getWebhookConfiguration(id, scope);
+        const webhooks = await this.deviceWebhookService.getDeviceWebhooks(id, scope);
+        return plainToClass(WebhookConfigurationResponseDto, {
+            deviceId: id,
+            webhooks: webhooks,
+        });
     }
 
     @Delete(':id/webhook/:hostId')
@@ -702,7 +705,7 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ): Promise<void> {
-        await this.deviceService.removeWebhook(id, hostId, scope, user.sub);
+        await this.deviceWebhookService.removeWebhook(id, hostId, scope, user.sub);
     }
 
     @Post(':id/webhook/:hostId/test')
@@ -719,6 +722,6 @@ export class DeviceController {
         @User() user: UserContext,
         @Scope() scope: DataScope
     ) {
-        return this.deviceService.testWebhook(id, hostId, scope, user.sub);
+        return this.deviceWebhookService.testWebhook(id, hostId, scope, user.sub);
     }
 }

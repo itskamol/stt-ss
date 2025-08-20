@@ -101,6 +101,33 @@ async function main() {
 
     console.log('✅ Created main branch:', branch.name);
 
+        // Create a branch admin user
+    const branchAdminPassword = await bcrypt.hash('BranchAdmin123!', 12);
+    const branchAdmin = await prisma.user.upsert({
+        where: { email: 'branchadmin@demo.com' },
+        update: {},
+        create: {
+            email: 'branchadmin@demo.com',
+            passwordHash: branchAdminPassword,
+            fullName: 'Branch Administrator',
+            isActive: true,
+            organizationLinks: {
+                create: {
+                    organizationId: organization.id,
+                    role: Role.BRANCH_MANAGER,
+                    managedBranches: {
+                        create: {
+                            branchId: branch.id,
+                            assignedAt: new Date(),
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    console.log('✅ Created branch admin user:', branchAdmin.email);
+
     // Create a sample department
     const department = await prisma.department.upsert({
         where: {

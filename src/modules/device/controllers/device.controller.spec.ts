@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeviceController } from './device.controller';
-import { DeviceService } from './device.service';
 import {
     CreateDeviceDto,
     DeviceCommandDto,
@@ -10,6 +9,10 @@ import {
 import { DataScope, UserContext } from '@/shared/interfaces';
 import { DeviceProtocol, DeviceStatus, DeviceType } from '@prisma/client';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
+import { DeviceService } from '../services/device.service';
+import { DeviceDiscoveryService } from '../services/device-discovery.service';
+import { DeviceTemplateService } from '../services/device-template.service';
+import { DeviceWebhookService } from '../services/device-webhook.service';
 
 describe('DeviceController', () => {
     let controller: DeviceController;
@@ -77,12 +80,24 @@ describe('DeviceController', () => {
             createDeviceWithSimplifiedInfo: jest.fn(),
         };
 
-        const module: TestingModule = await Test.createTestingModule({
+              const module: TestingModule = await Test.createTestingModule({
             controllers: [DeviceController],
             providers: [
                 {
                     provide: DeviceService,
                     useValue: mockDeviceService,
+                },
+                {
+                    provide: DeviceDiscoveryService,
+                    useValue: {},
+                },
+                {
+                    provide: DeviceTemplateService,
+                    useValue: {},
+                },
+                {
+                    provide: DeviceWebhookService,
+                    useValue: {},
                 },
             ],
         }).compile();
@@ -113,8 +128,7 @@ describe('DeviceController', () => {
 
             expect(deviceService.createDevice).toHaveBeenCalledWith(
                 createDto,
-                mockDataScope,
-                mockUserContext.sub
+                mockDataScope
             );
             expect(result.id).toBe(mockDevice.id);
         });
@@ -127,10 +141,10 @@ describe('DeviceController', () => {
 
             const result = await controller.getDevices(mockDataScope, { page: 1, limit: 10 });
 
-            expect(deviceService.getDevices).toHaveBeenCalledWith(mockDataScope, {
+            expect(deviceService.getDevices).toHaveBeenCalledWith({
                 page: 1,
                 limit: 10,
-            });
+            }, mockDataScope);
             expect(result).toEqual(paginatedResponse);
         });
     });
@@ -208,8 +222,7 @@ describe('DeviceController', () => {
             expect(deviceService.updateDevice).toHaveBeenCalledWith(
                 'device-123',
                 updateDto,
-                mockDataScope,
-                mockUserContext.sub
+                mockDataScope
             );
             expect(result.name).toBe('Updated Door Reader');
         });
@@ -229,9 +242,7 @@ describe('DeviceController', () => {
 
             expect(deviceService.toggleDeviceStatus).toHaveBeenCalledWith(
                 'device-123',
-                false,
-                mockDataScope,
-                mockUserContext.sub
+                mockDataScope
             );
             expect(result.isActive).toBe(false);
         });
@@ -304,7 +315,7 @@ describe('DeviceController', () => {
                 },
             };
 
-            deviceService.getDeviceWithStats.mockResolvedValue(deviceWithStats);
+            deviceService.getDeviceWithStats.mockResolvedValue(deviceWithStats as any);
 
             const result: any = await controller.getDeviceWithStats('device-123', mockDataScope);
 

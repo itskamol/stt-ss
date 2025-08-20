@@ -1,10 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { AxiosError, AxiosRequestConfig, Method } from 'axios';
+import { AxiosRequestConfig, Method } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { LoggerService } from '@/core/logger';
 import * as crypto from 'crypto';
-import { DeviceConnectionConfig } from '@/modules/device/device-adapter.strategy';
+import { HIKVISION_ENDPOINTS, UNSUPPORTED_ERROR_PATTERNS } from '../constants/hikvision-endpoints';
+import { Device } from '@prisma/client';
 
 @Injectable()
 export class HikvisionHttpClient {
@@ -13,12 +14,11 @@ export class HikvisionHttpClient {
         private readonly httpService: HttpService
     ) {}
 
-    async request<T>(deviceConfig: DeviceConnectionConfig, config: AxiosRequestConfig): Promise<T> {
-        const baseUrl = `http://${deviceConfig.host}:${deviceConfig.port}`;
+    async request<T>(device: Device, config: AxiosRequestConfig): Promise<T> {
+        const baseUrl = `http://${device.host}:${device.port}`;
         const url = `${baseUrl}${config.url}`;
 
         try {
-            await firstValueFrom(this.httpService.get(url));
             return (await firstValueFrom(this.httpService.request({ ...config, url }))).data;
         } catch (error: any) {
             if (error.response && error.response.status === 401) {
@@ -33,7 +33,7 @@ export class HikvisionHttpClient {
                 const digestParams = this.parseDigestHeader(authHeader);
 
                 const authResponseHeader = this.createAuthorizationHeader(
-                    deviceConfig,
+                    device,
                     digestParams,
                     config.method.toUpperCase() as Method,
                     config.url
@@ -80,7 +80,7 @@ export class HikvisionHttpClient {
     }
 
     private createAuthorizationHeader(
-        deviceConfig: DeviceConnectionConfig,
+        device: Device,
         params: Record<string, string>,
         method: Method,
         uri: string
@@ -95,7 +95,7 @@ export class HikvisionHttpClient {
         // `this.username` va `this.password` o'rniga `device`dan olingan ma'lumotlarni ishlatamiz
         const ha1 = crypto
             .createHash('md5')
-            .update(`${deviceConfig.username}:${realm}:${deviceConfig.password}`)
+            .update(`${device.username}:${realm}:${device.password}`)
             .digest('hex');
         const ha2 = crypto.createHash('md5').update(`${method}:${uri}`).digest('hex');
         const response = crypto
@@ -104,7 +104,7 @@ export class HikvisionHttpClient {
             .digest('hex');
 
         const authParts = [
-            `username="${deviceConfig.username}"`,
+            `username="${device.username}"`,
             `realm="${realm}"`,
             `nonce="${nonce}"`,
             `uri="${uri}"`,
@@ -118,31 +118,29 @@ export class HikvisionHttpClient {
         return `Digest ${authParts.join(', ')}`;
     }
 
-    private md5(input: string): string {
-        return crypto.createHash('md5').update(input).digest('hex');
-    }
-
     // Qo'shimcha utility metodlar
-    async testConnection(deviceConfig: DeviceConnectionConfig): Promise<boolean> {
+    async testConnection(device: Device): Promise<boolean> {
         try {
-            // Use the same endpoint checking logic as in configuration manager
-            const possibleEndpoints = [
-                '/ISAPI/System/deviceInfo',
-                '/ISAPI/System/status',
-                '/ISAPI/System/deviceinfo',
-                '/ISAPI/system/deviceInfo',
-                '/ISAPI/ContentMgmt/System/deviceInfo',
-                '/ISAPI/System/capabilities',
+            // Use working endpoints from testing
+            const testEndpoints = [
+                HIKVISION_ENDPOINTS.DEVICE_INFO.PRIMARY,
+                HIKVISION_ENDPOINTS.SYSTEM.CAPABILITIES,
+                HIKVISION_ENDPOINTS.DEVICE_INFO.ALTERNATIVES[0],
             ];
 
-            for (const url of possibleEndpoints) {
+            for (const url of testEndpoints) {
                 try {
-                    await this.request(deviceConfig, {
+                    await this.request(device, {
                         method: 'GET',
                         url,
                     });
+                    this.logger.debug('Connection test successful', { url, host: device.host });
                     return true; // If any endpoint works, connection is successful
                 } catch (error) {
+                    this.logger.debug('Connection test endpoint failed', {
+                        url,
+                        error: error.message,
+                    });
                     continue; // Try next endpoint
                 }
             }
@@ -150,41 +148,78 @@ export class HikvisionHttpClient {
             return false; // All endpoints failed
         } catch (error) {
             this.logger.error('Connection test failed', error.message, {
-                host: deviceConfig.host,
+                host: device.host,
             });
             return false;
         }
     }
 
     async getDeviceInfo(device: any): Promise<any> {
-        // Use same fallback logic as configuration manager
-        const possibleEndpoints = [
-            '/ISAPI/System/deviceInfo',
-            '/ISAPI/System/status',
-            '/ISAPI/System/deviceinfo',
-            '/ISAPI/system/deviceInfo',
-            '/ISAPI/ContentMgmt/System/deviceInfo',
-            '/ISAPI/System/capabilities',
-        ];
+        // Use working endpoints from testing
+        const possibleEndpoints = HIKVISION_ENDPOINTS.DEVICE_INFO.ALTERNATIVES.concat(
+            HIKVISION_ENDPOINTS.DEVICE_INFO.PRIMARY
+        );
 
+        let lastError: any;
         for (const url of possibleEndpoints) {
             try {
-                return this.request(device, {
+                const result = await this.request(device, {
                     method: 'GET',
                     url,
                 });
+                this.logger.debug('Device info retrieved successfully', { url });
+                return result;
             } catch (error) {
+                lastError = error;
+                this.logger.debug('Device info endpoint failed', { url, error: error.message });
                 continue; // Try next endpoint
             }
         }
 
+        this.logger.error('All device info endpoints failed', lastError?.message);
         throw new Error('No valid device info endpoint found');
     }
 
     async getChannels(device: any): Promise<any> {
-        return this.request(device, {
+        try {
+            return this.request(device, {
+                method: 'GET',
+                url: HIKVISION_ENDPOINTS.VIDEO.INPUTS,
+            });
+        } catch (error) {
+            this.logger.error('Failed to get channels', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Check if an endpoint is supported on the device
+     */
+    async isEndpointSupported(device: any, url: string): Promise<boolean> {
+        try {
+            await this.request(device, {
+                method: 'GET',
+                url,
+            });
+            return true;
+        } catch (error) {
+            const errorMessage = error.message.toLowerCase();
+            const isUnsupported = UNSUPPORTED_ERROR_PATTERNS.some(pattern =>
+                errorMessage.includes(pattern.toLowerCase())
+            );
+            return !isUnsupported;
+        }
+    }
+
+    /**
+     * Get device capabilities by checking supported endpoints
+     */
+    async getDeviceCapabilities(device: any): Promise<string> {
+        const accessControl = await this.request<string>(device, {
             method: 'GET',
-            url: '/ISAPI/System/Video/inputs',
+            url: HIKVISION_ENDPOINTS.ACCESS_CONTROL.CAPABILITIES,
         });
+
+        return accessControl
     }
 }

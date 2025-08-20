@@ -3,7 +3,7 @@ import { Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { LoggerService } from '@/core/logger';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
-import { ApiErrorResponse, ApiErrorDto } from '../dto/api-response.dto';
+import { ApiErrorDto, ApiErrorResponse } from '../dto/api-response.dto';
 import { CustomValidationException } from '../exceptions/validation.exception';
 
 @Catch()

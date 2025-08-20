@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Device, DeviceProtocol, ParameterFormatType } from '@prisma/client';
+import { Device, DeviceProtocol, ParameterFormatType, Prisma } from '@prisma/client';
 import { PrismaService } from '@/core/database/prisma.service';
 import { CreateDeviceDto, UpdateDeviceDto } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
@@ -9,7 +9,7 @@ import { QueryBuilder } from '@/shared/utils/query-builder.util';
 export class DeviceRepository {
     constructor(private readonly prisma: PrismaService) {}
 
-    async create(data: CreateDeviceDto, scope: DataScope): Promise<Device> {
+    async create(data: CreateDeviceDto & { organizationId: string }): Promise<Device> {
         return this.prisma.device.create({
             data: {
                 name: data.name,
@@ -19,7 +19,7 @@ export class DeviceRepository {
                 username: data.username,
                 password: data.password,
                 model: data.model,
-                organizationId: scope.organizationId,
+                organizationId: data.organizationId,
             },
         });
     }
@@ -46,7 +46,7 @@ export class DeviceRepository {
         });
     }
 
-    async findByDeviceSerialNumber(serialNumber: string, scope: DataScope): Promise<Device | null> {
+    async findBySerialNumber(serialNumber: string, scope: DataScope): Promise<Device | null> {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.device.findFirst({
@@ -57,23 +57,26 @@ export class DeviceRepository {
         });
     }
 
-    async findMany(
-        scope: DataScope,
-        skip: number,
-        take: number,
-        filters: any = {}
-    ): Promise<Device[]> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+    async findMany(scope: DataScope, paginationDto?: any): Promise<Device[]> {
+        const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
-        return this.prisma.device.findMany({
-            where: {
-                ...filters,
-                branch: whereClause,
-            },
-            skip,
-            take,
+        const query: Prisma.DeviceFindManyArgs = {
+            where: whereClause,
             orderBy: { name: 'asc' },
-        });
+        };
+
+        if (paginationDto?.page && paginationDto?.limit) {
+            const pagination = QueryBuilder.buildPagination(
+                paginationDto.page,
+                paginationDto.limit
+            );
+            query.skip = pagination.skip;
+            query.take = pagination.take;
+        }
+
+        const data = await this.prisma.device.findMany(query);
+
+        return data;
     }
 
     async findByBranch(branchId: string, scope: DataScope): Promise<Device[]> {
@@ -88,34 +91,31 @@ export class DeviceRepository {
         });
     }
 
-    async update(id: string, data: UpdateDeviceDto, scope: DataScope): Promise<Device> {
+    async update(id: string, data: UpdateDeviceDto): Promise<Device> {
         return this.prisma.device.update({
             where: { id },
             data,
         });
     }
 
-    async delete(id: string, scope: DataScope): Promise<void> {
+    async delete(id: string): Promise<void> {
         await this.prisma.device.delete({
             where: { id },
         });
     }
 
-    async count(scope: DataScope, filters: any = {}): Promise<number> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+    async count(scope: DataScope): Promise<number> {
+        const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.device.count({
-            where: {
-                ...filters,
-                branch: whereClause,
-            },
+            where: whereClause,
         });
     }
 
     async findWithStats(id: string, scope: DataScope) {
         const whereClause = QueryBuilder.buildBranchScope(scope);
 
-        return this.prisma.device.findFirst({
+        const device = await this.prisma.device.findFirst({
             where: {
                 id,
                 branch: whereClause,
@@ -128,19 +128,18 @@ export class DeviceRepository {
                 },
             },
         });
+
+        return {
+            totalEvents: device?._count?.events || 0,
+        };
     }
 
-    async searchDevices(
-        searchTerm: string,
-        scope: DataScope,
-        skip: number,
-        take: number
-    ): Promise<Device[]> {
-        const whereClause = QueryBuilder.buildBranchScope(scope);
+    async searchDevices(searchTerm: string, scope: DataScope): Promise<Device[]> {
+        const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.device.findMany({
             where: {
-                branch: whereClause,
+                ...whereClause,
                 OR: [
                     { name: { contains: searchTerm, mode: 'insensitive' } },
                     { macAddress: { contains: searchTerm, mode: 'insensitive' } },
@@ -148,8 +147,6 @@ export class DeviceRepository {
                     { host: { contains: searchTerm, mode: 'insensitive' } },
                 ],
             },
-            skip,
-            take,
             orderBy: { name: 'asc' },
         });
     }
@@ -158,6 +155,17 @@ export class DeviceRepository {
         await this.prisma.device.update({
             where: { id },
             data: { lastSeen },
+        });
+    }
+
+    async getCountByBranch(branchId: string, scope: DataScope): Promise<number> {
+        const whereClause = QueryBuilder.buildOrganizationScope(scope);
+
+        return this.prisma.device.count({
+            where: {
+                branchId,
+                branch: whereClause,
+            },
         });
     }
 
@@ -262,6 +270,67 @@ export class DeviceRepository {
                         status: true,
                     },
                 },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    // ==================== Template Methods ====================
+
+    async findTemplateByName(name: string, organizationId: string) {
+        return this.prisma.deviceTemplate.findFirst({
+            where: {
+                name,
+                organizationId,
+            },
+        });
+    }
+
+    async createTemplate(data: any) {
+        return this.prisma.deviceTemplate.create({
+            data,
+        });
+    }
+
+    async findTemplates(organizationId: string) {
+        return this.prisma.deviceTemplate.findMany({
+            where: {
+                organizationId,
+            },
+            orderBy: { name: 'asc' },
+        });
+    }
+
+    async findTemplateById(id: string, organizationId: string) {
+        return this.prisma.deviceTemplate.findFirst({
+            where: {
+                id,
+                organizationId,
+            },
+        });
+    }
+
+    async updateTemplate(id: string, data: any) {
+        return this.prisma.deviceTemplate.update({
+            where: { id },
+            data,
+        });
+    }
+
+    async deleteTemplate(id: string) {
+        await this.prisma.deviceTemplate.delete({
+            where: { id },
+        });
+    }
+
+    async findWebhook(deviceId: string, scope: DataScope) {
+        const whereClause = QueryBuilder.buildOrganizationScope(scope);
+
+        return this.prisma.deviceWebhook.findMany({
+            where: {
+                deviceId,
+                ...whereClause,
+                isActive: true,
             },
             orderBy: { createdAt: 'desc' },
         });

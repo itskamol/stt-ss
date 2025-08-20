@@ -6,6 +6,7 @@ import {
     DeviceConnectionConfig,
     DeviceOperationContext,
 } from '@/modules/device/device-adapter.strategy';
+import { Device } from '@prisma/client';
 
 export interface DeviceConfiguration {
     deviceInfo: {
@@ -114,54 +115,78 @@ export class HikvisionConfigurationManager {
     /**
      * Get device basic information
      */
-    async getDeviceInfo(context: DeviceOperationContext) {
-        // Try different ISAPI endpoints for device info
-        const url = '/ISAPI/System/deviceInfo';
+    async getDeviceInfo(device: Device) {
+        // Try different ISAPI endpoints for device info in order of preference
+        const possibleEndpoints = [
+            '/ISAPI/System/deviceInfo',        // Primary endpoint
+            '/ISAPI/System/deviceinfo',        // Lowercase variant
+            '/ISAPI/system/deviceInfo',        // Lowercase system
+            '/ISAPI/System/capabilities',      // Fallback to capabilities
+        ];
 
-        try {
-            this.logger.debug(`Trying endpoint: ${url}`, {
-                deviceId: context.device.id,
-                module: 'hikvision-config-manager',
-            });
+        let lastError;
+        
+        for (const url of possibleEndpoints) {
+            try {
+                this.logger.debug(`Trying endpoint: ${url}`, {
+                    deviceId: device.id,
+                    module: 'hikvision-config-manager',
+                });
 
-            const response = await this.httpClient.request<any>(context.config, {
-                method: 'GET',
-                url,
-            });
+                const response = await this.httpClient.request<any>(device, {
+                    method: 'GET',
+                    url,
+                });
 
-            // Convert XML response to JSON if needed
-            let data = response;
-            if (typeof data === 'string' && data.includes('<?xml')) {
-                data = await this.xmlJsonService.xmlToJson(data);
+                // Convert XML response to JSON if needed
+                let data = response;
+                if (typeof data === 'string' && data.includes('<?xml')) {
+                    data = await this.xmlJsonService.xmlToJson(data);
+                }
+
+                // Extract device info from XML structure
+                const deviceInfo = data.DeviceInfo || data.deviceInfo || data.DeviceCap || data.deviceCap || data;
+
+                // If successful, return formatted data
+                this.logger.debug(`Successfully got device info from: ${url}`, {
+                    deviceId: device.id,
+                    module: 'hikvision-config-manager',
+                });
+                
+                return deviceInfo;
+            } catch (error) {
+                lastError = error;
+                this.logger.debug(`Endpoint ${url} failed: ${error.message}`, {
+                    deviceId: device.id,
+                    module: 'hikvision-config-manager',
+                });
+                continue; // Try next endpoint
             }
-
-            // Extract device info from XML structure
-            const deviceInfo = data.DeviceInfo || data.deviceInfo || data;
-
-            // If successful, return formatted data
-            return deviceInfo;
-        } catch (error) {
-            this.logger.debug(`Endpoint ${url} failed: ${error.message}`, {
-                deviceId: context.device.id,
-                module: 'hikvision-config-manager',
-            });
         }
+
+        // If all endpoints failed, throw the last error
+        this.logger.error('All device info endpoints failed', lastError?.message, {
+            deviceId: device.id,
+            module: 'hikvision-config-manager',
+        });
+        
+        throw lastError || new Error('Failed to get device info from all endpoints');
     }
 
     /**
      * Get device basic information
      */
-    async getDeviceCapabilities(context: DeviceOperationContext): Promise<any> {
+    async getDeviceCapabilities(device: Device): Promise<any> {
         // Try different ISAPI endpoints for device info
         const url = '/ISAPI/System/capabilities';
 
         try {
             this.logger.debug(`Trying endpoint: ${url}`, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-config-manager',
             });
 
-            const response = await this.httpClient.request<any>(context.config, {
+            const response = await this.httpClient.request<any>(device, {
                 method: 'GET',
                 url,
             });
@@ -179,7 +204,7 @@ export class HikvisionConfigurationManager {
             return deviceInfo;
         } catch (error) {
             this.logger.debug(`Endpoint ${url} failed: ${error.message}`, {
-                deviceId: context.device.id,
+                deviceId: device.id,
                 module: 'hikvision-config-manager',
             });
         }
@@ -189,20 +214,35 @@ export class HikvisionConfigurationManager {
      * Get network configuration
      */
     async getNetworkConfig(device: any) {
-        const response = await this.httpClient.request<any>(device, {
-            method: 'GET',
-            url: '/ISAPI/System/Network/interfaces/1',
-        });
+        try {
+            const response = await this.httpClient.request<any>(device, {
+                method: 'GET',
+                url: '/ISAPI/System/Network/interfaces/1',
+            });
 
-        const networkInterface = response.data.NetworkInterface;
-        return {
-            host: networkInterface.host,
-            subnetMask: networkInterface.SubnetMask,
-            gateway: networkInterface.DefaultGateway,
-            dns1: networkInterface.PrimaryDNS,
-            dns2: networkInterface.SecondaryDNS,
-            dhcpEnabled: networkInterface.DHCP?.enabled === 'true',
-        };
+            let data = response;
+            if (typeof data === 'string' && data.includes('<?xml')) {
+                data = await this.xmlJsonService.xmlToJson(data);
+            }
+
+            const networkInterface = data.NetworkInterface || data.networkInterface;
+            const ipAddress = networkInterface.IPAddress || networkInterface.ipAddress;
+            
+            return {
+                host: ipAddress?.ipAddress || networkInterface.host,
+                subnetMask: ipAddress?.subnetMask || networkInterface.SubnetMask,
+                gateway: ipAddress?.DefaultGateway?.ipAddress || networkInterface.DefaultGateway,
+                dns1: ipAddress?.PrimaryDNS?.ipAddress || networkInterface.PrimaryDNS,
+                dns2: ipAddress?.SecondaryDNS?.ipAddress || networkInterface.SecondaryDNS,
+                dhcpEnabled: ipAddress?.addressingType === 'dynamic' || networkInterface.DHCP?.enabled === 'true',
+            };
+        } catch (error) {
+            this.logger.error('Failed to get network config', error.message, {
+                deviceId: device.id,
+                module: 'hikvision-config-manager',
+            });
+            throw error;
+        }
     }
 
     /**
@@ -247,35 +287,64 @@ export class HikvisionConfigurationManager {
      * Get time configuration
      */
     async getTimeConfig(device: any) {
-        const response = await this.httpClient.request<any>(device, {
-            method: 'GET',
-            url: '/ISAPI/System/time',
-        });
+        try {
+            const response = await this.httpClient.request<any>(device, {
+                method: 'GET',
+                url: '/ISAPI/System/time',
+            });
 
-        return {
-            timeZone: response.data.timeZone,
-            ntpEnabled: response.data.NTPServers?.enabled === 'true',
-            ntpServer: response.data.NTPServers?.NTPServer?.[0]?.host || '',
-            currentTime: new Date(response.data.localTime),
-        };
+            let data = response;
+            if (typeof data === 'string' && data.includes('<?xml')) {
+                data = await this.xmlJsonService.xmlToJson(data);
+            }
+
+            const timeInfo = data.Time || data.time;
+            
+            return {
+                timeZone: timeInfo.timeZone,
+                ntpEnabled: timeInfo.timeMode === 'ntp',
+                ntpServer: timeInfo.NTPServers?.NTPServer?.[0]?.host || '',
+                currentTime: new Date(timeInfo.localTime),
+            };
+        } catch (error) {
+            this.logger.error('Failed to get time config', error.message, {
+                deviceId: device.id,
+                module: 'hikvision-config-manager',
+            });
+            throw error;
+        }
     }
 
     /**
      * Get access control configuration
      */
     async getAccessConfig(device: any) {
-        const response = await this.httpClient.request<any>(device, {
-            method: 'GET',
-            url: '/ISAPI/AccessControl/Door/param/1',
-        });
+        try {
+            const response = await this.httpClient.request<any>(device, {
+                method: 'GET',
+                url: '/ISAPI/AccessControl/Door/param/1',
+            });
 
-        const doorParam = response.data.DoorParam;
-        return {
-            unlockTime: parseInt(doorParam.openDuration) || 5,
-            alarmTime: parseInt(doorParam.alarmTimeout) || 30,
-            maxInvalidAttempts: parseInt(doorParam.maxOpenFailTimes) || 3,
-            lockoutTime: parseInt(doorParam.openFailLockTime) || 5,
-        };
+            let data = response;
+            if (typeof data === 'string' && data.includes('<?xml')) {
+                data = await this.xmlJsonService.xmlToJson(data);
+            }
+
+            const doorParam = data.DoorParam || data.doorParam;
+            
+            return {
+                unlockTime: parseInt(doorParam.openDuration) || 5,
+                alarmTime: parseInt(doorParam.magneticAlarmTimeout) || 30,
+                maxInvalidAttempts: parseInt(doorParam.maxOpenFailTimes) || 3,
+                lockoutTime: parseInt(doorParam.openFailLockTime) || 5,
+            };
+        } catch (error) {
+            this.logger.error('Failed to get access config', error.message, {
+                deviceId: device.id,
+                module: 'hikvision-config-manager',
+            });
+            throw error;
+        }
     }
 
     /**
@@ -316,19 +385,42 @@ export class HikvisionConfigurationManager {
      * Get authentication configuration
      */
     async getAuthenticationConfig(device: any) {
-        const response = await this.httpClient.request<any>(device, {
-            method: 'GET',
-            url: '/ISAPI/AccessControl/Authentication',
-        });
+        try {
+            // Try to get access control capabilities to determine supported auth methods
+            const response = await this.httpClient.request<any>(device, {
+                method: 'GET',
+                url: '/ISAPI/AccessControl/capabilities',
+            });
 
-        const auth = response.data.Authentication;
-        return {
-            cardEnabled: auth.cardReaderEnabled === 'true',
-            faceEnabled: auth.faceEnabled === 'true',
-            fingerprintEnabled: auth.fingerprintEnabled === 'true',
-            passwordEnabled: auth.passwordEnabled === 'true',
-            multiFactorRequired: auth.multiFactorAuthEnabled === 'true',
-        };
+            let data = response;
+            if (typeof data === 'string' && data.includes('<?xml')) {
+                data = await this.xmlJsonService.xmlToJson(data);
+            }
+
+            const accessControl = data.AccessControl || data.accessControl;
+            
+            return {
+                cardEnabled: accessControl.isSupportCardInfo === 'true',
+                faceEnabled: accessControl.isSupportFaceRecognizeMode === 'true',
+                fingerprintEnabled: accessControl.isSupportFingerPrintCfg === 'true',
+                passwordEnabled: true, // Always supported
+                multiFactorRequired: false, // Default to false
+            };
+        } catch (error) {
+            this.logger.error('Failed to get authentication config', error.message, {
+                deviceId: device.id,
+                module: 'hikvision-config-manager',
+            });
+            
+            // Return default values if capabilities endpoint fails
+            return {
+                cardEnabled: true,
+                faceEnabled: true,
+                fingerprintEnabled: true,
+                passwordEnabled: true,
+                multiFactorRequired: false,
+            };
+        }
     }
 
     /**

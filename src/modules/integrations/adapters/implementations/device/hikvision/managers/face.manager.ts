@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
+import { XmlJsonService } from '@/shared/services/xml-json.service';
+import { Device } from '@prisma/client';
 
 export interface FaceTemplate {
     id: string;
@@ -26,19 +28,26 @@ export interface FaceSearchResult {
 export class HikvisionFaceManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
-        private readonly logger: LoggerService
+        private readonly logger: LoggerService,
+        private readonly xmlJsonService: XmlJsonService
     ) {}
 
     /**
      * Add face template to device
      */
-    async addFace(device: any, request: AddFaceRequest): Promise<FaceTemplate> {
+    async addFace(device: Device, request: AddFaceRequest): Promise<FaceTemplate> {
         try {
             this.logger.debug('Adding face template', {
                 deviceId: device.id,
                 userId: request.userId,
                 module: 'hikvision-face-manager',
             });
+
+            // First check if face recognition is supported
+            const isSupported = await this.checkFaceRecognitionSupport(device);
+            if (!isSupported) {
+                throw new Error('Face recognition is not supported on this device');
+            }
 
             const response = await this.httpClient.request<any>(device, {
                 method: 'POST',
@@ -71,8 +80,14 @@ export class HikvisionFaceManager {
     /**
      * Delete face template from device
      */
-    async deleteFace(device: any, faceId: string): Promise<void> {
+    async deleteFace(device: Device, faceId: string): Promise<void> {
         try {
+            // First check if face recognition is supported
+            const isSupported = await this.checkFaceRecognitionSupport(device);
+            if (!isSupported) {
+                throw new Error('Face recognition is not supported on this device');
+            }
+
             await this.httpClient.request(device, {
                 method: 'DELETE',
                 url: `/ISAPI/Intelligent/FDLib/FaceDataRecord?FDID=${faceId}`,
@@ -96,8 +111,18 @@ export class HikvisionFaceManager {
     /**
      * Get all face templates from device
      */
-    async getFaces(device: any, userId?: string): Promise<FaceTemplate[]> {
+    async getFaces(device: Device, userId?: string): Promise<FaceTemplate[]> {
         try {
+            // First check if face recognition is supported
+            const isSupported = await this.checkFaceRecognitionSupport(device);
+            if (!isSupported) {
+                this.logger.warn('Face recognition is not supported on this device', {
+                    deviceId: device.id,
+                    module: 'hikvision-face-manager',
+                });
+                return [];
+            }
+
             const url = userId
                 ? `/ISAPI/Intelligent/FDLib/FaceDataRecord?FDID=${userId}`
                 : '/ISAPI/Intelligent/FDLib/FaceDataRecord';
@@ -122,6 +147,10 @@ export class HikvisionFaceManager {
                 userId,
                 module: 'hikvision-face-manager',
             });
+            // Return empty array if face recognition is not supported
+            if (error.message.includes('notSupport') || error.message.includes('Invalid Operation')) {
+                return [];
+            }
             throw error;
         }
     }
@@ -130,11 +159,17 @@ export class HikvisionFaceManager {
      * Search face in device database
      */
     async searchFace(
-        device: any,
+        device: Device,
         faceData: string,
         threshold: number = 80
     ): Promise<FaceSearchResult[]> {
         try {
+            // First check if face recognition is supported
+            const isSupported = await this.checkFaceRecognitionSupport(device);
+            if (!isSupported) {
+                throw new Error('Face recognition is not supported on this device');
+            }
+
             const response = await this.httpClient.request<any>(device, {
                 method: 'POST',
                 url: '/ISAPI/Intelligent/FDLib/FDSearch',
@@ -168,8 +203,14 @@ export class HikvisionFaceManager {
     /**
      * Update face template
      */
-    async updateFace(device: any, faceId: string, faceData: string): Promise<FaceTemplate> {
+    async updateFace(device: Device, faceId: string, faceData: string): Promise<FaceTemplate> {
         try {
+            // First check if face recognition is supported
+            const isSupported = await this.checkFaceRecognitionSupport(device);
+            if (!isSupported) {
+                throw new Error('Face recognition is not supported on this device');
+            }
+
             // First delete old face
             await this.deleteFace(device, faceId);
 
@@ -185,6 +226,32 @@ export class HikvisionFaceManager {
                 module: 'hikvision-face-manager',
             });
             throw error;
+        }
+    }
+
+    /**
+     * Check if face recognition is supported on this device
+     */
+    private async checkFaceRecognitionSupport(device: Device): Promise<boolean> {
+        try {
+            const response = await this.httpClient.request<any>(device, {
+                method: 'GET',
+                url: '/ISAPI/AccessControl/capabilities',
+            });
+
+            // Parse XML response
+            if (typeof response === 'string' && response.includes('<?xml')) {
+                const jsonResponse = await this.xmlJsonService.xmlToJson(response);
+                return jsonResponse.AccessControl?.isSupportFaceRecognizeMode === 'true';
+            }
+
+            return response.AccessControl?.isSupportFaceRecognizeMode === 'true';
+        } catch (error) {
+            this.logger.debug('Could not check face recognition support', {
+                deviceId: device.id,
+                module: 'hikvision-face-manager',
+            });
+            return false;
         }
     }
 }

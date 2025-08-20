@@ -1,4 +1,4 @@
-import { DeviceProtocol, DeviceStatus, DeviceType, EventType } from '@prisma/client';
+import { Device, DeviceProtocol, DeviceStatus, DeviceType, EventType } from '@prisma/client';
 import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
 
 export interface DeviceDiscoveryConfig {
@@ -20,14 +20,20 @@ export interface DeviceInfo {
     firmwareReleasedDate?: string;
     deviceType: DeviceType;
     manufacturer: string;
-    capabilities: DeviceCapability[];
+    capabilities: DeviceCapability;
     status?: 'online' | 'offline' | 'unknown';
 }
 
 export interface DeviceCapability {
-    type: DeviceType;
-    enabled: boolean;
-    configuration?: Record<string, any>;
+    faceLibrarySupport: any;
+    fingerprintSupport: any;
+    cardManagementSupport: any;
+    userManagementSupport: any;
+    eventSubscriptionSupport: any;
+    capabilities: {
+        [key: string]: any; // Dynamic capabilities
+    };
+    [key: string]: any;
 }
 
 export interface DeviceConfiguration {
@@ -98,59 +104,53 @@ export interface DeviceHealth {
 
 export interface IDeviceAdapter {
     /**
-     * Discover devices on the network
-     */
-    discoverDevices(): Promise<DeviceInfo[]>;
-
-    /**
      * Get device information
      */
-    getDeviceInfo(context: DeviceOperationContext): Promise<DeviceInfo>;
+    getDeviceInfo(device: Device): Promise<DeviceInfo>;
 
     /**
      * Get device configuration
      */
-    getDeviceConfiguration(context: DeviceOperationContext): Promise<DeviceConfiguration>;
+    getDeviceConfiguration(device: Device): Promise<DeviceConfiguration>;
 
     /**
      * Update device configuration
      */
     updateDeviceConfiguration(
-        context: DeviceOperationContext,
+        device: Device,
         configuration: Partial<DeviceConfiguration>
     ): Promise<void>;
 
     /**
      * Send command to device
      */
-    sendCommand(
-        context: DeviceOperationContext,
-        command: DeviceCommand
-    ): Promise<DeviceCommandResult>;
+    sendCommand(device: Device, command: DeviceCommand): Promise<DeviceCommandResult>;
 
     /**
      * Get device health status
      */
-    getDeviceHealth(context: DeviceOperationContext): Promise<DeviceHealth>;
+    getDeviceHealth(device: Device): Promise<DeviceHealth>;
+
+    /**
+     * Discover device capabilities
+     */
+    getDeviceCapabilities(device: Device): Promise<DeviceCapability>;
 
     /**
      * Subscribe to device events
      */
-    subscribeToEvents(
-        context: DeviceOperationContext,
-        callback: (event: DeviceEvent) => void
-    ): Promise<void>;
+    subscribeToEvents(device: Device, callback: (event: DeviceEvent) => void): Promise<void>;
 
     /**
      * Unsubscribe from device events
      */
-    unsubscribeFromEvents(context: DeviceOperationContext): Promise<void>;
+    unsubscribeFromEvents(device: Device): Promise<void>;
 
     /**
      * Sync user data to device
      */
     syncUsers(
-        context: DeviceOperationContext,
+        device: Device,
         users: Array<{
             userId: string;
             cardId?: string;
@@ -162,37 +162,33 @@ export interface IDeviceAdapter {
     /**
      * Remove user from device
      */
-    removeUser(context: DeviceOperationContext, userId: string): Promise<void>;
+    removeUser(device: Device, userId: string): Promise<void>;
 
     /**
      * Test device connectivity
      */
-    testConnection(context: DeviceOperationContext): Promise<boolean>;
+    testConnection(device: Device): Promise<boolean>;
 
     /**
      * Reboot device
      */
-    rebootDevice(context: DeviceOperationContext): Promise<void>;
+    rebootDevice(device: Device): Promise<void>;
 
     /**
      * Update device firmware
      */
     updateFirmware(
-        context: DeviceOperationContext,
+        device: Device,
         firmwareUrl: string
     ): Promise<{ success: boolean; message: string }>;
 
     /**
      * Get device logs
      */
-    getDeviceLogs(
-        context: DeviceOperationContext,
-        startDate?: Date,
-        endDate?: Date
-    ): Promise<string[]>;
+    getDeviceLogs(device: Device, startDate?: Date, endDate?: Date): Promise<string[]>;
 
     /**
      * Clear device logs
      */
-    clearDeviceLogs(context: DeviceOperationContext): Promise<void>;
+    clearDeviceLogs(device: Device): Promise<void>;
 }

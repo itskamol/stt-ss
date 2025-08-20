@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/core/database/prisma.service';
 import { LoggerService } from '@/core/logger';
-import { DeviceRepository } from '../device/device.repository';
+import { DeviceRepository } from '../device.repository';
 import { DataScope } from '@/shared/interfaces';
 import { DeviceSyncEmployeesDto } from '@/shared/dto';
 

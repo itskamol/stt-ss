@@ -5,9 +5,9 @@ import { DatabaseUtil } from '@/shared/utils';
 import {
     AssignBranchManagerDto,
     CreateBranchDto,
-    UpdateBranchDto,
     PaginationDto,
     PaginationResponseDto,
+    UpdateBranchDto,
 } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 

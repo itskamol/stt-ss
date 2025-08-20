@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '@/core/logger';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
+import { XmlJsonService } from '@/shared/services/xml-json.service';
+import { Device } from '@prisma/client';
 
 export interface DeviceUser {
     id: string;
@@ -28,13 +30,14 @@ export interface AddUserRequest {
 export class HikvisionUserManager {
     constructor(
         private readonly httpClient: HikvisionHttpClient,
-        private readonly logger: LoggerService
+        private readonly logger: LoggerService,
+        private readonly xmlJsonService: XmlJsonService
     ) {}
 
     /**
-     * Add user to device
+     * Add user to device using /ISAPI/Security/users endpoint
      */
-    async addUser(device: any, request: AddUserRequest): Promise<DeviceUser> {
+    async addUser(device: Device, request: AddUserRequest): Promise<DeviceUser> {
         try {
             this.logger.debug('Adding user', {
                 deviceId: device.id,
@@ -43,29 +46,22 @@ export class HikvisionUserManager {
                 module: 'hikvision-user-manager',
             });
 
+            // First, get current users to find the next available ID
+            const currentUsers = await this.getSystemUsers(device);
+            const nextId = currentUsers.length > 0 
+                ? Math.max(...currentUsers.map((u: any) => parseInt(u.id) || 0)) + 1
+                : 1;
+
             const response = await this.httpClient.request(device, {
                 method: 'POST',
-                url: '/ISAPI/AccessControl/UserInfo/Record',
+                url: '/ISAPI/Security/users',
                 data: {
-                    UserInfo: {
-                        employeeNo: request.employeeNo,
-                        name: request.name,
-                        userType: request.userType || 'normal',
-                        Valid: {
-                            enable: true,
-                            beginTime: request.validFrom?.toISOString() || new Date().toISOString(),
-                            endTime:
-                                request.validTo?.toISOString() ||
-                                new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-                            timeType: 'local',
-                        },
-                        doorRight: request.doorRight?.map(door => ({ doorNo: door })) || [
-                            { doorNo: '1' },
-                        ],
-                        RightPlan: request.timeTemplate?.map(template => ({
-                            planTemplateNo: template,
-                            doorNo: '1',
-                        })) || [{ planTemplateNo: '1', doorNo: '1' }],
+                    User: {
+                        id: nextId.toString(),
+                        userName: request.employeeNo,
+                        password: 'temp123!', // Default password, should be changed
+                        userLevel: request.userType === 'admin' ? 'Administrator' : 'Operator',
+                        enabled: true,
                     },
                 },
             });
@@ -94,11 +90,19 @@ export class HikvisionUserManager {
     /**
      * Delete user from device
      */
-    async deleteUser(device: any, employeeNo: string): Promise<void> {
+    async deleteUser(device: Device, employeeNo: string): Promise<void> {
         try {
+            // First, find the user by employeeNo to get the system user ID
+            const users = await this.getSystemUsers(device);
+            const userToDelete = users.find((u: any) => u.userName === employeeNo);
+            
+            if (!userToDelete) {
+                throw new Error(`User ${employeeNo} not found`);
+            }
+
             await this.httpClient.request(device, {
                 method: 'DELETE',
-                url: `/ISAPI/AccessControl/UserInfo/Delete?employeeNo=${employeeNo}`,
+                url: `/ISAPI/Security/users/${userToDelete.id}`,
             });
 
             this.logger.debug('User deleted', {
@@ -117,36 +121,18 @@ export class HikvisionUserManager {
     }
 
     /**
-     * Get users from device
+     * Get users from device using /ISAPI/Security/users endpoint
      */
-    async getUsers(device: any, employeeNo?: string): Promise<DeviceUser[]> {
+    async getUsers(device: Device, employeeNo?: string): Promise<DeviceUser[]> {
         try {
-            const response = await this.httpClient.request<any>(device, {
-                method: 'POST',
-                url: '/ISAPI/AccessControl/UserInfo/Search',
-                data: {
-                    UserInfoSearchCond: {
-                        searchID: '1',
-                        searchResultPosition: 0,
-                        maxResults: 100,
-                        EmployeeNoList: employeeNo ? [{ employeeNo }] : undefined,
-                    },
-                },
-            });
-
-            return (
-                response.data.UserInfoSearch?.UserInfo?.map((user: any) => ({
-                    id: user.employeeNo,
-                    employeeNo: user.employeeNo,
-                    name: user.name,
-                    userType: user.userType,
-                    validFrom: new Date(user.Valid.beginTime),
-                    validTo: new Date(user.Valid.endTime),
-                    isActive: user.Valid.enable,
-                    doorRight: user.doorRight?.map((door: any) => door.doorNo) || [],
-                    timeTemplate: user.RightPlan?.map((plan: any) => plan.planTemplateNo) || [],
-                })) || []
-            );
+            const systemUsers = await this.getSystemUsers(device);
+            
+            if (employeeNo) {
+                const user = systemUsers.find((u: any) => u.userName === employeeNo);
+                return user ? [this.mapSystemUserToDeviceUser(user)] : [];
+            }
+            
+            return systemUsers.map((user: any) => this.mapSystemUserToDeviceUser(user));
         } catch (error) {
             this.logger.error('Failed to get users', error.message, {
                 deviceId: device.id,
@@ -158,55 +144,82 @@ export class HikvisionUserManager {
     }
 
     /**
+     * Get system users using /ISAPI/Security/users endpoint
+     */
+    private async getSystemUsers(device: Device): Promise<any[]> {
+        try {
+            const response = await this.httpClient.request<any>(device, {
+                method: 'GET',
+                url: '/ISAPI/Security/users',
+            });
+
+            // Parse XML response
+            if (typeof response === 'string' && response.includes('<?xml')) {
+                const jsonResponse = await this.xmlJsonService.xmlToJson(response);
+                const users = jsonResponse.UserList?.User || [];
+                return Array.isArray(users) ? users : [users];
+            }
+
+            return response.UserList?.User || [];
+        } catch (error) {
+            this.logger.error('Failed to get system users', error.message, {
+                deviceId: device.id,
+                module: 'hikvision-user-manager',
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Map system user to device user format
+     */
+    private mapSystemUserToDeviceUser(systemUser: any): DeviceUser {
+        return {
+            id: systemUser.userName,
+            employeeNo: systemUser.userName,
+            name: systemUser.userName,
+            userType: systemUser.userLevel === 'Administrator' ? 'admin' : 'normal',
+            validFrom: new Date(),
+            validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            isActive: systemUser.enabled !== false,
+            doorRight: ['1'], // Default door access
+            timeTemplate: ['1'], // Default template
+        };
+    }
+
+    /**
      * Update user information
      */
     async updateUser(
-        device: any,
+        device: Device,
         employeeNo: string,
         updates: Partial<AddUserRequest>
     ): Promise<DeviceUser> {
         try {
             // Get existing user info
-            const existingUsers = await this.getUsers(device, employeeNo);
-            const existingUser = existingUsers[0];
+            const existingUsers = await this.getSystemUsers(device);
+            const existingUser = existingUsers.find((u: any) => u.userName === employeeNo);
 
             if (!existingUser) {
                 throw new Error(`User ${employeeNo} not found`);
             }
 
+            const updatedUser = {
+                ...existingUser,
+                userName: updates.name || existingUser.userName,
+                userLevel: updates.userType === 'admin' ? 'Administrator' : 'Operator',
+                enabled: updates.userType !== undefined ? updates.userType !== 'normal' : existingUser.enabled,
+            };
+
             await this.httpClient.request(device, {
                 method: 'PUT',
-                url: '/ISAPI/AccessControl/UserInfo/Modify',
+                url: `/ISAPI/Security/users/${existingUser.id}`,
                 data: {
-                    UserInfo: {
-                        employeeNo,
-                        name: updates.name || existingUser.name,
-                        userType: updates.userType || existingUser.userType,
-                        Valid: {
-                            enable: true,
-                            beginTime: (updates.validFrom || existingUser.validFrom).toISOString(),
-                            endTime: (updates.validTo || existingUser.validTo).toISOString(),
-                            timeType: 'local',
-                        },
-                        doorRight: (updates.doorRight || existingUser.doorRight).map(door => ({
-                            doorNo: door,
-                        })),
-                        RightPlan: (updates.timeTemplate || existingUser.timeTemplate).map(
-                            template => ({
-                                planTemplateNo: template,
-                                doorNo: '1',
-                            })
-                        ),
-                    },
+                    User: updatedUser,
                 },
             });
 
-            return {
-                ...existingUser,
-                ...updates,
-                id: employeeNo,
-                employeeNo,
-            } as DeviceUser;
+            return this.mapSystemUserToDeviceUser(updatedUser);
         } catch (error) {
             this.logger.error('Failed to update user', error.message, {
                 deviceId: device.id,
@@ -220,35 +233,25 @@ export class HikvisionUserManager {
     /**
      * Set user status (active/inactive)
      */
-    async setUserStatus(device: any, employeeNo: string, isActive: boolean): Promise<void> {
+    async setUserStatus(device: Device, employeeNo: string, isActive: boolean): Promise<void> {
         try {
-            const users = await this.getUsers(device, employeeNo);
-            const user = users[0];
+            const users = await this.getSystemUsers(device);
+            const user = users.find((u: any) => u.userName === employeeNo);
 
             if (!user) {
                 throw new Error(`User ${employeeNo} not found`);
             }
 
+            const updatedUser = {
+                ...user,
+                enabled: isActive,
+            };
+
             await this.httpClient.request(device, {
                 method: 'PUT',
-                url: '/ISAPI/AccessControl/UserInfo/Modify',
+                url: `/ISAPI/Security/users/${user.id}`,
                 data: {
-                    UserInfo: {
-                        employeeNo,
-                        name: user.name,
-                        userType: user.userType,
-                        Valid: {
-                            enable: isActive,
-                            beginTime: user.validFrom.toISOString(),
-                            endTime: user.validTo.toISOString(),
-                            timeType: 'local',
-                        },
-                        doorRight: user.doorRight.map(door => ({ doorNo: door })),
-                        RightPlan: user.timeTemplate.map(template => ({
-                            planTemplateNo: template,
-                            doorNo: '1',
-                        })),
-                    },
+                    User: updatedUser,
                 },
             });
 

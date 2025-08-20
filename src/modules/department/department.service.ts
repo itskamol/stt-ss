@@ -9,9 +9,9 @@ import { DepartmentRepository } from './department.repository';
 import { DatabaseUtil } from '@/shared/utils';
 import {
     CreateDepartmentDto,
-    UpdateDepartmentDto,
     PaginationDto,
     PaginationResponseDto,
+    UpdateDepartmentDto,
 } from '@/shared/dto';
 import { DataScope } from '@/shared/interfaces';
 

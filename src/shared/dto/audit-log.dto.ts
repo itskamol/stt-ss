@@ -1,12 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+    IsDate,
     IsDateString,
     IsIn,
-    IsOptional,
-    IsString,
-    IsDate,
     IsNumber,
     IsObject,
+    IsOptional,
+    IsString,
 } from 'class-validator';
 
 class UserForAuditLogDto {

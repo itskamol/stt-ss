@@ -75,7 +75,6 @@ export class LocalStorageAdapter implements IStorageAdapter {
                 }
                 buffer = Buffer.concat(chunks);
             }
-            console.log(`Uploading file to ${filePath}`);
             await writeFile(filePath, buffer);
 
             return {

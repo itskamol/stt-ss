@@ -5,11 +5,11 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    NotFoundException,
     Param,
     Patch,
     Post,
     Query,
-    NotFoundException,
 } from '@nestjs/common';
 import {
     ApiBearerAuth,
@@ -17,7 +17,6 @@ import {
     ApiExtraModels,
     ApiOperation,
     ApiParam,
-    ApiQuery,
     ApiResponse,
     ApiTags,
     getSchemaPath,
@@ -39,7 +38,7 @@ import {
 import { NoScoping, Permissions, Roles, Scope, User } from '@/shared/decorators';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { DataScope, UserContext } from '@/shared/interfaces';
-import { OrganizationUser, Role, User as UserModel } from '@prisma/client';
+import { Role, User as UserModel } from '@prisma/client';
 import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
 
 @ApiTags('Users')
