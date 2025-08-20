@@ -62,7 +62,7 @@ describe('DeviceController', () => {
             getDevices: jest.fn(),
             getDevicesByBranch: jest.fn(),
             getDeviceById: jest.fn(),
-            getDeviceByIdentifier: jest.fn(),
+            getDeviceBySerialNumber: jest.fn(),
             updateDevice: jest.fn(),
             deleteDevice: jest.fn(),
             searchDevices: jest.fn(),

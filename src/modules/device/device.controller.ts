@@ -110,16 +110,7 @@ export class DeviceController {
     @ApiResponse({
         status: 201,
         description: 'The device has been successfully created with auto-discovered information.',
-        schema: {
-            allOf: [
-                { $ref: getSchemaPath(ApiSuccessResponse) },
-                {
-                    properties: {
-                        data: { $ref: getSchemaPath(DeviceResponseDto) },
-                    },
-                },
-            ],
-        },
+        schema: new DeviceResponseDto,
     })
     @ApiResponse({
         status: 400,
