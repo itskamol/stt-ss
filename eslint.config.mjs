@@ -20,11 +20,11 @@ export default [
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-inferrable-types': 'off',
-      
+
       // NestJS specific rules
       '@typescript-eslint/interface-name-prefix': 'off',
       '@typescript-eslint/explicit-member-accessibility': 'off',
-      
+
       // General code quality rules
       'prefer-const': 'error',
       'no-var': 'error',
@@ -32,7 +32,7 @@ export default [
       'prefer-template': 'error',
       'no-console': 'warn',
       'no-debugger': 'error',
-      
+
       // Import rules
       'sort-imports': ['error', { ignoreDeclarationSort: true }],
     },
