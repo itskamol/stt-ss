@@ -73,10 +73,10 @@ export class AuthController {
     @ApiOperation({ summary: 'Validate the current access token' })
     @ApiOkResponseData(ValidateTokenResponseDto)
     @ApiResponse({ status: 401, description: 'Unauthorized', type: ApiErrorResponse })
-    async validateToken(@User() user: UserContext): Promise<ValidateTokenResponseDto> {
-        // The fact that the request successfully passed the JwtAuthGuard means the token is valid.
-        // The guard has already attached the user payload to the request.
-        return {
+    async validateToken(
+        @User() user: UserContext
+    ): Promise<ValidateTokenResponseDto> {
+        const data: ValidateTokenResponseDto = {
             valid: true,
             user: {
                 id: user.sub,
@@ -86,5 +86,7 @@ export class AuthController {
                 permissions: user.permissions,
             },
         };
+
+        return data;
     }
 }

@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from './core/config/config.service';
 import { CustomValidationException } from './shared/exceptions/validation.exception';
 import { LoggerService } from './core/logger';
-import { ApiErrorResponse, ApiSuccessResponse } from './shared/dto';
+import { ApiErrorResponse, ApiPaginatedResponse, ApiSuccessResponse } from './shared/dto';
 
 async function bootstrap() {
     // Create app with our custom logger
@@ -39,7 +39,7 @@ async function bootstrap() {
         .addBearerAuth()
         .build();
     const document = SwaggerModule.createDocument(app, config, {
-        extraModels: [ApiSuccessResponse, ApiErrorResponse],
+        extraModels: [ApiSuccessResponse, ApiErrorResponse, ApiPaginatedResponse],
     });
     SwaggerModule.setup('api/docs', app, document);
 

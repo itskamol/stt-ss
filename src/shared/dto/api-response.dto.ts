@@ -6,31 +6,19 @@ export class ApiMetaDto {
         description: 'The number of items on the current page.',
         example: 10,
     })
-    itemCount: number;
+    page: number;
 
     @ApiProperty({
         description: 'The total number of items available.',
         example: 100,
     })
-    totalItems: number;
+    total: number;
 
     @ApiProperty({
         description: 'The number of items per page.',
         example: 10,
     })
-    itemsPerPage: number;
-
-    @ApiProperty({
-        description: 'The total number of pages.',
-        example: 10,
-    })
-    totalPages: number;
-
-    @ApiProperty({
-        description: 'The current page number.',
-        example: 1,
-    })
-    currentPage: number;
+    limit: number;
 }
 
 export class ApiSuccessResponse<T> {
@@ -42,21 +30,25 @@ export class ApiSuccessResponse<T> {
 
     @ApiProperty({
         description: 'The main data payload of the response.',
-        oneOf: [{ $ref: getSchemaPath(ApiMetaDto) }], // This is a placeholder
     })
     data: T;
 
+    constructor(data: T) {
+        this.success = true;
+        this.data = data;
+    }
+}
+
+export class ApiPaginatedResponse<T> extends ApiSuccessResponse<T> {
     @ApiProperty({
         description: 'Optional metadata, typically used for pagination.',
-        required: false,
         type: ApiMetaDto,
     })
     @Type(() => ApiMetaDto)
-    meta?: ApiMetaDto;
+    meta: ApiMetaDto;
 
-    constructor(data: T, meta?: ApiMetaDto) {
-        this.success = true;
-        this.data = data;
+    constructor(data: T, meta: ApiMetaDto) {
+        super(data);
         this.meta = meta;
     }
 }

@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
 import { ApiOkResponse, getSchemaPath } from '@nestjs/swagger';
-import { ApiSuccessResponse } from '../dto/api-response.dto';
+import { ApiPaginatedResponse, ApiSuccessResponse } from '../dto/api-response.dto';
 
 export const ApiOkResponseData = <DataDto extends Type<unknown>>(dataDto: DataDto) =>
     ApiOkResponse({
@@ -20,7 +20,7 @@ export const ApiOkResponsePaginated = <DataDto extends Type<unknown>>(dataDto: D
     ApiOkResponse({
         schema: {
             allOf: [
-                { $ref: getSchemaPath(ApiSuccessResponse) },
+                { $ref: getSchemaPath(ApiPaginatedResponse) },
                 {
                     properties: {
                         data: {

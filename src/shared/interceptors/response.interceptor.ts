@@ -8,7 +8,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ApiMetaDto, ApiSuccessResponse } from '../dto/api-response.dto';
+import { ApiMetaDto, ApiPaginatedResponse, ApiSuccessResponse } from '../dto/api-response.dto';
 import { PaginationResponseDto } from '../dto/pagination.dto';
 import { BYPASS_RESPONSE_INTERCEPTOR } from '../decorators/bypass-interceptor.decorator';
 
@@ -49,15 +49,11 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiSuccessResp
                 ) {
                     const paginatedData = data as PaginationResponseDto<any>;
                     const meta = new ApiMetaDto();
-                    meta.itemCount = Array.isArray(paginatedData.data)
-                        ? paginatedData.data.length
-                        : 1;
-                    meta.totalItems = paginatedData.total;
-                    meta.itemsPerPage = paginatedData.limit;
-                    meta.totalPages = Math.ceil(paginatedData.total / paginatedData.limit);
-                    meta.currentPage = paginatedData.page;
+                    meta.limit = paginatedData.limit;
+                    meta.total = paginatedData.total;
+                    meta.page = paginatedData.page;
 
-                    return new ApiSuccessResponse(paginatedData.data, meta);
+                    return new ApiPaginatedResponse(paginatedData.data, meta);
                 }
 
                 // Handle all other successful responses
