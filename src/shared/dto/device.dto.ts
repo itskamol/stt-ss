@@ -136,7 +136,16 @@ export class CreateDeviceDto {
     })
     @IsOptional()
     @IsString()
-    firmware?: string;
+    firmwareVersion?: string;
+
+    @ApiProperty({
+        description: 'The firmware version of the device.',
+        example: 'V1.2.3',
+        required: false,
+    })
+    @IsOptional()
+    @IsString()
+    firmwareReleasedDate?: string;
 
     @ApiProperty({
         description: 'A description of the device.',

@@ -1,5 +1,6 @@
 import { Device, DeviceProtocol, DeviceStatus, DeviceType, EventType } from '@prisma/client';
 import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
+import { ISAPIXMLResponse } from '../implementations';
 
 export interface DeviceDiscoveryConfig {
     protocol: DeviceProtocol;
@@ -21,7 +22,7 @@ export interface DeviceInfo {
     deviceType: DeviceType;
     manufacturer: string;
     capabilities: DeviceCapability;
-    status?: 'online' | 'offline' | 'unknown';
+    status?: DeviceStatus;
 }
 
 export interface DeviceCapability {
@@ -30,7 +31,7 @@ export interface DeviceCapability {
     cardManagementSupport: any;
     userManagementSupport: any;
     eventSubscriptionSupport: any;
-    capabilities: {
+    meta: {
         [key: string]: any; // Dynamic capabilities
     };
     [key: string]: any;
@@ -191,4 +192,21 @@ export interface IDeviceAdapter {
      * Clear device logs
      */
     clearDeviceLogs(device: Device): Promise<void>;
+
+    supportsWebhooks(device: Device): Promise<boolean>;
+
+    getWebhookConfigurations(device: Device): Promise<any[]>;
+
+    configureEventHost(
+        device: Device,
+        hostID: string,
+        hostConfig: {
+            url: string;
+            host: string;
+            port: number;
+            protocolType?: 'HTTP' | 'HTTPS';
+            parameterFormatType?: 'XML' | 'JSON';
+            eventTypes?: string[];
+        }
+    ): Promise<ISAPIXMLResponse>;
 }

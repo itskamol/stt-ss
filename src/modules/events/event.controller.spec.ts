@@ -66,8 +66,6 @@ describe('EventController', () => {
             const result = await controller.processRawEvent(
                 createRawEventDto,
                 deviceId,
-                signature,
-                idempotencyKey
             );
 
             expect(eventService.processRawEvent).toHaveBeenCalledWith(
@@ -91,8 +89,6 @@ describe('EventController', () => {
             const result = await controller.processRawEvent(
                 createRawEventDto,
                 deviceId,
-                signature,
-                'duplicate-key'
             );
 
             expect(result).toEqual({
@@ -106,7 +102,7 @@ describe('EventController', () => {
             const eventId = 'event-456';
             eventService.processRawEvent.mockResolvedValue(eventId);
 
-            await controller.processRawEvent(createRawEventDto, deviceId, signature, undefined);
+            await controller.processRawEvent(createRawEventDto, deviceId);
 
             expect(eventService.processRawEvent).toHaveBeenCalledWith(
                 createRawEventDto,
@@ -124,8 +120,6 @@ describe('EventController', () => {
                 controller.processRawEvent(
                     createRawEventDto,
                     deviceId,
-                    'invalid-signature',
-                    idempotencyKey
                 )
             ).rejects.toThrow(UnauthorizedException);
         });
@@ -135,7 +129,7 @@ describe('EventController', () => {
             eventService.processRawEvent.mockRejectedValue(processingError);
 
             await expect(
-                controller.processRawEvent(createRawEventDto, deviceId, signature, 'error-key')
+                controller.processRawEvent(createRawEventDto, deviceId)
             ).rejects.toThrow('Processing failed');
         });
     });

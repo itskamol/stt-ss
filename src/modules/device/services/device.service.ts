@@ -97,10 +97,6 @@ export class DeviceService {
         return this.deviceWebhookService.configureWebhook(deviceId, webhookDto, scope);
     }
 
-    async getWebhookConfiguration(id: string, scope: DataScope) {
-        return this.deviceWebhookService.getWebhookConfiguration(id, scope);
-    }
-
     async removeWebhook(id: string, hostId: string, scope: DataScope, removedByUserId: string) {
         return this.deviceWebhookService.removeWebhook(id, hostId, scope, removedByUserId);
     }
@@ -110,18 +106,7 @@ export class DeviceService {
     }
 
     async createDevice(createDto: CreateDeviceDto, scope: DataScope): Promise<Device> {
-        const correlationId = `device_create_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
         try {
-            this.logger.log('Creating device', {
-                module: 'DeviceService',
-                action: 'createDevice',
-                correlationId,
-                deviceName: createDto.name,
-                deviceType: createDto.type,
-                scope,
-            });
-
             await this.validateBranchAccess(createDto.branchId, scope);
 
             const existingDevice = await this.deviceRepository.findBySerialNumber(
@@ -139,41 +124,32 @@ export class DeviceService {
                 ? this.encryptionService.encrypt(createDto.password)
                 : null;
 
-            const device = await this.deviceRepository.create({
-                ...createDto,
+            const data: CreateDeviceDto = {
+                name: createDto.name,
+                port: createDto.port,
+                protocol: createDto.protocol,
+                type: createDto.type,
+                username: createDto.username,
+                branchId: createDto.branchId,
+                macAddress: createDto.macAddress,
+                manufacturer: createDto.manufacturer,
+                serialNumber: createDto.serialNumber,
+                model: createDto.model,
+                host: createDto.host,
+                description: createDto.description,
+                isActive: createDto.isActive !== undefined ? createDto.isActive : true,
+                status: createDto.status,
                 password: encryptedPassword,
+                lastSeen: createDto.status === DeviceStatus.ONLINE ? new Date() : null,
+            };
+
+            const device = await this.deviceRepository.create({
+                ...data,
                 organizationId: scope.organizationId,
-            });
-
-            // Auto-apply matching template if available
-            try {
-                await this.deviceTemplateService.autoApplyMatchingTemplate(device, scope);
-            } catch (templateError) {
-                this.logger.warn('Failed to auto-apply template during device creation', {
-                    deviceId: device.id,
-                    error: templateError.message,
-                    organizationId: scope.organizationId,
-                });
-            }
-
-            this.logger.log('Device created successfully', {
-                module: 'DeviceService',
-                action: 'createDevice',
-                correlationId,
-                deviceId: device.id,
-                deviceName: device.name,
             });
 
             return device;
         } catch (error) {
-            this.logger.error('Failed to create device', error.stack, {
-                module: 'DeviceService',
-                action: 'createDevice',
-                correlationId,
-                deviceName: createDto.name,
-                scope,
-                error: error.message,
-            });
             throw error;
         }
     }
@@ -668,7 +644,7 @@ export class DeviceService {
                 scope,
             });
 
-            const device = await this.getDeviceWithDecryptedPassword(id, scope);
+            const device = await this.deviceRepository.findById(id, scope);
             const adapter = this.deviceAdapterStrategy.getAdapter(device);
             const result = await adapter.sendCommand(device, command);
 
@@ -755,7 +731,7 @@ export class DeviceService {
                 scope,
             });
 
-            const device = await this.getDeviceWithDecryptedPassword(id, scope);
+            const device = await this.deviceRepository.findById(id, scope);
             const adapter = this.deviceAdapterStrategy.getAdapter(device);
             const result = await adapter.testConnection(device);
 
@@ -799,7 +775,7 @@ export class DeviceService {
                 scope,
             });
 
-            const device = await this.getDeviceWithDecryptedPassword(id, scope);
+            const device = await this.deviceRepository.findById(id, scope);
             const adapter = this.deviceAdapterStrategy.getAdapter(device);
             const result = await adapter.sendCommand(device, controlDto);
 
@@ -1172,7 +1148,7 @@ export class DeviceService {
     // ========== PRIVATE HELPER METHODS ==========
 
     private async validateDeviceAccess(id: string, scope: DataScope): Promise<Device> {
-        const device = await this.findDeviceById(id, scope);
+        const device = await this.deviceRepository.findById(id, scope);
 
         if (!device) {
             throw new NotFoundException(`Device with ID '${id}' not found`);
@@ -1185,24 +1161,6 @@ export class DeviceService {
         if (!scope.branchIds?.includes(branchId)) {
             throw new NotFoundException(`Branch with ID '${branchId}' not found or access denied`);
         }
-    }
-
-    private async findDeviceById(id: string, scope: DataScope): Promise<Device> {
-        return await this.deviceRepository.findById(id, scope);
-    }
-
-    private async getDeviceWithDecryptedPassword(id: string, scope: DataScope): Promise<Device> {
-        const device = await this.deviceRepository.findById(id, scope);
-
-        if (!device) {
-            throw new NotFoundException(`Device with ID '${id}' not found`);
-        }
-
-        if (device.password) {
-            device.password = await this.encryptionService.decrypt(device.password);
-        }
-
-        return device;
     }
 
     private calculateUptime(lastSeen: Date | null): string {

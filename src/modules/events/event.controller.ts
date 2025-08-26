@@ -6,6 +6,7 @@ import {
     Headers,
     HttpCode,
     HttpStatus,
+    Param,
     Post,
     UnauthorizedException,
     UseGuards,
@@ -15,6 +16,7 @@ import {
     ApiExtraModels,
     ApiHeader,
     ApiOperation,
+    ApiParam,
     ApiResponse,
     ApiTags,
     getSchemaPath,
@@ -37,21 +39,11 @@ import { ApiOkResponseData } from '@/shared/utils';
 export class EventController {
     constructor(private readonly eventService: EventService) {}
 
-    @Post('raw')
-    @Public() // This endpoint uses DeviceAuthGuard instead of JWT
+    @Post('raw/:deviceId')
+    @Public()
     @HttpCode(HttpStatus.ACCEPTED)
     @ApiOperation({ summary: 'Process a raw event from a device' })
-    @ApiHeader({ name: 'x-device-id', description: 'Unique ID of the device', required: true })
-    @ApiHeader({
-        name: 'x-device-signature',
-        description: 'HMAC signature of the payload',
-        required: true,
-    })
-    @ApiHeader({
-        name: 'x-idempotency-key',
-        description: 'Idempotency key for preventing duplicate requests',
-        required: false,
-    })
+    @ApiParam({ name: 'deviceId', description: 'Unique ID of the device', required: true })
     @ApiResponse({
         status: 202,
         description: 'Event accepted for processing.',
@@ -93,30 +85,15 @@ export class EventController {
     })
     async processRawEvent(
         @Body() createRawEventDto: CreateRawEventDto,
-        @Headers('x-device-id') deviceId: string,
-        @Headers('x-device-signature') signature: string,
-        @Headers('x-idempotency-key') idempotencyKey?: string
+        @Param('deviceId') deviceId: string
     ): Promise<ProcessedEventResponseDto> {
         // Validate required headers
         if (!deviceId) {
             throw new BadRequestException('Device ID header is required');
         }
 
-        if (!signature) {
-            throw new UnauthorizedException('Device signature header is required');
-        }
-
-        // Generate idempotency key if not provided
-        const finalIdempotencyKey =
-            idempotencyKey || this.generateIdempotencyKey(deviceId, createRawEventDto);
-
         try {
-            const eventId = await this.eventService.processRawEvent(
-                createRawEventDto,
-                deviceId,
-                signature,
-                finalIdempotencyKey
-            );
+            const eventId = await this.eventService.processRawEvent(createRawEventDto, deviceId);
 
             return {
                 eventId,

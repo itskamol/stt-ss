@@ -4,6 +4,7 @@ import { Device, DeviceProtocol, DeviceType } from '@prisma/client';
 import {
     AdapterType,
     DeviceAdapterFactory,
+    DeviceCapability,
     DeviceCommand,
     DeviceDiscoveryConfig,
     DeviceInfo,
@@ -306,6 +307,26 @@ export class DeviceAdapterStrategy {
                 module: 'device-adapter-strategy',
             });
             throw error;
+        }
+    }
+
+    /**
+     * Get device capabilities using appropriate adapter
+     */
+    async supportsWebhooks(device: Device): Promise<boolean> {
+        const adapter = this.getAdapter(device);
+
+        try {
+            return adapter.supportsWebhooks(device);
+        } catch (error) {
+            this.logger.warn('Failed to get device capabilities', {
+                deviceId: device.id,
+                deviceHost: device.host,
+                deviceName: device.name,
+                error: error.message,
+                module: 'device-adapter-strategy',
+            });
+            return false;
         }
     }
 }

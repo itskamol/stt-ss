@@ -142,16 +142,13 @@ export class DeviceController {
         @Body() simplifiedInfo: SimplifiedDeviceCreationDto,
         @User() user: UserContext,
         @Scope() scope: DataScope
-    ): Promise<void> {
-    // ): Promise<DeviceResponseDto> {
+    ): Promise<DeviceResponseDto> {
         const device = await this.deviceDiscoveryService.scanDeviceForCreationInternal(
             simplifiedInfo,
             scope
         );
-        // console.log(device);
-        return;
-        // const createdDevice = await this.deviceService.createDevice(device, scope);
-        // return plainToClass(DeviceResponseDto, createdDevice);
+        const createdDevice = await this.deviceService.createDevice(device, scope);
+        return plainToClass(DeviceResponseDto, createdDevice);
     }
 
     @Get()

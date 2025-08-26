@@ -4,12 +4,16 @@ import { DeviceRepository } from '../device.repository';
 import { CreateWebhookDto } from '@/shared/dto/webhook.dto';
 import { DataScope } from '@/shared/interfaces';
 import { LoggerService } from '@/core/logger';
+import { ConfigService } from '@nestjs/config';
+import { DeviceAdapterStrategy } from '../device-adapter.strategy';
 
 @Injectable()
 export class DeviceWebhookService {
     constructor(
         private readonly deviceRepository: DeviceRepository,
-        private readonly logger: LoggerService
+        private readonly logger: LoggerService,
+        private readonly configService: ConfigService,
+        private readonly deviceAdapterStrategy: DeviceAdapterStrategy
     ) {}
 
     async configureWebhook(
@@ -17,18 +21,7 @@ export class DeviceWebhookService {
         webhookDto: CreateWebhookDto,
         scope: DataScope
     ): Promise<DeviceWebhook> {
-        const correlationId = `webhook_configure_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
         try {
-            this.logger.log('Configuring webhook for device', {
-                module: 'DeviceWebhookService',
-                action: 'configureWebhook',
-                correlationId,
-                deviceId,
-                webhookUrl: webhookDto.url,
-                scope,
-            });
-
             const device = await this.deviceRepository.findById(deviceId, scope);
             if (!device) {
                 throw new NotFoundException(`Device with ID '${deviceId}' not found`);
@@ -55,70 +48,12 @@ export class DeviceWebhookService {
                 protocolType: webhookDto.protocolType || 'HTTP',
                 parameterFormatType: webhookDto.parameterFormatType || 'JSON',
                 isActive: false,
-                createdByUserId: scope.organizationId, // This should be userId but we don't have it
+                createdByUserId: scope.organizationId,
                 organizationId: scope.organizationId,
             });
 
-            this.logger.log('Webhook configured successfully', {
-                module: 'DeviceWebhookService',
-                action: 'configureWebhook',
-                correlationId,
-                webhookId: webhook.id,
-                deviceId,
-                webhookUrl: webhook.url,
-            });
-
             return webhook;
         } catch (error) {
-            this.logger.error('Failed to configure webhook', error.stack, {
-                module: 'DeviceWebhookService',
-                action: 'configureWebhook',
-                correlationId,
-                deviceId,
-                webhookUrl: webhookDto.url,
-                scope,
-                error: error.message,
-            });
-            throw error;
-        }
-    }
-
-    async getWebhookConfiguration(id: string, scope: DataScope): Promise<DeviceWebhook[]> {
-        const correlationId = `webhook_get_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        try {
-            this.logger.log('Fetching webhook configuration', {
-                module: 'DeviceWebhookService',
-                action: 'getWebhookConfiguration',
-                correlationId,
-                deviceId: id,
-                scope,
-            });
-
-            const webhook = await this.deviceRepository.findWebhooksByDevice(id, scope);
-
-            if (!webhook || webhook.length === 0) {
-                throw new NotFoundException(`Webhook configuration for device '${id}' not found`);
-            }
-
-            this.logger.log('Webhook configuration fetched successfully', {
-                module: 'DeviceWebhookService',
-                action: 'getWebhookConfiguration',
-                correlationId,
-                deviceId: id,
-                webhookCount: webhook.length,
-            });
-
-            return webhook;
-        } catch (error) {
-            this.logger.error('Failed to fetch webhook configuration', error.stack, {
-                module: 'DeviceWebhookService',
-                action: 'getWebhookConfiguration',
-                correlationId,
-                webhookId: id,
-                scope,
-                error: error.message,
-            });
             throw error;
         }
     }
@@ -249,44 +184,28 @@ export class DeviceWebhookService {
     }
 
     async getDeviceWebhooks(deviceId: string, scope: DataScope): Promise<DeviceWebhook[]> {
-        const correlationId = `webhook_list_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        try {
-            this.logger.log('Fetching webhooks for device', {
-                module: 'DeviceWebhookService',
-                action: 'getDeviceWebhooks',
-                correlationId,
-                deviceId,
-                scope,
-            });
-
-            const device = await this.deviceRepository.findById(deviceId, scope);
-            if (!device) {
-                throw new NotFoundException(`Device with ID '${deviceId}' not found`);
-            }
-
-            const webhooks = await this.deviceRepository.findWebhook(deviceId, scope);
-
-            this.logger.log('Device webhooks fetched successfully', {
-                module: 'DeviceWebhookService',
-                action: 'getDeviceWebhooks',
-                correlationId,
-                deviceId,
-                webhookCount: webhooks.length,
-            });
-
-            return webhooks;
-        } catch (error) {
-            this.logger.error('Failed to fetch device webhooks', error.stack, {
-                module: 'DeviceWebhookService',
-                action: 'getDeviceWebhooks',
-                correlationId,
-                deviceId,
-                scope,
-                error: error.message,
-            });
-            throw error;
+        const device = await this.deviceRepository.findById(deviceId, scope);
+        if (!device) {
+            throw new NotFoundException(`Device with ID '${deviceId}' not found`);
         }
+
+        const adapter = this.deviceAdapterStrategy.getAdapter(device);
+
+        if (!adapter.supportsWebhooks(device)) {
+            throw new BadRequestException(`Device type '${device.type}' does not support webhooks`);
+        }
+
+        const webhooks = await adapter.getWebhookConfigurations(device);
+
+        console.log('webhooks', webhooks);
+
+        const webhook = await this.deviceRepository.findWebhooksByDevice(deviceId, scope);
+
+        if (!webhook || webhook.length === 0) {
+            throw new NotFoundException(`Webhook configuration for device '${deviceId}' not found`);
+        }
+
+        return webhook;
     }
 
     async triggerWebhook(deviceId: string, eventData: any, scope: DataScope): Promise<void> {

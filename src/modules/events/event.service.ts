@@ -1,6 +1,5 @@
 import {
     BadRequestException,
-    ConflictException,
     Injectable,
     UnauthorizedException,
 } from '@nestjs/common';
@@ -10,7 +9,6 @@ import { PrismaService } from '@/core/database/prisma.service';
 import { CacheService } from '@/core/cache/cache.service';
 import { QueueProducer } from '@/core/queue/queue.producer';
 import { CreateRawEventDto } from '@/shared/dto';
-import { DataScope } from '@/shared/interfaces';
 import { DeviceStatus } from '@prisma/client';
 
 @Injectable()
@@ -26,19 +24,7 @@ export class EventService {
     async processRawEvent(
         createRawEventDto: CreateRawEventDto,
         deviceId: string,
-        signature: string,
-        idempotencyKey: string
     ): Promise<string> {
-        // Check idempotency
-        const existingEventId = await this.checkIdempotency(idempotencyKey);
-        if (existingEventId) {
-            throw new ConflictException('Duplicate event');
-        }
-
-        // Verify device authentication
-        await this.verifyDeviceAuthentication(deviceId, signature, createRawEventDto);
-
-        // Get device information
         const device = await this.getDeviceInfo(deviceId);
         if (!device) {
             throw new BadRequestException('Device not found');
@@ -58,10 +44,6 @@ export class EventService {
                 : new Date(),
             organizationId: device.organizationId,
         });
-
-        // Store idempotency key
-        await this.storeIdempotencyKey(idempotencyKey, eventLog.id);
-
         // Queue event for background processing
         await this.queueProducer.processRawDeviceEvent({
             deviceId: device.id,
@@ -70,7 +52,6 @@ export class EventService {
             rawData: createRawEventDto,
             organizationId: device.organizationId,
             branchId: device.branchId,
-            idempotencyKey,
         });
 
         // Update device last seen

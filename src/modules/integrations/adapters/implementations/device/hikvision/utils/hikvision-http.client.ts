@@ -6,12 +6,14 @@ import { LoggerService } from '@/core/logger';
 import * as crypto from 'crypto';
 import { HIKVISION_ENDPOINTS, UNSUPPORTED_ERROR_PATTERNS } from '../constants/hikvision-endpoints';
 import { Device } from '@prisma/client';
+import { EncryptionService } from '@/shared/services/encryption.service';
 
 @Injectable()
 export class HikvisionHttpClient {
     constructor(
         private readonly logger: LoggerService,
-        private readonly httpService: HttpService
+        private readonly httpService: HttpService,
+        private readonly encryptionService: EncryptionService,
     ) {}
 
     async request<T>(device: Device, config: AxiosRequestConfig): Promise<T> {
@@ -92,10 +94,12 @@ export class HikvisionHttpClient {
         const nc = '00000001';
         const cnonce = crypto.randomBytes(8).toString('hex');
 
+        const password = this.encryptionService.decrypt(device.password);
+
         // `this.username` va `this.password` o'rniga `device`dan olingan ma'lumotlarni ishlatamiz
         const ha1 = crypto
             .createHash('md5')
-            .update(`${device.username}:${realm}:${device.password}`)
+            .update(`${device.username}:${realm}:${password}`)
             .digest('hex');
         const ha2 = crypto.createHash('md5').update(`${method}:${uri}`).digest('hex');
         const response = crypto

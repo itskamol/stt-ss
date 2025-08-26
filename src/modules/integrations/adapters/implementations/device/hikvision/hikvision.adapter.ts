@@ -30,6 +30,7 @@ import {
     HikvisionScheduleManager,
     HikvisionSystemManager,
 } from './managers';
+import { ISAPIXMLResponse } from './types';
 
 @Injectable()
 export class HikvisionAdapter implements IDeviceAdapter {
@@ -154,7 +155,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             const deviceType: any = Object.keys(this.deviceTypes).find(type =>
                 this.deviceTypes[type].includes(deviceInfo.deviceType)
             );
-
+            console.log(deviceInfo);
             return {
                 name: deviceInfo.deviceName || deviceInfo.name || 'Hikvision Device',
                 deviceId:
@@ -166,11 +167,11 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 serialNumber: deviceInfo.serialNumber || '',
                 macAddress: deviceInfo.macAddress || '',
                 firmwareVersion: deviceInfo.firmwareVersion || 'Unknown',
-                firmwareReleasedDate: deviceInfo.firmwareReleasedDate,
+                firmwareReleasedDate: deviceInfo.firmwareReleasedDate || '',
                 deviceType: deviceType || 'ACCESS_CONTROL',
                 manufacturer: deviceInfo.manufacturer || 'Hikvision',
                 capabilities: capabilities,
-                status: 'online',
+                status: DeviceStatus.ONLINE,
             };
         } catch (error) {
             this.logger.error(`Failed to get device info: ${error.message}`, error.trace, {
@@ -777,7 +778,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
             parameterFormatType?: 'XML' | 'JSON';
             eventTypes?: string[];
         }
-    ) {
+    ): Promise<ISAPIXMLResponse> {
         const hostNotification = this.eventHost.createBasicHostConfig(
             hostID,
             hostConfig.url,
@@ -872,7 +873,6 @@ export class HikvisionAdapter implements IDeviceAdapter {
      */
     async getDeviceCapabilities(device: Device): Promise<DeviceCapability> {
         try {
-            // Use the new HTTP client method to get capabilities
             const rawData = await this.httpClient.getDeviceCapabilities(device);
 
             const capabilities = await this.xmlJsonService.xmlToJsonClean(rawData);
@@ -882,45 +882,31 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 capabilities,
             });
 
-            const supported = [
-                'isSupportUserInfoDetailDelete',
-                'isSupportUserInfo',
-                'isSupportTTSText',
-                'isSupportTTSTextSearchHolidayPlan',
-                'isSupportTTSTextHolidayPlan',
-                'isSupportCaptureIrisData',
-                'isSupportIrisInfo',
-                'isSupportCaptureFace',
-                'isSupportFDLib',
-                'isSupportCaptureFingerPrint',
-                'isSupportFingerPrintDelete',
-                'isSupportFingerPrintCfg',
-                'isSupportCaptureCardInfo',
-                'isSupportCardInfo',
-            ];
-            
-            // isSupportUserInfoDetailDelete -> it indicates that the device supports person deleting.
-            // isSupportUserInfo -> it indicates that the device supports user management.
-            // isSupportTTSText -> it indicates that the device supports daily schedule management of voice prompt
-            // isSupportTTSTextSearchHolidayPlan -> it indicates that the device supports searching for holiday schedule parameters
-            // isSupportTTSTextHolidayPlan -> it indicates that the device supports holiday schedule management of voice prompt
-            // isSupportCaptureIrisData -> it indicates that the device supports iris data collecting
-            // isSupportIrisInfo -> it indicates that the device supports iris data management
-            // isSupportCaptureFace -> it indicates that the device supports face picture (captured in visible light) collecting
-            // isSupportFDLib -> it indicates that the device supports face picture management
-            // isSupportCaptureFingerPrint -> it indicates that the device supports face picture management.
-            // isSupportFingerPrintDelete -> it indicates that the device supports fingerprint deleting.
-            // isSupportFingerPrintCfg -> it indicates that the device supports fingerprint management.
-            // isSupportCaptureCardInfo -> it indicates that the device supports card collecting.
-            // isSupportCardInfo -> it indicates that the device supports card management.
+            // const supported = [
+            //     'isSupportUserInfoDetailDelete',
+            //     'isSupportUserInfo',
+            //     'isSupportTTSText',
+            //     'isSupportTTSTextSearchHolidayPlan',
+            //     'isSupportTTSTextHolidayPlan',
+            //     'isSupportCaptureIrisData',
+            //     'isSupportIrisInfo',
+            //     'isSupportCaptureFace',
+            //     'isSupportFDLib',
+            //     'isSupportCaptureFingerPrint',
+            //     'isSupportFingerPrintDelete',
+            //     'isSupportFingerPrintCfg',
+            //     'isSupportCaptureCardInfo',
+            //     'isSupportCardInfo',
+            //     'isSupportHttpHosts',
+            // ];
 
             return {
-                faceLibrarySupport: capabilities.faceRecognition,
-                fingerprintSupport: capabilities.fingerprint,
-                cardManagementSupport: 'isSupportCardInfo',
-                userManagementSupport: capabilities.userManagement,
-                eventSubscriptionSupport: capabilities.eventSubscription,
-                capabilities: capabilities.capabilities,
+                faceLibrarySupport: capabilities.isSupportFDLib === 'true',
+                fingerprintSupport: capabilities.isSupportFingerPrintCfg === 'true',
+                cardManagementSupport: capabilities.isSupportCardInfo === 'true',
+                userManagementSupport: capabilities.isSupportUserInfo === 'true',
+                eventSubscriptionSupport: capabilities.isSupportHttpHosts === 'true',
+                meta: capabilities,
             };
         } catch (error) {
             this.logger.error('Failed to get device capabilities', error.message, {
@@ -934,85 +920,23 @@ export class HikvisionAdapter implements IDeviceAdapter {
                 cardManagementSupport: false,
                 userManagementSupport: true,
                 eventSubscriptionSupport: true,
-                capabilities: {},
+                meta: {},
             };
         }
     }
 
-    /**
-     * Comprehensive device status check
-     */
-    async getComprehensiveDeviceStatus(device: Device) {
-        try {
-            // Get device capabilities first to know what's supported
-            const capabilities = await this.getDeviceCapabilities(device);
+    async supportsWebhooks(device: Device): Promise<boolean> {
+        const result = await this.eventHost.getListeningHostCapabilities(device);
 
-            const promises = [];
+        return true;
+    }
 
-            // Always get device health
-            promises.push(this.getDeviceHealth(device));
+    async getWebhookConfigurations(device: Device): Promise<any> {
+        const result = await this.eventHost.getAllListeningHosts(device);
+        return result;
+    }
 
-            // Only get counts for supported features
-            if (capabilities.userManagementSupport) {
-                promises.push(this.system.getAllUsers(device));
-            }
-
-            if (capabilities.eventSubscriptionSupport) {
-                promises.push(this.eventHost.getAllListeningHosts(device));
-            }
-
-            if (capabilities.faceLibrarySupport) {
-                promises.push(this.faceLibrary.getFaceLibraryCount(device));
-            }
-
-            if (capabilities.fingerprintSupport) {
-                promises.push(this.fingerprint.getFingerprintCount(device));
-            }
-
-            if (capabilities.cardManagementSupport) {
-                promises.push(this.person.getPersonCount(device));
-            }
-
-            const results = await Promise.allSettled(promises);
-
-            return {
-                health: results[0]?.status === 'fulfilled' ? results[0].value : null,
-                capabilities,
-                counts: {
-                    systemUsers: results[1]?.status === 'fulfilled' ? results[1].value.length : 0,
-                    eventHosts: results[2]?.status === 'fulfilled' ? results[2].value.length : 0,
-                    faceLibraries:
-                        results[3]?.status === 'fulfilled'
-                            ? results[3].value.totalRecordDataNumber
-                            : 0,
-                    fingerprints: results[4]?.status === 'fulfilled' ? results[4].value : 0,
-                    persons: results[5]?.status === 'fulfilled' ? results[5].value : 0,
-                },
-                lastChecked: new Date(),
-            };
-        } catch (error) {
-            this.logger.error('Failed to get comprehensive device status', error.message, {
-                deviceId: device.id,
-            });
-
-            return {
-                health: null,
-                capabilities: {
-                    faceLibrarySupport: false,
-                    fingerprintSupport: false,
-                    cardManagementSupport: false,
-                    userManagementSupport: true,
-                    eventSubscriptionSupport: true,
-                },
-                counts: {
-                    systemUsers: 0,
-                    eventHosts: 0,
-                    faceLibraries: 0,
-                    fingerprints: 0,
-                    persons: 0,
-                },
-                lastChecked: new Date(),
-            };
-        }
+    async deleteWebhookConfiguration(device: Device, hostID: string): Promise<void> {
+        await this.eventHost.deleteListeningHost(device, hostID);
     }
 }

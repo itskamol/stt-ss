@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService as NestConfigService } from '@nestjs/config';
-
+import os from 'os';
 @Injectable()
 export class ConfigService {
     constructor(private readonly configService: NestConfigService) {}
@@ -137,6 +137,25 @@ export class ConfigService {
 
     get isDocker(): boolean {
         return this.nodeEnv === 'docker';
+    }
+
+    get hostIp(): string {
+        if (this.isDocker) {
+            // In Docker, we assume the host IP is the gateway IP
+            return this.configService.get<string>('HOST_IP', 'host.docker.internal');
+        }
+        // Attempt to determine local IP address
+        const interfaces = os.networkInterfaces();
+        for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]!) {
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    return iface.address;
+                }
+            }
+        }
+
+        // Fallback to localhost
+        return '';
     }
 
     /**

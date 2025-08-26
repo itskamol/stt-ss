@@ -11,16 +11,7 @@ export class DeviceRepository {
 
     async create(data: CreateDeviceDto & { organizationId: string }): Promise<Device> {
         return this.prisma.device.create({
-            data: {
-                name: data.name,
-                type: data.type,
-                branchId: data.branchId,
-                host: data.host,
-                username: data.username,
-                password: data.password,
-                model: data.model,
-                organizationId: data.organizationId,
-            },
+            data
         });
     }
 
