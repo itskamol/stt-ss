@@ -420,6 +420,100 @@ export class DeviceController {
         };
     }
 
+    // ==================== CREDENTIAL SYNC ENDPOINTS ====================
+
+    @Post(':id/sync-face-credentials')
+    @Permissions(PERMISSIONS.DEVICE.MANAGE_MANAGED)
+    @ApiOperation({ summary: 'Sync employees with face credentials to device' })
+    @ApiParam({ name: 'id', description: 'ID of the device' })
+    @ApiResponse({
+        status: 200,
+        description: 'Face credentials sync completed successfully.',
+        schema: {
+            type: 'object',
+            properties: {
+                deviceId: { type: 'string' },
+                deviceName: { type: 'string' },
+                credentialType: { type: 'string', enum: ['FACE'] },
+                totalEmployees: { type: 'number' },
+                added: { type: 'number' },
+                updated: { type: 'number' },
+                failed: { type: 'number' },
+                syncedAt: { type: 'string', format: 'date-time' },
+                status: { type: 'string' },
+                message: { type: 'string' },
+            },
+        },
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
+    async syncFaceCredentials(
+        @Param('id') id: string,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ) {
+        return this.deviceService.syncEmployeesWithFaceCredentials(id, scope, user.sub);
+    }
+
+    @Get(':id/employees-with-credentials/:credentialType')
+    @Permissions(PERMISSIONS.DEVICE.READ_ALL)
+    @ApiOperation({ summary: 'Get employees with specific credential type for device' })
+    @ApiParam({ name: 'id', description: 'ID of the device' })
+    @ApiParam({ 
+        name: 'credentialType', 
+        description: 'Type of credential',
+        enum: ['FACE', 'FINGERPRINT', 'CARD', 'CAR_NUMBER', 'PASSWORD_HASH', 'QR_CODE']
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'List of employees with specified credential type.',
+        schema: {
+            type: 'object',
+            properties: {
+                deviceId: { type: 'string' },
+                deviceName: { type: 'string' },
+                credentialType: { type: 'string' },
+                totalEmployees: { type: 'number' },
+                employees: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string' },
+                            employeeCode: { type: 'string' },
+                            firstName: { type: 'string' },
+                            lastName: { type: 'string' },
+                            email: { type: 'string' },
+                            photoKey: { type: 'string' },
+                            credentials: {
+                                type: 'array',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        id: { type: 'string' },
+                                        type: { type: 'string' },
+                                        value: { type: 'string' },
+                                        metadata: { type: 'object' },
+                                        isActive: { type: 'boolean' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Device not found.', type: ApiErrorResponse })
+    async getEmployeesWithCredentialType(
+        @Param('id') id: string,
+        @Param('credentialType') credentialType: string,
+        @Scope() scope: DataScope
+    ) {
+        return this.deviceService.getEmployeesWithCredentialType(id, credentialType as any, scope);
+    }
+
     @Get(':id/configuration')
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get device configuration' })

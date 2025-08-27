@@ -209,13 +209,12 @@ export class DeviceRepository {
         });
     }
 
-    async findWebhookByHostId(deviceId: string, hostId: string, scope: DataScope) {
+    async findWebhookByHostId(deviceId: string, scope: DataScope) {
         const whereClause = QueryBuilder.buildOrganizationScope(scope);
 
         return this.prisma.deviceWebhook.findFirst({
             where: {
                 deviceId,
-                hostId,
                 ...whereClause,
             },
         });

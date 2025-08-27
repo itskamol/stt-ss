@@ -4,8 +4,8 @@ import { DeviceRepository } from '../device.repository';
 import { CreateWebhookDto } from '@/shared/dto/webhook.dto';
 import { DataScope } from '@/shared/interfaces';
 import { LoggerService } from '@/core/logger';
-import { ConfigService } from '@nestjs/config';
 import { DeviceAdapterStrategy } from '../device-adapter.strategy';
+import { ConfigService } from '@/core/config/config.service';
 
 @Injectable()
 export class DeviceWebhookService {
@@ -27,18 +27,28 @@ export class DeviceWebhookService {
                 throw new NotFoundException(`Device with ID '${deviceId}' not found`);
             }
 
-            const existingWebhook = await this.deviceRepository.findWebhookByHostId(
-                deviceId,
-                webhookDto.host,
-                scope
-            );
-            if (existingWebhook) {
+            const adapter = this.deviceAdapterStrategy.getAdapter(device);
+
+            const existingWebhook = await adapter.getWebhookConfigurations(device);
+
+            const hostIds = existingWebhook.map(wh => wh.id);
+
+            if (!adapter.supportsWebhooks(device)) {
                 throw new BadRequestException(
-                    `Webhook already configured for this device and host`
+                    `Device type '${device.type}' does not support webhooks`
                 );
             }
 
-            const webhook = await this.deviceRepository.createWebhook({
+            await adapter.configureEventHost(device, hostIds[0] || '1', {
+                url: webhookDto.url,
+                host: this.configService.hostIp,
+                port: webhookDto.port || 80,
+                protocolType: webhookDto.protocolType || 'HTTP',
+                parameterFormatType: 'JSON',
+                eventTypes: webhookDto.eventTypes || [],
+            });
+
+            const webhook = {
                 deviceId,
                 hostId: webhookDto.host,
                 url: webhookDto.url,
@@ -50,9 +60,11 @@ export class DeviceWebhookService {
                 isActive: false,
                 createdByUserId: scope.organizationId,
                 organizationId: scope.organizationId,
-            });
+            };
 
-            return webhook;
+            // await this.deviceRepository.createWebhook(webhook);
+
+            return webhook as DeviceWebhook;
         } catch (error) {
             throw error;
         }
@@ -64,48 +76,28 @@ export class DeviceWebhookService {
         scope: DataScope,
         removedByUserId: string
     ): Promise<void> {
-        const correlationId = `webhook_remove_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const device = await this.deviceRepository.findById(id, scope);
 
-        try {
-            this.logger.log('Removing webhook configuration', {
-                module: 'DeviceWebhookService',
-                action: 'removeWebhook',
-                correlationId,
-                webhookId: id,
-                hostId,
-                removedByUserId,
-                scope,
-            });
-
-            const webhook = await this.deviceRepository.findWebhookByHostId(id, hostId, scope);
-            if (!webhook) {
-                throw new NotFoundException(
-                    `Webhook configuration for device '${id}' and host '${hostId}' not found`
-                );
-            }
-
-            await this.deviceRepository.deleteWebhook(webhook.id);
-
-            this.logger.log('Webhook configuration removed successfully', {
-                module: 'DeviceWebhookService',
-                action: 'removeWebhook',
-                correlationId,
-                webhookId: id,
-                deviceId: webhook.deviceId,
-                webhookUrl: webhook.url,
-            });
-        } catch (error) {
-            this.logger.error('Failed to remove webhook configuration', error.stack, {
-                module: 'DeviceWebhookService',
-                action: 'removeWebhook',
-                correlationId,
-                webhookId: id,
-                hostId,
-                scope,
-                error: error.message,
-            });
-            throw error;
+        if (!device) {
+            throw new NotFoundException(`Device with ID '${id}' not found`);
         }
+
+        const adapter = this.deviceAdapterStrategy.getAdapter(device);
+
+        if (!adapter.supportsWebhooks(device)) {
+            throw new BadRequestException(`Device type '${device.type}' does not support webhooks`);
+        }
+
+        const webhooks = await adapter.deleteWebhooks(device);
+        // const webhook = await this.deviceRepository.findWebhookByHostId(id, hostId, scope);
+        // if (!webhook) {
+        //     throw new NotFoundException(
+        //         `Webhook configuration for device '${id}' and host '${hostId}' not found`
+        //     );
+        // }
+
+        // await this.deviceRepository.deleteWebhook(webhook.id);
+        return webhooks;
     }
 
     async testWebhook(
@@ -127,7 +119,7 @@ export class DeviceWebhookService {
                 scope,
             });
 
-            const webhook = await this.deviceRepository.findWebhookByHostId(id, hostId, scope);
+            const webhook = await this.deviceRepository.findWebhookByHostId(id, scope);
             if (!webhook) {
                 throw new NotFoundException(
                     `Webhook configuration for device '${id}' and host '${hostId}' not found`
@@ -199,13 +191,13 @@ export class DeviceWebhookService {
 
         console.log('webhooks', webhooks);
 
-        const webhook = await this.deviceRepository.findWebhooksByDevice(deviceId, scope);
+        // const webhook = await this.deviceRepository.findWebhooksByDevice(deviceId, scope);
 
-        if (!webhook || webhook.length === 0) {
-            throw new NotFoundException(`Webhook configuration for device '${deviceId}' not found`);
-        }
+        // if (!webhook || webhook.length === 0) {
+        //     throw new NotFoundException(`Webhook configuration for device '${deviceId}' not found`);
+        // }
 
-        return webhook;
+        return webhooks;
     }
 
     async triggerWebhook(deviceId: string, eventData: any, scope: DataScope): Promise<void> {

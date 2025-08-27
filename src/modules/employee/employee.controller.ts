@@ -26,15 +26,20 @@ import {
     getSchemaPath,
 } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
+import { EmployeeCredentialService } from './credentials';
 import {
     ApiErrorResponse,
     ApiSuccessResponse,
     CreateEmployeeDto,
+    CreateEmployeeCredentialDto,
     EmployeeCountResponseDto,
+    EmployeeCredentialResponseDto,
     EmployeePhotoUploadResponseDto,
     EmployeeResponseDto,
     PaginationDto,
     UpdateEmployeeDto,
+    UpdateEmployeeCredentialDto,
+    CreateFaceCredentialDto,
 } from '@/shared/dto';
 import { Permissions, Scope, User } from '@/shared/decorators';
 import { DataScope, UserContext } from '@/shared/interfaces';
@@ -42,7 +47,7 @@ import { AuditLog } from '@/shared/interceptors/audit-log.interceptor';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOkResponseData, ApiOkResponsePaginated } from '@/shared/utils';
-import { Employee } from '@prisma/client';
+import { Employee, EmployeeCredential, CredentialType } from '@prisma/client';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -51,10 +56,14 @@ import { Employee } from '@prisma/client';
     ApiSuccessResponse,
     EmployeeResponseDto,
     EmployeeCountResponseDto,
-    EmployeePhotoUploadResponseDto
+    EmployeePhotoUploadResponseDto,
+    EmployeeCredentialResponseDto
 )
 export class EmployeeController {
-    constructor(private readonly employeeService: EmployeeService) {}
+    constructor(
+        private readonly employeeService: EmployeeService,
+        private readonly credentialService: EmployeeCredentialService
+    ) {}
 
     @Post()
     @Permissions(PERMISSIONS.EMPLOYEE.CREATE)
@@ -352,5 +361,200 @@ export class EmployeeController {
         @Scope() scope: DataScope
     ): Promise<void> {
         await this.employeeService.deleteEmployeePhoto(id, scope, user.sub);
+    }
+
+    // ==================== CREDENTIAL ENDPOINTS ====================
+
+    @Get(':id/credentials')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
+    @ApiOperation({ summary: 'Get all credentials for an employee' })
+    @ApiParam({ name: 'id', description: 'ID of the employee' })
+    @ApiResponse({
+        status: 200,
+        description: 'List of employee credentials.',
+        type: [EmployeeCredentialResponseDto],
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
+    async getEmployeeCredentials(
+        @Param('id') employeeId: string,
+        @Scope() scope: DataScope
+    ): Promise<EmployeeCredential[]> {
+        return this.credentialService.getEmployeeCredentials(employeeId, scope);
+    }
+
+    @Post(':id/credentials')
+    @Permissions(PERMISSIONS.EMPLOYEE.UPDATE_MANAGED)
+    @AuditLog({
+        action: 'CREATE_CREDENTIAL',
+        resource: 'employee_credential',
+        captureRequest: true,
+        captureResponse: true,
+    })
+    @ApiOperation({ summary: 'Create a new credential for an employee' })
+    @ApiParam({ name: 'id', description: 'ID of the employee' })
+    @ApiBody({ type: CreateEmployeeCredentialDto })
+    @ApiResponse({
+        status: 201,
+        description: 'The credential has been successfully created.',
+        type: EmployeeCredentialResponseDto,
+    })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
+    @ApiResponse({ status: 409, description: 'Credential already exists.', type: ApiErrorResponse })
+    async createEmployeeCredential(
+        @Param('id') employeeId: string,
+        @Body() createCredentialDto: CreateEmployeeCredentialDto,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ): Promise<EmployeeCredential> {
+        return this.credentialService.createCredential(
+            employeeId,
+            createCredentialDto,
+            scope,
+            user.sub
+        );
+    }
+
+    @Post(':id/credentials/face')
+    @Permissions(PERMISSIONS.EMPLOYEE.UPDATE_MANAGED)
+    @AuditLog({
+        action: 'CREATE_FACE_CREDENTIAL',
+        resource: 'employee_credential',
+        captureRequest: true,
+        captureResponse: true,
+    })
+    @ApiOperation({ summary: 'Create face credential from existing employee photo' })
+    @ApiParam({ name: 'id', description: 'ID of the employee' })
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                metadata: {
+                    type: 'object',
+                    description: 'Additional metadata for the face credential',
+                    example: { quality: 95, source: 'employee_photo' },
+                },
+            },
+        },
+    })
+    @ApiResponse({
+        status: 201,
+        description: 'The face credential has been successfully created/updated from employee photo.',
+        type: EmployeeCredentialResponseDto,
+    })
+    @ApiResponse({
+        status: 400,
+        description: 'Employee does not have a photo.',
+        type: ApiErrorResponse,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
+    async createFaceCredentialFromPhoto(
+        @Param('id') employeeId: string,
+        @Body('metadata') metadata: any,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ): Promise<EmployeeCredential> {
+        return this.credentialService.createFaceCredentialFromPhoto(
+            employeeId,
+            metadata || {},
+            scope,
+            user.sub
+        );
+    }
+
+    @Get(':id/credentials/type/:type')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
+    @ApiOperation({ summary: 'Get active credentials of a specific type for an employee' })
+    @ApiParam({ name: 'id', description: 'ID of the employee' })
+    @ApiParam({ name: 'type', enum: CredentialType, description: 'Type of credential' })
+    @ApiResponse({
+        status: 200,
+        description: 'List of active credentials of the specified type.',
+        type: [EmployeeCredentialResponseDto],
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Employee not found.', type: ApiErrorResponse })
+    async getEmployeeCredentialsByType(
+        @Param('id') employeeId: string,
+        @Param('type') type: CredentialType,
+        @Scope() scope: DataScope
+    ): Promise<EmployeeCredential[]> {
+        return this.credentialService.getActiveCredentialsByType(employeeId, type, scope);
+    }
+
+    @Get('credentials/:credentialId')
+    @Permissions(PERMISSIONS.EMPLOYEE.READ_ALL)
+    @ApiOperation({ summary: 'Get a specific credential by ID' })
+    @ApiParam({ name: 'credentialId', description: 'ID of the credential' })
+    @ApiResponse({
+        status: 200,
+        description: 'The credential details.',
+        type: EmployeeCredentialResponseDto,
+    })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Credential not found.', type: ApiErrorResponse })
+    async getCredentialById(
+        @Param('credentialId') credentialId: string,
+        @Scope() scope: DataScope
+    ): Promise<EmployeeCredential> {
+        return this.credentialService.getCredentialById(credentialId, scope);
+    }
+
+    @Patch('credentials/:credentialId')
+    @Permissions(PERMISSIONS.EMPLOYEE.UPDATE_MANAGED)
+    @AuditLog({
+        action: 'UPDATE_CREDENTIAL',
+        resource: 'employee_credential',
+        captureRequest: true,
+        captureResponse: true,
+    })
+    @ApiOperation({ summary: 'Update a credential' })
+    @ApiParam({ name: 'credentialId', description: 'ID of the credential to update' })
+    @ApiBody({ type: UpdateEmployeeCredentialDto })
+    @ApiResponse({
+        status: 200,
+        description: 'The credential has been successfully updated.',
+        type: EmployeeCredentialResponseDto,
+    })
+    @ApiResponse({ status: 400, description: 'Invalid input.', type: ApiErrorResponse })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Credential not found.', type: ApiErrorResponse })
+    @ApiResponse({ status: 409, description: 'Credential value already exists.', type: ApiErrorResponse })
+    async updateCredential(
+        @Param('credentialId') credentialId: string,
+        @Body() updateCredentialDto: UpdateEmployeeCredentialDto,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ): Promise<EmployeeCredential> {
+        return this.credentialService.updateCredential(
+            credentialId,
+            updateCredentialDto,
+            scope,
+            user.sub
+        );
+    }
+
+    @Delete('credentials/:credentialId')
+    @Permissions(PERMISSIONS.EMPLOYEE.UPDATE_MANAGED)
+    @AuditLog({
+        action: 'DELETE_CREDENTIAL',
+        resource: 'employee_credential',
+        captureRequest: true,
+    })
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({ summary: 'Delete a credential' })
+    @ApiParam({ name: 'credentialId', description: 'ID of the credential to delete' })
+    @ApiResponse({ status: 204, description: 'The credential has been successfully deleted.' })
+    @ApiResponse({ status: 403, description: 'Forbidden.', type: ApiErrorResponse })
+    @ApiResponse({ status: 404, description: 'Credential not found.', type: ApiErrorResponse })
+    async deleteCredential(
+        @Param('credentialId') credentialId: string,
+        @User() user: UserContext,
+        @Scope() scope: DataScope
+    ): Promise<void> {
+        await this.credentialService.deleteCredential(credentialId, scope, user.sub);
     }
 }

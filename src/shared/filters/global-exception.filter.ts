@@ -5,12 +5,17 @@ import { LoggerService } from '@/core/logger';
 import { RequestWithCorrelation } from '../middleware/correlation-id.middleware';
 import { ApiErrorDto, ApiErrorResponse } from '../dto/api-response.dto';
 import { CustomValidationException } from '../exceptions/validation.exception';
+import { XmlJsonService } from '../services/xml-json.service';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-    constructor(private readonly logger: LoggerService) {}
+    constructor(
+        private readonly logger: LoggerService,
+        private readonly xmlService: XmlJsonService
+    ) {}
 
-    catch(exception: unknown, host: ArgumentsHost) {
+    async catch(exception: unknown, host: ArgumentsHost) {
+        console.log('Exception caught by GlobalExceptionFilter:', exception);
         const ctx = host.switchToHttp();
         const response = ctx.getResponse<Response>();
         const request = ctx.getRequest<RequestWithCorrelation>();
@@ -31,7 +36,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         } else if (exception instanceof HttpException) {
             status = exception.getStatus();
             const response = exception.getResponse();
-            error.message = typeof response === 'string' ? response : (response as any).message;
+
+            if (typeof response === 'string') {
+                if (response.includes('<?xml')) {
+                    error.message = await this.xmlService.xmlToJsonClean(response);
+                } else {
+                    error.message = response;
+                }
+            }
             error.code = this.getErrorCodeFromStatus(status);
         } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
             // See https://www.prisma.io/docs/reference/api-reference/error-reference#error-codes

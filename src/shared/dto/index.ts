@@ -2,6 +2,7 @@ export * from './pagination.dto';
 export * from './organization.dto';
 export * from './user.dto';
 export * from './employee.dto';
+export * from './employee-credential.dto';
 export * from './branch.dto';
 export * from './department.dto';
 export * from './device.dto';

@@ -3,6 +3,7 @@ import { LoggerService } from '@/core/logger';
 import { XmlJsonService } from '@/shared/services/xml-json.service';
 import { HikvisionHttpClient } from '../utils/hikvision-http.client';
 import { HttpHostNotification, HttpHostNotificationList, ISAPIXMLResponse } from '../types';
+import { Device } from '@prisma/client';
 
 @Injectable()
 export class HikvisionEventHostManager {
@@ -50,13 +51,12 @@ export class HikvisionEventHostManager {
     ): Promise<ISAPIXMLResponse> {
         try {
             this.logger.debug('Setting listening host', { deviceId: device.id, hostID });
-
             // Convert to XML format
             const xmlData = this.xmlJsonService.jsonToXml(
                 { HttpHostNotification: hostConfig },
                 'HttpHostNotification'
             );
-
+            console.log('Setting listening host with XML:', xmlData);
             const response = await this.httpClient.request(device, {
                 method: 'PUT',
                 url: `/ISAPI/Event/notification/httpHosts/${hostID}`,
@@ -201,30 +201,60 @@ export class HikvisionEventHostManager {
     /**
      * Delete all listening hosts
      */
-    async deleteAllListeningHosts(device: any): Promise<ISAPIXMLResponse> {
-        try {
-            this.logger.debug('Deleting all listening hosts', { deviceId: device.id });
+    // async deleteAllListeningHosts(device: any): Promise<ISAPIXMLResponse> {
+    //     try {
+    //         this.logger.debug('Deleting all listening hosts', { deviceId: device.id });
 
-            const response = await this.httpClient.request(device, {
-                method: 'DELETE',
-                url: '/ISAPI/Event/notification/httpHosts',
-            });
+    //         const response = await this.httpClient.request(device, {
+    //             method: 'DELETE',
+    //             url: '/ISAPI/Event/notification/httpHosts',
+    //         });
 
-            // Parse XML response
-            const jsonResponse = await this.xmlJsonService.xmlToJson(response as string);
+    //         // Parse XML response
+    //         const jsonResponse = await this.xmlJsonService.xmlToJson(response as string);
 
-            this.logger.debug('All listening hosts deleted successfully', {
-                deviceId: device.id,
-                statusCode: jsonResponse.ResponseStatus?.statusCode,
-            });
+    //         this.logger.debug('All listening hosts deleted successfully', {
+    //             deviceId: device.id,
+    //             statusCode: jsonResponse.ResponseStatus?.statusCode,
+    //         });
 
-            return jsonResponse.ResponseStatus;
-        } catch (error) {
-            this.logger.error('Failed to delete all listening hosts', error.message, {
-                deviceId: device.id,
-            });
-            throw error;
-        }
+    //         return jsonResponse.ResponseStatus;
+    //     } catch (error) {
+    //         this.logger.error('Failed to delete all listening hosts', error.message, {
+    //             deviceId: device.id,
+    //         });
+    //         throw error;
+    //     }
+    // }
+
+    async deleteAllListeningHosts(device: Device) {
+        const emptyHostListXML = `
+        <?xml version="1.0" encoding="UTF-8"?>
+        <HttpHostNotificationList xmlns="http://www.isapi.org/ver20/XMLSchema" version="2.0">
+        </HttpHostNotificationList>
+    `;
+
+        console.log("Barcha hostlarni bo'sh ro'yxat bilan qayta yozish...", {
+            deviceId: device.id,
+        });
+
+        const response = await this.httpClient.request<string>(device, {
+            method: 'PUT', // DELETE o'rniga PUT ishlatiladi
+            url: '/ISAPI/Event/notification/httpHosts',
+            headers: {
+                'Content-Type': 'application/xml',
+            },
+            data: emptyHostListXML, // So'rov tanasi sifatida bo'sh ro'yxat yuboriladi
+        });
+
+        const jsonResponse = await this.xmlJsonService.xmlToJson(response);
+
+        console.log('Hostlar muvaffaqiyatli tozalandi', {
+            deviceId: device.id,
+            statusCode: jsonResponse.ResponseStatus?.statusCode,
+        });
+
+        return jsonResponse.ResponseStatus;
     }
 
     /**
@@ -300,7 +330,7 @@ export class HikvisionEventHostManager {
         options: {
             protocolType?: 'HTTP' | 'HTTPS';
             parameterFormatType?: 'XML' | 'JSON' | 'querystring';
-            addressingFormatType?: 'hostname' | 'host';
+            addressingFormatType?: 'hostname' | 'ipaddress';
             userName?: string;
             password?: string;
             httpAuthenticationMethod?: 'none' | 'MD5digest' | 'base64';
@@ -314,11 +344,9 @@ export class HikvisionEventHostManager {
             url,
             protocolType: options.protocolType || 'HTTP',
             parameterFormatType: options.parameterFormatType || 'JSON',
-            addressingFormatType: options.addressingFormatType || 'host',
-            host,
+            addressingFormatType: options.addressingFormatType || 'ipaddress',
+            ipAddress: host,
             portNo: port,
-            userName: options.userName,
-            password: options.password,
             httpAuthenticationMethod: options.httpAuthenticationMethod || 'none',
             uploadImagesDataType: options.uploadImagesDataType || 'URL',
             httpBroken: false,
@@ -339,7 +367,7 @@ export class HikvisionEventHostManager {
     ) {
         return {
             heartbeat: 30,
-            eventMode: 'list' as const,
+            eventMode: 'all' as const,
             EventList: eventTypes.map(type => ({
                 type,
                 pictureURLType,

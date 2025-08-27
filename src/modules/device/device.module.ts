@@ -17,9 +17,10 @@ import { DeviceAdapterFactory } from '@/modules/integrations/adapters/factories/
 import { HikvisionAdapter } from '@/modules/integrations/adapters';
 import { DeviceController } from './controllers/device.controller';
 import { PaginationService } from '@/shared/services/pagination.service';
+import { ConfigModule } from '@/core/config/config.module';
 
 @Module({
-    imports: [DatabaseModule, LoggerModule, HttpModule, AdapterModule],
+    imports: [DatabaseModule, LoggerModule, HttpModule, AdapterModule, ConfigModule],
     controllers: [DeviceController],
     providers: [
         DeviceService,

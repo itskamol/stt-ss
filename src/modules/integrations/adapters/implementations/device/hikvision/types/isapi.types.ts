@@ -151,9 +151,9 @@ export interface HttpHostNotification {
     url: string;
     protocolType: 'HTTP' | 'HTTPS';
     parameterFormatType: 'XML' | 'JSON' | 'querystring';
-    addressingFormatType: 'hostname' | 'host';
+    addressingFormatType: 'hostname' | 'ipaddress';
     hostName?: string;
-    host?: string;
+    ipAddress?: string;
     ipv6Address?: string;
     portNo: number;
     userName?: string;

@@ -18,7 +18,7 @@ export class CustomValidationException extends BadRequestException {
         }));
 
         const message = formattedErrors.map(err => `${err.field}: ${err.message}`).join('; ');
-
+        console.log('Validation errors:', message);
         super({
             message: `Validation failed: ${message}`,
             errors: formattedErrors,

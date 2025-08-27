@@ -9,10 +9,13 @@ import {
     Param,
     Post,
     UnauthorizedException,
+    UploadedFile,
     UseGuards,
+    UseInterceptors,
 } from '@nestjs/common';
 import {
     ApiBearerAuth,
+    ApiConsumes,
     ApiExtraModels,
     ApiHeader,
     ApiOperation,
@@ -31,10 +34,10 @@ import {
 import { Public } from '@/shared/decorators';
 import { DeviceAuthGuard } from '@/shared/guards/device-auth.guard';
 import { ApiOkResponseData } from '@/shared/utils';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Events')
 @Controller('events')
-@UseGuards(DeviceAuthGuard)
 @ApiExtraModels(ApiSuccessResponse, ProcessedEventResponseDto)
 export class EventController {
     constructor(private readonly eventService: EventService) {}
@@ -42,75 +45,32 @@ export class EventController {
     @Post('raw/:deviceId')
     @Public()
     @HttpCode(HttpStatus.ACCEPTED)
+    // Swagger'ga bu endpoint multipart/form-data qabul qilishini aytish uchun:
+    @ApiConsumes('multipart/form-data')
     @ApiOperation({ summary: 'Process a raw event from a device' })
     @ApiParam({ name: 'deviceId', description: 'Unique ID of the device', required: true })
-    @ApiResponse({
-        status: 202,
-        description: 'Event accepted for processing.',
-        schema: {
-            allOf: [
-                { $ref: getSchemaPath(ApiSuccessResponse) },
-                {
-                    properties: {
-                        data: { $ref: getSchemaPath(ProcessedEventResponseDto) },
-                    },
-                },
-            ],
-        },
-    })
-    @ApiResponse({
-        status: 400,
-        description: 'Bad request (e.g., missing headers).',
-        type: ApiErrorResponse,
-    })
-    @ApiResponse({
-        status: 401,
-        description: 'Unauthorized (e.g., invalid signature).',
-        type: ApiErrorResponse,
-    })
-    @ApiResponse({
-        status: 200,
-        description: 'Duplicate event, already processed.',
-        type: ApiSuccessResponse,
-        schema: {
-            allOf: [
-                { $ref: getSchemaPath(ApiSuccessResponse) },
-                {
-                    properties: {
-                        data: { $ref: getSchemaPath(ProcessedEventResponseDto) },
-                    },
-                },
-            ],
-        },
-    })
+    // FileInterceptor'ni shu yerda ishlating
+    // 'file' - bu form-data da fayl yuboriladigan maydon (key) nomi
+    @UseInterceptors(FileInterceptor('Picture'))
     async processRawEvent(
-        @Body() createRawEventDto: CreateRawEventDto,
+        @UploadedFile() file: Express.Multer.File,
+        @Body() createRawEventDto: any, // Masalan: CreateRawEventDto
         @Param('deviceId') deviceId: string
-    ): Promise<ProcessedEventResponseDto> {
-        // Validate required headers
+    ): Promise<void> {
         if (!deviceId) {
             throw new BadRequestException('Device ID header is required');
         }
 
-        try {
-            const eventId = await this.eventService.processRawEvent(createRawEventDto, deviceId);
+        console.log('--- Device ID ---');
+        console.log(deviceId);
 
-            return {
-                eventId,
-                status: 'accepted',
-                message: 'Event queued for processing',
-            };
-        } catch (error) {
-            if (error.message === 'DUPLICATE_EVENT') {
-                return {
-                    eventId: error.existingEventId,
-                    status: 'duplicate',
-                    message: 'Event already processed',
-                };
-            }
+        console.log('--- Body (boshqa ma`lumotlar) ---');
+        console.log(createRawEventDto.event_log);
 
-            throw error;
-        }
+        // Bu yerda fayl va body ma'lumotlarini qayta ishlashingiz mumkin
+        // Masalan:
+        // const fileContent = file.buffer.toString('utf-8');
+        // const someData = createRawEventDto.someField;
     }
 
     private generateIdempotencyKey(deviceId: string, eventData: CreateRawEventDto): string {

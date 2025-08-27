@@ -128,33 +128,6 @@ enum ReportStatus {
   FAILED
 }
 
-enum CredentialType {
-  FACE
-  FINGERPRINT
-  CARD
-  CAR_NUMBER
-  PASSWORD_HASH
-  QR_CODE
-}
-
-model EmployeeCredential {
-  id         String   @id @default(uuid())
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId String
-
-  type  CredentialType
-  value String // e.g., base64 for face/fingerprint, card number, password hash, license plate, QR code data
-
-  metadata Json? // Additional info like template quality, issuedBy, issuedAt, etc.
-  isActive Boolean @default(true) // is this credential active?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([type, value])
-  @@index([employeeId])
-}
-
 // 1. Core organization model  
 model Organization {
   id          String   @id @default(uuid())
@@ -285,9 +258,8 @@ model Employee {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  attendances          Attendance[]
+  attendances         Attendance[]
   responsibleForGuests GuestVisit[]
-  EmployeeCredential   EmployeeCredential[]
 
   @@unique([organizationId, employeeCode])
   @@unique([organizationId, email])
@@ -306,22 +278,22 @@ model Device {
   department     Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   departmentId   String?
 
-  name         String
-  type         DeviceType
-  host         String?
-  username     String?
-  password     String? // Encrypted
-  port         Int?           @default(80)
-  protocol     DeviceProtocol @default(HTTP)
-  macAddress   String?        @unique
-  manufacturer String?
-  serialNumber String?        @unique
-  model        String?
-  firmware     String?
-  description  String?
-  status       DeviceStatus   @default(OFFLINE)
-  isActive     Boolean        @default(true)
-  lastSeen     DateTime?
+  name             String
+  type             DeviceType
+  host             String?
+  username         String?
+  password         String? // Encrypted
+  port             Int?           @default(80)
+  protocol         DeviceProtocol @default(HTTP)
+  macAddress       String?        @unique
+  manufacturer     String?
+  serialNumber     String?        @unique
+  model            String?
+  firmware         String?
+  description      String?
+  status           DeviceStatus   @default(OFFLINE)
+  isActive         Boolean        @default(true)
+  lastSeen         DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -360,8 +332,8 @@ model GuestVisit {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  attendances         Attendance[]
-  responsibleEmployee Employee?    @relation(fields: [responsibleEmployeeId], references: [id], onDelete: SetNull)
+  attendances           Attendance[]
+  responsibleEmployee   Employee? @relation(fields: [responsibleEmployeeId], references: [id], onDelete: SetNull)
 
   @@index([branchId, status])
   @@index([accessCredentialHash])
@@ -369,8 +341,8 @@ model GuestVisit {
 
 // 8. Attendance  
 model Attendance {
-  id             String       @id @default(uuid())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id           String @id @default(uuid())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String
   branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   branchId       String

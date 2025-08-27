@@ -41,7 +41,15 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config, {
         extraModels: [ApiSuccessResponse, ApiErrorResponse, ApiPaginatedResponse],
     });
-    SwaggerModule.setup('api/docs', app, document);
+    SwaggerModule.setup('api', app, document, {
+        // Bu sozlama UI sahifasiga JSON fayl manzilini ko'rsatadi
+        swaggerOptions: {
+            url: '/api/swagger.json',
+        },
+        // Bu sozlama JSON faylni alohida manzil (endpoint) sifatida yaratadi
+        jsonDocumentUrl: '/api/swagger.json',
+        customSiteTitle: 'Mening API Hujjatlarim', // Sahifa sarlavhasini o'zgartirish
+    });
 
     // Enable CORS
     app.enableCors();

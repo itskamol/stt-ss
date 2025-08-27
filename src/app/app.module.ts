@@ -26,7 +26,7 @@ import { ResponseInterceptor } from '@/shared/interceptors/response.interceptor'
 import { DataScopeGuard, JwtAuthGuard, RolesGuard } from '@/shared/guards';
 import { CorrelationIdMiddleware, MorganLoggerMiddleware } from '@/shared/middleware';
 import { AuditModule } from '@/modules/audit/audit.module';
-
+import { XmlJsonService } from '@/shared/services/xml-json.service';
 @Module({
     imports: [
         ConfigModule,
@@ -53,6 +53,7 @@ import { AuditModule } from '@/modules/audit/audit.module';
     controllers: [AppController],
     providers: [
         AppService,
+        XmlJsonService,
         {
             provide: APP_INTERCEPTOR,
             useClass: ResponseInterceptor,

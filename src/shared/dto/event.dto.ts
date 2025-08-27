@@ -10,7 +10,7 @@ export class CreateRawEventDto {
     })
     @IsString()
     @IsNotEmpty()
-    eventType: keyof typeof EventType;
+    eventType?: keyof typeof EventType;
 
     @ApiProperty({
         description: 'The timestamp of the event.',

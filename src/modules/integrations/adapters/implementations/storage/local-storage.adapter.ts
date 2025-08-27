@@ -91,7 +91,6 @@ export class LocalStorageAdapter implements IStorageAdapter {
 
     async downloadFile(key: string): Promise<DownloadResult> {
         this.logger.log('Downloading file (local)', { key });
-
         try {
             const filePath = this.getFilePath(key);
             const stats = await stat(filePath);

@@ -936,7 +936,11 @@ export class HikvisionAdapter implements IDeviceAdapter {
         return result;
     }
 
-    async deleteWebhookConfiguration(device: Device, hostID: string): Promise<void> {
+    async deleteWebhook(device: Device, hostID: string): Promise<void> {
         await this.eventHost.deleteListeningHost(device, hostID);
+    }
+
+    async deleteWebhooks(device: Device): Promise<any> {
+        return this.eventHost.deleteAllListeningHosts(device);
     }
 }

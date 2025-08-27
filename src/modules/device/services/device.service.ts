@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Device, DeviceConfiguration, DeviceStatus } from '@prisma/client';
+import { Device, DeviceConfiguration, DeviceStatus, CredentialType } from '@prisma/client';
 import {
     CreateDeviceConfigurationDto,
     CreateDeviceDto,
@@ -1026,41 +1026,10 @@ export class DeviceService {
     }
 
     async getEmployeeSyncStatus(id: string, scope: DataScope) {
-        const correlationId = `device_sync_status_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const device = await this.validateDeviceAccess(id, scope);
 
-        try {
-            this.logger.log('Getting employee sync status', {
-                module: 'DeviceService',
-                action: 'getEmployeeSyncStatus',
-                correlationId,
-                deviceId: id,
-                scope,
-            });
-
-            const device = await this.validateDeviceAccess(id, scope);
-
-            const status = await this.employeeSyncService.getSyncStatus(id, scope);
-
-            this.logger.log('Employee sync status retrieved', {
-                module: 'DeviceService',
-                action: 'getEmployeeSyncStatus',
-                correlationId,
-                deviceId: id,
-                deviceName: device.name,
-            });
-
-            return status;
-        } catch (error) {
-            this.logger.error('Failed to get employee sync status', error.stack, {
-                module: 'DeviceService',
-                action: 'getEmployeeSyncStatus',
-                correlationId,
-                deviceId: id,
-                scope,
-                error: error.message,
-            });
-            throw error;
-        }
+        const status = await this.employeeSyncService.getSyncStatus(id, scope);
+        return status;
     }
 
     async retryFailedSyncs(id: string, scope: DataScope, retriedByUserId: string): Promise<any> {
@@ -1138,6 +1107,105 @@ export class DeviceService {
                 action: 'getEmployeeSyncHistory',
                 correlationId,
                 employeeId,
+                scope,
+                error: error.message,
+            });
+            throw error;
+        }
+    }
+
+    // ========== CREDENTIAL SYNC METHODS ==========
+
+    async syncEmployeesWithFaceCredentials(
+        id: string,
+        scope: DataScope,
+        userId: string
+    ) {
+        const correlationId = `face_credential_sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        try {
+            this.logger.log('Syncing employees with face credentials to device', {
+                module: 'DeviceService',
+                action: 'syncEmployeesWithFaceCredentials',
+                correlationId,
+                deviceId: id,
+                scope,
+            });
+
+            const device = await this.validateDeviceAccess(id, scope);
+
+            const result = await this.employeeSyncService.syncEmployeesWithFaceCredentials(
+                id,
+                scope,
+                userId
+            );
+
+            this.logger.log('Face credentials synced to device successfully', {
+                module: 'DeviceService',
+                action: 'syncEmployeesWithFaceCredentials',
+                correlationId,
+                deviceId: id,
+                deviceName: device.name,
+                result,
+            });
+
+            return result;
+        } catch (error) {
+            this.logger.error('Failed to sync face credentials to device', error.stack, {
+                module: 'DeviceService',
+                action: 'syncEmployeesWithFaceCredentials',
+                correlationId,
+                deviceId: id,
+                scope,
+                error: error.message,
+            });
+            throw error;
+        }
+    }
+
+    async getEmployeesWithCredentialType(
+        id: string,
+        credentialType: string,
+        scope: DataScope
+    ) {
+        const correlationId = `get_employees_credentials_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        try {
+            this.logger.log('Getting employees with credential type for device', {
+                module: 'DeviceService',
+                action: 'getEmployeesWithCredentialType',
+                correlationId,
+                deviceId: id,
+                credentialType,
+                scope,
+            });
+
+            const device = await this.validateDeviceAccess(id, scope);
+
+            const result = await this.employeeSyncService.getEmployeesWithCredentialType(
+                id,
+                credentialType as any,
+                scope
+            );
+
+            this.logger.log('Employees with credential type retrieved successfully', {
+                module: 'DeviceService',
+                action: 'getEmployeesWithCredentialType',
+                correlationId,
+                deviceId: id,
+                deviceName: device.name,
+                credentialType,
+                totalEmployees: result.totalEmployees,
+            });
+
+            return result;
+        } catch (error) {
+            this.logger.error('Failed to get employees with credential type', error.stack, {
+                module: 'DeviceService',
+                action: 'getEmployeesWithCredentialType',
+                correlationId,
+                deviceId: id,
+                credentialType,
                 scope,
                 error: error.message,
             });

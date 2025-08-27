@@ -197,6 +197,9 @@ export interface IDeviceAdapter {
 
     getWebhookConfigurations(device: Device): Promise<any[]>;
 
+    deleteWebhook(device: Device, webhookId: string): Promise<void>;
+    deleteWebhooks(device: Device): Promise<void>;
+
     configureEventHost(
         device: Device,
         hostID: string,

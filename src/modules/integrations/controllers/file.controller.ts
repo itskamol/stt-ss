@@ -1,5 +1,5 @@
-import { Controller, Get, Inject, NotFoundException, Param, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Inject, NotFoundException, Param, Res, Req } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '@/shared/decorators/public.decorator';
 import { IStorageAdapter } from '../adapters/interfaces/storage.adapter';
@@ -14,14 +14,14 @@ export class FileController {
         private readonly storageAdapter: IStorageAdapter
     ) {}
 
-    @Get(':key')
+    @Get('*')
     @Public()
     @BypassResponseInterceptor()
     @ApiOperation({ summary: 'Get a file by its key' })
-    @ApiParam({ name: 'key', description: 'The key of the file to retrieve' })
     @ApiResponse({ status: 200, description: 'The file stream.' })
     @ApiResponse({ status: 404, description: 'File not found.', type: ApiErrorResponse })
-    async getFile(@Param('key') key: string, @Res() res: Response) {
+    async getFile(@Req() req: Request, @Res() res: Response) {
+        const key = req.path.replace('/api/v1/files/', '');
         try {
             const result = await this.storageAdapter.downloadFile(key);
 

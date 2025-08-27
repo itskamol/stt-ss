@@ -19,8 +19,6 @@ function getEnvFilePath(): string {
 
     const envFile = envFileMap[nodeEnv] || 'config/environments/local.env';
 
-    console.log(`🌍 Loading environment from: ${envFile} (NODE_ENV: ${nodeEnv})`);
-
     return envFile;
 }
 
