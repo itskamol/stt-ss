@@ -43,6 +43,23 @@ CREATE TYPE "public"."EmployeeSyncType" AS ENUM ('ADD', 'UPDATE', 'REMOVE');
 -- CreateEnum
 CREATE TYPE "public"."ReportStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
 
+-- CreateEnum
+CREATE TYPE "public"."CredentialType" AS ENUM ('FACE', 'FINGERPRINT', 'CARD', 'CAR_NUMBER', 'PASSWORD_HASH', 'QR_CODE');
+
+-- CreateTable
+CREATE TABLE "public"."EmployeeCredential" (
+    "id" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "type" "public"."CredentialType" NOT NULL,
+    "value" TEXT NOT NULL,
+    "metadata" JSONB,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "EmployeeCredential_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateTable
 CREATE TABLE "public"."Organization" (
     "id" TEXT NOT NULL,
@@ -198,7 +215,6 @@ CREATE TABLE "public"."Attendance" (
 -- CreateTable
 CREATE TABLE "public"."DeviceEventLog" (
     "id" TEXT NOT NULL,
-    "organizationId" TEXT NOT NULL,
     "deviceId" TEXT NOT NULL,
     "eventType" "public"."EventType" NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL,
@@ -356,6 +372,12 @@ CREATE TABLE "public"."_DeviceToDeviceTemplate" (
 );
 
 -- CreateIndex
+CREATE INDEX "EmployeeCredential_employeeId_idx" ON "public"."EmployeeCredential"("employeeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EmployeeCredential_type_value_key" ON "public"."EmployeeCredential"("type", "value");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Organization_name_key" ON "public"."Organization"("name");
 
 -- CreateIndex
@@ -392,9 +414,6 @@ CREATE INDEX "Department_branchId_idx" ON "public"."Department"("branchId");
 CREATE UNIQUE INDEX "Department_branchId_name_key" ON "public"."Department"("branchId", "name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Employee_email_key" ON "public"."Employee"("email");
-
--- CreateIndex
 CREATE INDEX "Employee_organizationId_idx" ON "public"."Employee"("organizationId");
 
 -- CreateIndex
@@ -405,6 +424,9 @@ CREATE INDEX "Employee_departmentId_idx" ON "public"."Employee"("departmentId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Employee_organizationId_employeeCode_key" ON "public"."Employee"("organizationId", "employeeCode");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Employee_organizationId_email_key" ON "public"."Employee"("organizationId", "email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Device_macAddress_key" ON "public"."Device"("macAddress");
@@ -434,7 +456,7 @@ CREATE INDEX "Attendance_organizationId_employeeId_timestamp_idx" ON "public"."A
 CREATE INDEX "Attendance_organizationId_guestId_timestamp_idx" ON "public"."Attendance"("organizationId", "guestId", "timestamp");
 
 -- CreateIndex
-CREATE INDEX "DeviceEventLog_organizationId_deviceId_timestamp_idx" ON "public"."DeviceEventLog"("organizationId", "deviceId", "timestamp");
+CREATE INDEX "DeviceEventLog_deviceId_timestamp_idx" ON "public"."DeviceEventLog"("deviceId", "timestamp");
 
 -- CreateIndex
 CREATE INDEX "AuditLog_organizationId_userId_timestamp_idx" ON "public"."AuditLog"("organizationId", "userId", "timestamp");
@@ -474,6 +496,9 @@ CREATE UNIQUE INDEX "DeviceWebhook_deviceId_hostId_key" ON "public"."DeviceWebho
 
 -- CreateIndex
 CREATE INDEX "_DeviceToDeviceTemplate_B_index" ON "public"."_DeviceToDeviceTemplate"("B");
+
+-- AddForeignKey
+ALTER TABLE "public"."EmployeeCredential" ADD CONSTRAINT "EmployeeCredential_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "public"."Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."OrganizationUser" ADD CONSTRAINT "OrganizationUser_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

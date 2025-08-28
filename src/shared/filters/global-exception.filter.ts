@@ -6,16 +6,17 @@ import { RequestWithCorrelation } from '../middleware/correlation-id.middleware'
 import { ApiErrorDto, ApiErrorResponse } from '../dto/api-response.dto';
 import { CustomValidationException } from '../exceptions/validation.exception';
 import { XmlJsonService } from '../services/xml-json.service';
+import { ConfigService } from '@/core/config/config.service';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
     constructor(
         private readonly logger: LoggerService,
-        private readonly xmlService: XmlJsonService
+        private readonly xmlService: XmlJsonService,
+        private readonly configService: ConfigService
     ) {}
 
     async catch(exception: unknown, host: ArgumentsHost) {
-        console.log('Exception caught by GlobalExceptionFilter:', exception);
         const ctx = host.switchToHttp();
         const response = ctx.getResponse<Response>();
         const request = ctx.getRequest<RequestWithCorrelation>();
@@ -29,46 +30,82 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
         if (exception instanceof CustomValidationException) {
             status = HttpStatus.BAD_REQUEST;
-            const response = exception.getResponse() as any;
+            const validationResponse = exception.getResponse() as any;
             error.code = 'VALIDATION_ERROR';
             error.message = 'Validation failed';
-            error.details = response.errors;
+            error.details = validationResponse.errors;
         } else if (exception instanceof HttpException) {
             status = exception.getStatus();
-            const response = exception.getResponse();
+            const exceptionResponse = exception.getResponse();
+            error.code = this.getErrorCodeFromStatus(status);
 
-            if (typeof response === 'string') {
-                if (response.includes('<?xml')) {
-                    error.message = await this.xmlService.xmlToJsonClean(response);
+            if (typeof exceptionResponse === 'string') {
+                if (exceptionResponse.includes('<?xml')) {
+                    error.message = await this.xmlService.xmlToJsonClean(exceptionResponse);
                 } else {
-                    error.message = response;
+                    error.message = exceptionResponse;
+                }
+            } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+                const responseAsObject = exceptionResponse as { message?: any; error?: string };
+                if (responseAsObject.message) {
+                    error.message = Array.isArray(responseAsObject.message)
+                        ? responseAsObject.message.join(', ')
+                        : responseAsObject.message;
+                } else if (responseAsObject.error) {
+                    error.message = responseAsObject.error;
                 }
             }
-            error.code = this.getErrorCodeFromStatus(status);
         } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
             // See https://www.prisma.io/docs/reference/api-reference/error-reference#error-codes
             switch (exception.code) {
+                case 'P2000': // Value too long for column
+                    status = HttpStatus.BAD_REQUEST;
+                    error.code = 'VALUE_TOO_LONG';
+                    error.message = `The value provided for the field '${exception.meta?.target}' is too long.`;
+                    break;
+
                 case 'P2002': // Unique constraint failed
                     status = HttpStatus.CONFLICT;
                     error.code = 'UNIQUE_CONSTRAINT_VIOLATION';
-                    error.message = `A record with the same unique value already exists.`;
+                    error.message = `A record with this value already exists.`;
                     error.details = {
                         target: exception.meta?.target,
                     };
                     break;
-                case 'P2025': // Record to update not found
+
+                case 'P2003': // Foreign key constraint failed
+                    status = HttpStatus.CONFLICT; // yoki BAD_REQUEST, logikaga qarab
+                    error.code = 'FOREIGN_KEY_CONSTRAINT_VIOLATION';
+                    error.message = `The operation failed because it violates a foreign key constraint on the field '${exception.meta?.field_name}'.`;
+                    break;
+
+                case 'P2011': // Null constraint violation
+                    status = HttpStatus.BAD_REQUEST;
+                    error.code = 'NULL_CONSTRAINT_VIOLATION';
+                    error.message = `A required field '${exception.meta?.target}' was not provided.`;
+                    break;
+
+                case 'P2025': // Record to update/delete not found
                     status = HttpStatus.NOT_FOUND;
                     error.code = 'RESOURCE_NOT_FOUND';
-                    error.message = 'The requested resource could not be found.';
+                    // exception.meta.cause da batafsilroq ma'lumot bo'lishi mumkin
+                    error.message =
+                        (exception.meta?.cause as string) ||
+                        'The requested resource could not be found.';
                     break;
+
                 default:
+                    // Yuqorida ko'rsatilmagan boshqa Prisma 'Pxxxx' xatoliklari uchun
                     status = HttpStatus.INTERNAL_SERVER_ERROR;
                     error.code = 'DATABASE_ERROR';
                     error.message = 'A database error occurred.';
+                    this.logger.warn(
+                        `Unhandled Prisma Error Code: ${exception.code}`,
+                        exception.stack
+                    );
                     break;
             }
         } else if (exception instanceof Error) {
-            // Generic error
             error.message = exception.message;
         }
 
@@ -84,8 +121,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             details: error.details,
         });
 
-        // In production, hide sensitive error details
-        if (status === HttpStatus.INTERNAL_SERVER_ERROR && process.env.NODE_ENV === 'production') {
+        if (status === HttpStatus.INTERNAL_SERVER_ERROR && this.configService.isProduction) {
             error.message = 'An unexpected internal error occurred.';
             error.details = undefined;
         }
