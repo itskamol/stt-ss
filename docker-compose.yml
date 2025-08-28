@@ -1,103 +1,78 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: sector-staff-postgres-${ENVIRONMENT:-dev}
+    container_name: ${COMPOSE_PROJECT_NAME}-postgres-${ENVIRONMENT}
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-sector_staff_v2}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
-      - postgres_${ENVIRONMENT:-dev}_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - sector-staff-${ENVIRONMENT:-dev}-network
-    restart: ${RESTART_POLICY:-unless-stopped}
+      - main-network
+    init: true
+    restart: ${RESTART_POLICY}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 30s
       timeout: 10s
       retries: 3
-      disable: ${DISABLE_HEALTHCHECK:-false}
+      disable: ${DISABLE_HEALTHCHECK}
 
   redis:
     image: redis:7-alpine
-    container_name: sector-staff-redis-${ENVIRONMENT:-dev}
+    container_name: ${COMPOSE_PROJECT_NAME}-redis-${ENVIRONMENT}
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT}:6379"
     volumes:
-      - redis_${ENVIRONMENT:-dev}_data:/data
+      - redis_data:/data
     networks:
-      - sector-staff-${ENVIRONMENT:-dev}-network
-    restart: ${RESTART_POLICY:-unless-stopped}
+      - main-network
+    init: true
+    restart: ${RESTART_POLICY}
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
-      disable: ${DISABLE_HEALTHCHECK:-false}
+      disable: ${DISABLE_HEALTHCHECK}
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
-      target: ${BUILD_TARGET:-development}
-    container_name: sector-staff-app-${ENVIRONMENT:-dev}
+      target: ${BUILD_TARGET}
+    container_name: ${COMPOSE_PROJECT_NAME}-app-${ENVIRONMENT}
     ports:
-      - "${APP_PORT:-3000}:3000"
-    env_file:
-      - config/environments/${ENVIRONMENT:-dev}.env
+      - "${APP_PORT}:3000" 
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-sector_staff_v2}
-      - REDIS_URL=redis://redis:6379
+      NODE_ENV: ${ENVIRONMENT}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PORT: 3000
+      # Add other environment variables as needed
     volumes:
-      - ${VOLUMES_CONFIG:-.:/app}
-      - ${NODE_MODULES_VOLUME:-/app/node_modules}
+      - ${VOLUMES_CONFIG}
+      - ${NODE_MODULES_VOLUME}
     depends_on:
       postgres:
-        condition: ${DEPENDS_CONDITION:-service_started}
+        condition: ${DEPENDS_CONDITION}
       redis:
-        condition: ${DEPENDS_CONDITION:-service_started}
+        condition: ${DEPENDS_CONDITION}
     networks:
-      - sector-staff-${ENVIRONMENT:-dev}-network
-    restart: ${RESTART_POLICY:-unless-stopped}
-
-  # minio:
-  #   image: minio/minio:latest
-  #   container_name: sector-staff-minio
-  #   environment:
-  #     MINIO_ROOT_USER: minioadmin
-  #     MINIO_ROOT_PASSWORD: minioadmin
-  #   ports:
-  #     - "9000:9000"
-  #     - "9001:9001"
-  #   volumes:
-  #     - minio_data:/data
-  #   command: server /data --console-address ":9001"
-  #   networks:
-  #     - sector-staff-network
+      - main-network
+    init: true
+    restart: ${RESTART_POLICY}
 
 volumes:
-  postgres_dev_data:
-    driver: local
-  redis_dev_data:
-    driver: local
-  postgres_prod_data:
-    driver: local
-  redis_prod_data:
-    driver: local
-  postgres_staging_data:
-    driver: local
-  redis_staging_data:
-    driver: local
+  postgres_data:
+    name: ${COMPOSE_PROJECT_NAME}_postgres_data_${ENVIRONMENT}
+  redis_data:
+    name: ${COMPOSE_PROJECT_NAME}_redis_data_${ENVIRONMENT}
+  node_modules_volume:
 
 networks:
-  sector-staff-dev-network:
-    driver: bridge
-  sector-staff-prod-network:
-    driver: bridge
-  sector-staff-staging-network:
-    driver: bridge
+  main-network:
+    name: ${COMPOSE_PROJECT_NAME}_network_${ENVIRONMENT}

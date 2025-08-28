@@ -14,7 +14,7 @@ function getEnvFilePath(): string {
         production: 'config/environments/prod.env',
         staging: 'config/environments/staging.env',
         test: 'config/environments/local.env',
-        docker: 'config/environments/dev.env', // Docker development
+        docker: 'config/environments/docker.env', // Docker development
     };
 
     const envFile = envFileMap[nodeEnv] || 'config/environments/local.env';
@@ -28,6 +28,7 @@ function getEnvFilePath(): string {
             isGlobal: true,
             envFilePath: getEnvFilePath(),
             expandVariables: true,
+            ignoreEnvFile: process.env.NODE_ENV === 'production',
         }),
     ],
     providers: [ConfigService],

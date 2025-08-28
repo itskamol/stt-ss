@@ -1,0 +1,40 @@
+# Development overrides - automatically loaded by docker-compose
+# This file contains development-specific configurations
+
+services:
+  app:
+    build:
+      target: development
+    volumes:
+      - .:/app:cached
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - ENABLE_HOT_RELOAD=true
+      - ENABLE_DEBUG_LOGS=true
+    ports:
+      - "3001:3000"
+    
+  postgres:
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=sector_staff_v2
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      # Optional: Add init scripts
+      # - ./scripts/db/init:/docker-entrypoint-initdb.d
+    
+  redis:
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_dev_data:/data
+    # Optional: Add Redis configuration
+    # command: redis-server --appendonly yes --requirepass yourpassword
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:

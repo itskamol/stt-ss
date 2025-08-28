@@ -80,7 +80,7 @@ export class DeviceController {
         private readonly deviceTemplateService: DeviceTemplateService,
         private readonly deviceWebhookService: DeviceWebhookService,
         private readonly paginationService: PaginationService
-    ) {}
+    ) { }
 
     @Post()
     @Permissions(PERMISSIONS.DEVICE.CREATE)
@@ -459,8 +459,8 @@ export class DeviceController {
     @Permissions(PERMISSIONS.DEVICE.READ_ALL)
     @ApiOperation({ summary: 'Get employees with specific credential type for device' })
     @ApiParam({ name: 'id', description: 'ID of the device' })
-    @ApiParam({ 
-        name: 'credentialType', 
+    @ApiParam({
+        name: 'credentialType',
         description: 'Type of credential',
         enum: ['FACE', 'FINGERPRINT', 'CARD', 'CAR_NUMBER', 'PASSWORD_HASH', 'QR_CODE']
     })

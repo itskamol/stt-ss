@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService as NestConfigService } from '@nestjs/config';
 import * as os from 'os';
+
 @Injectable()
 export class ConfigService {
     constructor(private readonly configService: NestConfigService) {}

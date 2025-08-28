@@ -22,26 +22,33 @@ RUN pnpm prune --prod
 
 # Production stage
 FROM node:20-alpine AS production
+# Set Node environment to production
+ENV NODE_ENV production
 WORKDIR /app
 
-# Create non-root user
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
+# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nestjs -u 1001
 
-# Copy built application
+# Copy built application assets from the builder stage
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
 
-# Switch to non-root user
-USER nestjs
+COPY --chown=nestjs:nodejs scripts/entrypoint.sh .
+RUN chmod +x ./entrypoint.sh
 
-# Expose port
+USER nestjs
 EXPOSE 3000
 
-# Health check
+# Health check to ensure the application is running
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Start the app
-CMD ["node", "dist/main.js"]
+ENTRYPOINT ["./entrypoint.sh"]
+
+# Start the application
+CMD ["pnpm", "start", "NODE_ENV=docker"]

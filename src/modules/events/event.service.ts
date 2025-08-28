@@ -7,7 +7,7 @@ import { EventRepository } from './event.repository';
 import { DeviceRepository } from '../device/device.repository';
 import { PrismaService } from '@/core/database/prisma.service';
 import { CacheService } from '@/core/cache/cache.service';
-import { QueueProducer } from '@/core/queue/queue.producer';
+// import { QueueProducer } from '@/core/queue/queue.producer'; // Temporarily disabled
 import { CreateRawEventDto } from '@/shared/dto';
 import { DeviceStatus } from '@prisma/client';
 
@@ -18,7 +18,7 @@ export class EventService {
         private readonly deviceRepository: DeviceRepository,
         private readonly prisma: PrismaService,
         private readonly cacheService: CacheService,
-        private readonly queueProducer: QueueProducer
+        // private readonly queueProducer: QueueProducer // Temporarily disabled
     ) {}
 
     async processRawEvent(
@@ -44,15 +44,15 @@ export class EventService {
                 : new Date(),
             organizationId: device.organizationId,
         });
-        // Queue event for background processing
-        await this.queueProducer.processRawDeviceEvent({
-            deviceId: device.id,
-            eventType: createRawEventDto.eventType,
-            timestamp: eventLog.timestamp,
-            rawData: createRawEventDto,
-            organizationId: device.organizationId,
-            branchId: device.branchId,
-        });
+        // Queue event for background processing - temporarily disabled
+        // await this.queueProducer.processRawDeviceEvent({
+        //     deviceId: device.id,
+        //     eventType: createRawEventDto.eventType,
+        //     timestamp: eventLog.timestamp,
+        //     rawData: createRawEventDto,
+        //     organizationId: device.organizationId,
+        //     branchId: device.branchId,
+        // });
 
         // Update device last seen
         await this.deviceRepository.updateLastSeen(device.id, new Date());

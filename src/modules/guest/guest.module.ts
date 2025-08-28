@@ -7,7 +7,7 @@ import { LoggerModule } from '@/core/logger/logger.module';
 import { QueueModule } from '@/core/queue/queue.module';
 
 @Module({
-    imports: [DatabaseModule, LoggerModule, QueueModule],
+    imports: [DatabaseModule, LoggerModule], // QueueModule temporarily disabled
     controllers: [GuestController],
     providers: [GuestService, GuestRepository],
     exports: [GuestService, GuestRepository],

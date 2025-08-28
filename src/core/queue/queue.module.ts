@@ -20,23 +20,43 @@ import { AdapterModule } from '@/modules/integrations/adapters/adapter.module';
         AdapterModule,
         BullModule.forRootAsync({
             imports: [ConfigModule],
-            useFactory: async (configService: ConfigService) => ({
-                connection: {
-                    host: configService.get('REDIS_HOST', 'localhost'),
-                    port: configService.get('REDIS_PORT', 6379),
-                    password: configService.get('REDIS_PASSWORD'),
-                    db: configService.get('REDIS_DB', 0),
-                },
-                defaultJobOptions: {
-                    removeOnComplete: 100,
-                    removeOnFail: 50,
-                    attempts: 3,
-                    backoff: {
-                        type: 'exponential',
-                        delay: 2000,
-                    },
-                },
-            }),
+            useFactory: async (configService: ConfigService) => {
+                const redisUrl = configService.get('REDIS_URL');
+                if (redisUrl) {
+                    // Use Redis URL if provided
+                    return {
+                        connection: redisUrl,
+                        defaultJobOptions: {
+                            removeOnComplete: 100,
+                            removeOnFail: 50,
+                            attempts: 3,
+                            backoff: {
+                                type: 'exponential',
+                                delay: 2000,
+                            },
+                        },
+                    };
+                } else {
+                    // Fallback to individual Redis config
+                    return {
+                        connection: {
+                            host: configService.get('REDIS_HOST', 'localhost'),
+                            port: configService.get('REDIS_PORT', 6379),
+                            password: configService.get('REDIS_PASSWORD'),
+                            db: configService.get('REDIS_DB', 0),
+                        },
+                        defaultJobOptions: {
+                            removeOnComplete: 100,
+                            removeOnFail: 50,
+                            attempts: 3,
+                            backoff: {
+                                type: 'exponential',
+                                delay: 2000,
+                            },
+                        },
+                    };
+                }
+            },
             inject: [ConfigService],
         }),
         BullModule.registerQueue(

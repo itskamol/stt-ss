@@ -1,8 +1,8 @@
 import crypto from 'crypto';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { GuestStatus, GuestVisit } from '@prisma/client';
 import { GuestRepository } from './guest.repository';
-import { QueueProducer } from '@/core/queue/queue.producer';
+// import { QueueProducer } from '@/core/queue/queue.producer'; // Temporarily disabled
 import {
     ApproveGuestVisitDto,
     CreateGuestVisitDto,
@@ -16,7 +16,7 @@ import { DataScope, GuestVisitWithCredentials } from '@/shared/interfaces';
 export class GuestService {
     constructor(
         private readonly guestRepository: GuestRepository,
-        private readonly queueProducer: QueueProducer
+        // @Optional() private readonly queueProducer: QueueProducer // Temporarily disabled
     ) {}
 
     /**
@@ -341,13 +341,14 @@ export class GuestService {
 
     private async scheduleVisitExpiration(visit: GuestVisit): Promise<void> {
         try {
-            await this.queueProducer.processGuestVisitExpiration({
-                visitId: visit.id,
-                guestId: visit.id, // Using visit ID as guest ID for now
-                organizationId: visit.organizationId,
-                branchId: visit.branchId,
-                expiresAt: visit.scheduledExitTime,
-            });
+            // Temporarily disabled queue processing
+            // await this.queueProducer.processGuestVisitExpiration({
+            //     visitId: visit.id,
+            //     guestId: visit.id, // Using visit ID as guest ID for now
+            //     organizationId: visit.organizationId,
+            //     branchId: visit.branchId,
+            //     expiresAt: visit.scheduledExitTime,
+            // });
         } catch (error) {
             // log error
         }

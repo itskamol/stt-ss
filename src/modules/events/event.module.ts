@@ -9,9 +9,9 @@ import { QueueModule } from '@/core/queue/queue.module';
 import { DeviceModule } from '../device/device.module';
 
 @Module({
-    imports: [DatabaseModule, LoggerModule, CacheModule, QueueModule, DeviceModule],
+    imports: [DatabaseModule, LoggerModule, CacheModule, DeviceModule], // QueueModule temporarily disabled
     controllers: [EventController],
     providers: [EventService, EventRepository],
     exports: [EventService, EventRepository],
 })
-export class EventModule {}
+export class EventModule { }

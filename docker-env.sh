@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-ENVIRONMENT=${1:-docker}
+ENVIRONMENT=${1:-dev}
 COMMAND=${2:-up}
 
 # Print usage function

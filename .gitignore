@@ -41,13 +41,19 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 
-# Keep environment templates and config
-config/environments/dev.env
-config/environments/local.env
-config/environments/prod.env
-config/environments/staging.env
-config/environments/docker.env
-!config/environments/example.env
+# Environment files (keep only example)
+config/environments/*.env
+!config/environments/.env.example
+
+# Secrets and sensitive files
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Backup files
+backups/
 
 # Prisma
 /prisma/migrations/dev.db*

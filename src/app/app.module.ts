@@ -40,7 +40,7 @@ import { XmlJsonService } from '@/shared/services/xml-json.service';
         BranchModule,
         DepartmentModule,
         EmployeeModule,
-        QueueModule,
+        // QueueModule, // Temporarily disabled for debugging
         IntegrationsModule,
         DeviceModule,
         EventModule,
