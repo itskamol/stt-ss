@@ -1,6 +1,6 @@
 module.exports = {
     moduleFileExtensions: ['js', 'json', 'ts'],
-    rootDir: '.',
+    rootDir: '../..',
     testRegex: '.*\\.spec\\.ts$',
     transform: {
         '^.+\\.(t|j)s$': 'ts-jest',
@@ -8,7 +8,7 @@ module.exports = {
     collectCoverageFrom: ['src/**/*.(t|j)s'],
     coverageDirectory: './coverage',
     testEnvironment: 'node',
-    setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+    // setupFilesAfterEnv: ['<rootDir>/jest.setup.js'], // This file does not exist
     globals: {
         'ts-jest': {
             tsconfig: '<rootDir>/tsconfig.spec.json',

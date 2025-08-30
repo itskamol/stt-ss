@@ -3,6 +3,7 @@ import { EmployeeController } from './employee.controller';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '@/shared/dto';
 import { DataScope, UserContext } from '@/shared/interfaces';
+import { EmployeeCredentialService } from './credentials';
 import { PERMISSIONS } from '@/shared/constants/permissions.constants';
 import { NotFoundException } from '@nestjs/common';
 import { Employee } from '@prisma/client';
@@ -69,6 +70,18 @@ describe('EmployeeController', () => {
                 {
                     provide: EmployeeService,
                     useValue: mockEmployeeService,
+                },
+                {
+                    provide: EmployeeCredentialService,
+                    useValue: {
+                        getEmployeeCredentials: jest.fn(),
+                        createCredential: jest.fn(),
+                        createFaceCredentialFromPhoto: jest.fn(),
+                        getActiveCredentialsByType: jest.fn(),
+                        getCredentialById: jest.fn(),
+                        updateCredential: jest.fn(),
+                        deleteCredential: jest.fn(),
+                    },
                 },
             ],
         }).compile();

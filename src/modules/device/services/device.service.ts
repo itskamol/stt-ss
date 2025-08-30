@@ -419,7 +419,7 @@ export class DeviceService {
 
             const device = await this.validateDeviceAccess(id, scope);
 
-            await this.deviceRepository.delete(id);
+            await this.deviceRepository.delete(id, scope);
 
             this.logger.log('Device deleted successfully', {
                 module: 'DeviceService',

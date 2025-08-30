@@ -89,9 +89,14 @@ export class DeviceRepository {
         });
     }
 
-    async delete(id: string): Promise<void> {
-        await this.prisma.device.delete({
-            where: { id },
+    async delete(id: string, scope: DataScope): Promise<void> {
+        const whereClause = QueryBuilder.buildOrganizationScope(scope);
+        // Use deleteMany to avoid errors if the device doesn't exist or is out of scope.
+        await this.prisma.device.deleteMany({
+            where: {
+                id,
+                ...whereClause,
+            },
         });
     }
 

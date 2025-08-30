@@ -1,3 +1,7 @@
+// Mock the utility functions
+jest.mock('@/shared/utils/password.util');
+jest.mock('@/shared/utils/database.util');
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
@@ -6,10 +10,6 @@ import { LoggerService } from '@/core/logger';
 import { ChangePasswordDto, CreateUserDto, UpdateUserDto } from '@/shared/dto';
 import { DatabaseUtil, PasswordUtil } from '@/shared/utils';
 import { Role } from '@/shared/enums';
-
-// Mock the utility functions
-jest.mock('@/shared/utils/password.util');
-jest.mock('@/shared/utils/database.util');
 
 describe('UserService', () => {
     let service: UserService;
@@ -109,7 +109,7 @@ describe('UserService', () => {
             (PasswordUtil.hash as jest.Mock).mockResolvedValue('hashed-password');
 
             const uniqueError = new Error('Unique constraint violation');
-            (DatabaseUtil.isUniqueConstraintError as jest.Mock).mockReturnValue(true);
+            (DatabaseUtil.isUniqueConstraintError as jest.Mock).mockReturnValueOnce(true);
             (DatabaseUtil.getUniqueConstraintFields as jest.Mock).mockReturnValue(['email']);
             mockUserRepository.create.mockRejectedValue(uniqueError);
 
@@ -253,7 +253,7 @@ describe('UserService', () => {
 
         it('should handle unique constraint violation', async () => {
             const uniqueError = new Error('Unique constraint violation');
-            (DatabaseUtil.isUniqueConstraintError as jest.Mock).mockReturnValue(true);
+            (DatabaseUtil.isUniqueConstraintError as jest.Mock).mockReturnValueOnce(true);
             mockUserRepository.assignToOrganization.mockRejectedValue(uniqueError);
 
             await expect(service.assignToOrganization(assignDto, 'user-123')).rejects.toThrow(

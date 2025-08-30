@@ -7,7 +7,8 @@ const { combine, timestamp, json, colorize, printf, errors } = format;
 // Environment variables
 const nodeEnv = process.env.NODE_ENV || 'development';
 const logLevel = process.env.LOG_LEVEL || (nodeEnv === 'production' ? 'warn' : 'debug');
-const enableFileLogging = process.env.ENABLE_FILE_LOGGING !== 'false';
+const enableFileLogging =
+    process.env.ENABLE_FILE_LOGGING !== 'false' && nodeEnv !== 'test';
 
 const isProduction = nodeEnv === 'production';
 
