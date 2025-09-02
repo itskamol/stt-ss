@@ -120,6 +120,7 @@ describe('DeviceController', () => {
         it('should create a device successfully', async () => {
             const createDto: CreateDeviceDto = {
                 name: 'Main Door Reader',
+                type: 'CARD_READER',
                 branchId: 'branch-123',
                 host: '192.168.1.100',
                 manufacturer: 'hikvision',

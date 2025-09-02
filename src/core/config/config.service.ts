@@ -92,22 +92,6 @@ export class ConfigService {
         return this.configService.get<string>('REFRESH_TOKEN_EXPIRATION_TIME', '7d');
     }
 
-    get s3Endpoint(): string {
-        return this.configService.get<string>('S3_ENDPOINT');
-    }
-
-    get s3AccessKey(): string {
-        return this.configService.get<string>('S3_ACCESS_KEY');
-    }
-
-    get s3SecretKey(): string {
-        return this.configService.get<string>('S3_SECRET_KEY');
-    }
-
-    get s3BucketName(): string {
-        return this.configService.get<string>('S3_BUCKET_NAME');
-    }
-
     get logLevel(): string {
         return this.configService.get<string>('LOG_LEVEL', 'info');
     }
@@ -118,10 +102,6 @@ export class ConfigService {
 
     get logFormat(): 'json' | 'pretty' {
         return this.configService.get<string>('LOG_FORMAT', 'pretty') as 'json' | 'pretty';
-    }
-
-    get suppressNestLogs(): boolean {
-        return this.configService.get<string>('SUPPRESS_NEST_LOGS', 'false') === 'true';
     }
 
     get isDevelopment(): boolean {
@@ -142,10 +122,9 @@ export class ConfigService {
 
     get hostIp(): string {
         if (this.isDocker) {
-            // In Docker, we assume the host IP is the gateway IP
             return this.configService.get<string>('HOST_IP', 'host.docker.internal');
         }
-        // Attempt to determine local IP address
+
         const interfaces = os.networkInterfaces();
         for (const name of Object.keys(interfaces)) {
             for (const iface of interfaces[name]!) {
@@ -155,14 +134,9 @@ export class ConfigService {
             }
         }
 
-        // Fallback to localhost
         return '';
     }
 
-    /**
-     * Validate required environment variables are set
-     * Call this method in app bootstrap to ensure all required vars are present
-     */
     validateConfig(): void {
         const requiredVars = ['DATABASE_URL', 'REDIS_URL', 'JWT_SECRET', 'REFRESH_TOKEN_SECRET'];
 

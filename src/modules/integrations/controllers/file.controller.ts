@@ -14,14 +14,18 @@ export class FileController {
         private readonly storageAdapter: IStorageAdapter
     ) {}
 
-    @Get('*')
+    @Get('/:key')
     @Public()
     @BypassResponseInterceptor()
     @ApiOperation({ summary: 'Get a file by its key' })
+    @ApiParam({
+        name: 'key',
+        description: 'The key of the file to retrieve',
+        example: 'uploads/image.png',
+    })
     @ApiResponse({ status: 200, description: 'The file stream.' })
     @ApiResponse({ status: 404, description: 'File not found.', type: ApiErrorResponse })
-    async getFile(@Req() req: Request, @Res() res: Response) {
-        const key = req.path.replace('/api/v1/files/', '');
+    async getFile(@Res() res: Response, @Param('key') key: string): Promise<void> {
         try {
             const result = await this.storageAdapter.downloadFile(key);
 

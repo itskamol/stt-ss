@@ -51,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ENTRYPOINT ["./entrypoint.sh"]
 
 # Start the application
-CMD ["pnpm", "start", "NODE_ENV=docker"]
+CMD ["pnpm", "start"]

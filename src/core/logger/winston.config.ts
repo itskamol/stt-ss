@@ -1,119 +1,127 @@
 import { format, transports } from 'winston';
+import Transport from 'winston-transport';
+import DailyRotateFile from 'winston-daily-rotate-file';
 import { WinstonModuleOptions } from 'nest-winston';
-import * as DailyRotateFile from 'winston-daily-rotate-file';
+import { ConfigService } from '../config/config.service';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const { combine, timestamp, json, colorize, printf, errors } = format;
 
-// Environment variables
-const nodeEnv = process.env.NODE_ENV || 'development';
-const logLevel = process.env.LOG_LEVEL || (nodeEnv === 'production' ? 'warn' : 'debug');
-const enableFileLogging =
-    process.env.ENABLE_FILE_LOGGING !== 'false' && nodeEnv !== 'test';
+export class WinstonConfig {
+    constructor(private readonly configService: ConfigService) {}
 
-const isProduction = nodeEnv === 'production';
+    private ensureLogDir(): void {
+        const dir = path.resolve(process.cwd(), 'logs');
+        fs.mkdirSync(dir, { recursive: true });
+    }
 
-// Development console format
-const devFormat = combine(
-    colorize({ all: true }),
-    timestamp({ format: 'HH:mm:ss' }),
-    printf(({ level, message, timestamp, context }) => {
-        const ctx = context as any;
-        const contextStr = ctx?.module ? ` [${ctx.module}]` : '';
-        const correlationId = ctx?.correlationId ? ` (${ctx.correlationId.slice(0, 8)})` : '';
-        return `${timestamp}${contextStr} ${level}:${correlationId} ${message}`;
-    })
-);
-
-// Production JSON format with sensitive data filtering
-const prodFormat = combine(
-    timestamp(),
-    errors({ stack: true }),
-    json({
-        replacer: (key, value) => {
-            if (typeof key === 'string' && /password|token|secret|key/i.test(key)) {
-                return '[REDACTED]';
-            }
-            return value;
-        }
-    })
-);
-
-// Common DailyRotateFile configuration
-const rotateFileConfig = {
-    datePattern: 'YYYY-MM-DD',
-    zippedArchive: true,
-    format: prodFormat,
-};
-
-// Create transports
-const createTransports = (): transports.ConsoleTransportInstance[] => {
-    const transportsList: any[] = [
-        // Console (always enabled)
-        new transports.Console({
-            level: logLevel,
-            format: isProduction ? prodFormat : devFormat,
-            handleExceptions: !enableFileLogging, // Only handle in console if no file logging
-            handleRejections: !enableFileLogging,
-        }),
-    ];
-
-    if (enableFileLogging) {
-        // Combined logs
-        transportsList.push(
-            new (DailyRotateFile as any)({
-                ...rotateFileConfig,
-                filename: 'logs/combined-%DATE%.log',
-                level: 'info',
-                maxSize: '50m',
-                maxFiles: '30d',
-                auditFile: 'logs/.audit-combined.json',
-            })
-        );
-
-        // Error logs only
-        transportsList.push(
-            new (DailyRotateFile as any)({
-                ...rotateFileConfig,
-                filename: 'logs/error-%DATE%.log',
-                level: 'error',
-                maxSize: '20m',
-                maxFiles: '30d',
-                auditFile: 'logs/.audit-error.json',
-                handleExceptions: true,
-                handleRejections: true,
+    private devFormat(): any {
+        return combine(
+            colorize({ all: true }),
+            timestamp({ format: 'HH:mm:ss' }),
+            errors({ stack: true }),
+            printf(({ level, message, timestamp, context, stack }) => {
+                const ctx = context as any;
+                const contextStr = ctx?.module ? ` [${ctx.module}]` : '';
+                const correlationId = ctx?.correlationId ? ` (${ctx.correlationId.slice(0, 8)})` : '';
+                const msg = stack ? `${message}\n${stack}` : message;
+                return `${timestamp}${contextStr} ${level}:${correlationId} ${msg}`;
             })
         );
     }
 
-    return transportsList;
-};
+    private prodFormat(): any {
+        return combine(
+            timestamp(),
+            errors({ stack: true }),
+            json({
+                replacer: (key, value) => {
+                    if (typeof key === 'string' && /password|token|secret|api[-_]?key|authorization/i.test(key)) {
+                        return '[REDACTED]';
+                    }
+                    return value;
+                },
+            })
+        );
+    }
 
-export const winstonConfig: WinstonModuleOptions = {
-    level: logLevel,
-    transports: createTransports(),
-    exitOnError: false,
-    defaultMeta: {
-        service: 'sector-staff-v2',
-        environment: nodeEnv,
-    },
-    
-    // Only add exception/rejection handlers if file logging is enabled
-    ...(enableFileLogging && {
-        exceptionHandlers: [
-            new (DailyRotateFile as any)({
-                ...rotateFileConfig,
-                filename: 'logs/exceptions-%DATE%.log',
-                maxSize: '20m',
-                maxFiles: '14d',
+    private rotateFileConfig = {
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: true,
+        format: this.prodFormat(),
+        maxFiles: '30d' as const,
+    };
+
+    private createTransports(): Transport[] {
+        const list: Transport[] = [
+            new transports.Console({
+                level: this.configService.logLevel,
+                format: this.configService.isProduction ? this.prodFormat() : this.devFormat(),
+                // File log yoqilganida exception/rejection’larni faqat dedicated handlerlar oladi
+                handleExceptions: !this.configService.enableFileLogging,
+                handleRejections: !this.configService.enableFileLogging,
             }),
-        ],
-        rejectionHandlers: [
-            new (DailyRotateFile as any)({
-                ...rotateFileConfig,
-                filename: 'logs/rejections-%DATE%.log',
-                maxSize: '20m',
-                maxFiles: '14d',
+        ];
+
+        if (this.configService.enableFileLogging) {
+            this.ensureLogDir();
+
+            // Combined logs
+            list.push(
+                new DailyRotateFile({
+                    ...this.rotateFileConfig,
+                    filename: 'logs/combined-%DATE%.log',
+                    level: 'info',
+                    maxSize: '50m',
+                    auditFile: 'logs/.audit-combined.json',
+                })
+            );
+
+            // Error-only logs (exceptionsni bu transportda tutmaymiz)
+            list.push(
+                new DailyRotateFile({
+                    ...this.rotateFileConfig,
+                    filename: 'logs/error-%DATE%.log',
+                    level: 'error',
+                    maxSize: '20m',
+                    auditFile: 'logs/.audit-error.json',
+                })
+            );
+        }
+
+        return list;
+    }
+
+    initialize(): WinstonModuleOptions {
+        return {
+            level: this.configService.logLevel,
+            transports: this.createTransports(),
+            exitOnError: false,
+            defaultMeta: {
+                service: 'sector-staff-v2',
+                environment: this.configService.nodeEnv,
+            },
+            ...(this.configService.enableFileLogging && {
+                exceptionHandlers: [
+                    new DailyRotateFile({
+                        ...this.rotateFileConfig,
+                        filename: 'logs/exceptions-%DATE%.log',
+                        maxSize: '20m',
+                        maxFiles: '14d',
+                        auditFile: 'logs/.audit-exceptions.json',
+                    }),
+                ],
+                rejectionHandlers: [
+                    new DailyRotateFile({
+                        ...this.rotateFileConfig,
+                        filename: 'logs/rejections-%DATE%.log',
+                        maxSize: '20m',
+                        maxFiles: '14d',
+                        auditFile: 'logs/.audit-rejections.json',
+                    }),
+                ],
             }),
-        ],
-    }),
-};
+        };
+    }
+}
