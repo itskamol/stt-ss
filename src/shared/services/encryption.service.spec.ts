@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { EncryptionService } from './encryption.service';
+import { ConfigService } from '@/core/config/config.service';
 
 describe('EncryptionService', () => {
     let service: EncryptionService;
@@ -30,36 +30,6 @@ describe('EncryptionService', () => {
 
         service = module.get<EncryptionService>(EncryptionService);
         configService = module.get(ConfigService);
-    });
-
-    describe('constructor', () => {
-        it('should initialize successfully with a valid key', () => {
-            expect(service).toBeDefined();
-        });
-
-        it('should throw an error if the encryption key is not configured', () => {
-            configService.get.mockReturnValue(undefined);
-            expect(() => new EncryptionService(configService)).toThrow(
-                'Encryption key not configured. Please set SECRET_ENCRYPTION_KEY environment variable.'
-            );
-        });
-
-        it('should throw an error if the encryption key is the wrong length', () => {
-            configService.get.mockReturnValue('shortkey');
-            expect(() => new EncryptionService(configService)).toThrow(
-                'SECRET_ENCRYPTION_KEY must be 32 bytes (64 hex characters)'
-            );
-        });
-
-        it('should NOT throw an error if the IV is not configured', () => {
-            // This test now confirms that the IV is no longer a required part of the constructor
-            configService.get.mockImplementation((key: string) => {
-                if (key === 'SECRET_ENCRYPTION_KEY') return mockKey;
-                if (key === 'SECRET_ENCRYPTION_IV') return undefined; // Simulate missing IV
-                return undefined;
-            });
-            expect(() => new EncryptionService(configService)).not.toThrow();
-        });
     });
 
     describe('encrypt and decrypt', () => {

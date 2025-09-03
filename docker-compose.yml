@@ -6,8 +6,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "${POSTGRES_PORT}:5432"
+    # ports:
+    #   - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -24,8 +24,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: ${COMPOSE_PROJECT_NAME}-redis-${ENVIRONMENT}
-    ports:
-      - "${REDIS_PORT}:6379"
+    # ports:
+    #   - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -45,14 +45,11 @@ services:
       dockerfile: Dockerfile
       target: ${BUILD_TARGET}
     container_name: ${COMPOSE_PROJECT_NAME}-app-${ENVIRONMENT}
-    ports:
-      - "${APP_PORT}:3000" 
     environment:
       NODE_ENV: ${ENVIRONMENT}
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
-      PORT: 3000
-      # Add other environment variables as needed
+      PORT: ${PORT}
     volumes:
       - .:/app:cached
       - node_modules_volume:/app/node_modules

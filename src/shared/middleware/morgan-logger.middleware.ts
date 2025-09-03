@@ -6,17 +6,21 @@ import { RequestWithCorrelation } from './correlation-id.middleware';
 
 @Injectable()
 export class MorganLoggerMiddleware implements NestMiddleware {
-    private morganMiddleware: any;
+    private morganInstance: any;
 
     constructor(private readonly logger: LoggerService) {
-        // Custom format for Morgan with correlation ID and user context
         morgan.format('custom', (tokens, req: RequestWithCorrelation, res) => {
-            const userContext = req.user as any;
             const status = parseInt(tokens.status(req, res) || '500');
+
+            if (status >= 500) {
+                return '';
+            }
+
+            const userContext = req.user as any;
             const responseTime = parseFloat(tokens['response-time'](req, res) || '0');
 
             const logContext = {
-                module: 'http',
+                module: 'HTTP',
                 method: tokens.method(req, res),
                 url: tokens.url(req, res),
                 statusCode: status,
@@ -25,11 +29,11 @@ export class MorganLoggerMiddleware implements NestMiddleware {
                 userId: userContext?.sub || userContext?.id,
                 organizationId: userContext?.organizationId,
                 correlationId: req.correlationId,
-                ip: req.ip,
-                contentLength: tokens.res(req, res, 'content-length'),
+                ip: req.ip || req.socket?.remoteAddress,
+                contentLength: tokens.res(req, res, 'content-length') || '0',
+                referrer: tokens.referrer(req, res) || '-',
             };
 
-            // Use our custom logger instead of console
             const message = `${logContext.method} ${logContext.url} - ${status} (${responseTime}ms)`;
 
             if (status >= 400) {
@@ -38,23 +42,15 @@ export class MorganLoggerMiddleware implements NestMiddleware {
                 this.logger.log(message, logContext);
             }
 
-            return ''; // Return empty string to prevent console output
+            return '';
         });
 
-        // Create Morgan middleware with custom format
-        this.morganMiddleware = morgan('custom', {
-            // Skip health check and favicon requests
-            skip: (req: Request) => {
-                return (
-                    req.url.includes('/health') ||
-                    req.url.includes('/favicon.ico') ||
-                    req.url.includes('/metrics')
-                );
-            },
+        this.morganInstance = morgan('custom', {
+            stream: { write: () => {} },
         });
     }
 
     use(req: Request, res: Response, next: NextFunction): void {
-        this.morganMiddleware(req, res, next);
+        this.morganInstance(req, res, next);
     }
 }

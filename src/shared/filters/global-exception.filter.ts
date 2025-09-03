@@ -110,6 +110,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         }
 
         const userContext = request.user as any;
+
         this.logger.logApiError(request.method, request.url, status, error.message, {
             userId: userContext?.sub || userContext?.id,
             organizationId: userContext?.organizationId,

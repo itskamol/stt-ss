@@ -109,15 +109,6 @@ export class LoggerService implements NestLoggerService, OnModuleDestroy {
         this[level](message, { ...context, correlationId });
     }
 
-    logSecurityEvent(event: string, data: any, context?: LogContext): void {
-        this.warn(`Security Event: ${event}`, {
-            module: 'security',
-            securityEvent: event,
-            eventData: data,
-            ...context,
-        });
-    }
-
     logUserAction(userId: string, action: string, details?: any): void {
         this.log(`User action: ${action}`, {
             module: 'user-action',
@@ -148,14 +139,5 @@ export class LoggerService implements NestLoggerService, OnModuleDestroy {
             errorContext.trace,
             errorContext
         );
-    }
-
-    logPerformance(operation: string, duration: number, context?: LogContext): void {
-        this.log(`Performance: ${operation} completed in ${duration}ms`, {
-            module: 'performance',
-            operation,
-            duration,
-            ...context,
-        });
     }
 }

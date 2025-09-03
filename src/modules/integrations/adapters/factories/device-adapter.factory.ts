@@ -55,14 +55,6 @@ export class DeviceAdapterFactory {
     }
 
     /**
-     * Get adapter based on environment configuration
-     */
-    createAdapterFromConfig(): IDeviceAdapter {
-        const adapterType = this.getAdapterTypeFromConfig();
-        return this.createAdapter(adapterType);
-    }
-
-    /**
      * Get available adapter types
      */
     getAvailableAdapterTypes(): AdapterType[] {
@@ -95,36 +87,5 @@ export class DeviceAdapterFactory {
      */
     getAllAdapterHealthStatuses(): AdapterHealthStatus[] {
         return Array.from(this.adapterHealthStatus.values());
-    }
-
-
-    // ==================== Private Methods ====================
-
-    private getAdapterTypeFromConfig(): AdapterType {
-        const configType = this.configService.get<string>('DEVICE_ADAPTER_TYPE', 'hikvision');
-
-        if (this.isAdapterTypeSupported(configType as AdapterType)) {
-            return configType as AdapterType;
-        }
-
-        this.logger.warn('Configured adapter type not supported, falling back to hikvision', {
-            configType,
-        });
-        return 'hikvision';
-    }
-
-    private updateHealthStatus(
-        type: AdapterType,
-        healthy: boolean,
-        error?: string,
-        responseTime?: number
-    ): void {
-        this.adapterHealthStatus.set(type, {
-            type,
-            healthy,
-            lastCheck: new Date(),
-            error,
-            responseTime,
-        });
     }
 }

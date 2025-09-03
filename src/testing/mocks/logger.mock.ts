@@ -8,7 +8,6 @@ export const mockLoggerService = {
     verbose: jest.fn(),
     setContext: jest.fn(),
     logUserAction: jest.fn(),
-    logSecurityEvent: jest.fn(),
 };
 
 export const MockLoggerProvider = {

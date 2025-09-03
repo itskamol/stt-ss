@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from '@/core/logger/logger.module';
 import { DatabaseModule } from '@/core/database/database.module';
 import { EncryptionService } from '@/shared/services/encryption.service';
@@ -13,6 +12,7 @@ import {
     StubNotificationAdapter,
 } from './implementations';
 import { FileController } from '../controllers/file.controller';
+import { ConfigModule } from '@/core/config/config.module';
 
 /**
  * Hikvision qurilmasi bilan ishlash uchun zarur bo'lgan
@@ -39,24 +39,23 @@ import { FileController } from '../controllers/file.controller';
         },
 
         // Notification adapter
-        {
-            provide: 'INotificationAdapter',
-            useClass: StubNotificationAdapter,
-        },
+        // {
+        //     provide: 'INotificationAdapter',
+        //     useClass: StubNotificationAdapter,
+        // },
 
-        // Matching adapter
-        {
-            provide: 'IMatchingAdapter',
-            useClass: StubMatchingAdapter,
-        },
+        // // Matching adapter
+        // {
+        //     provide: 'IMatchingAdapter',
+        //     useClass: StubMatchingAdapter,
+        // },
     ],
     exports: [
         HikvisionHttpClient,
-
         HikvisionAdapter,
         'IStorageAdapter',
-        'INotificationAdapter',
-        'IMatchingAdapter',
+        // 'INotificationAdapter',
+        // 'IMatchingAdapter',
     ],
 })
 export class AdapterModule {}

@@ -11,13 +11,17 @@ import {
 } from '../../interfaces';
 import { LoggerService } from '@/core/logger';
 import { existsSync } from 'fs';
+import { ConfigService } from '@/core/config/config.service';
 
 @Injectable()
 export class LocalStorageAdapter implements IStorageAdapter {
     private readonly uploadDir: string;
 
-    constructor(private readonly logger: LoggerService) {
-        this.uploadDir = process.env.UPLOAD_DIR || './uploads';
+    constructor(
+        private readonly logger: LoggerService,
+        private readonly configService: ConfigService
+    ) {
+        this.uploadDir = this.configService.uploadDir;
         this.ensureUploadDirectory();
     }
 

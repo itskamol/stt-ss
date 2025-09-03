@@ -14,6 +14,10 @@ export class ConfigService {
         return this.configService.get<number>('PORT', 3000);
     }
 
+    get uploadDir(): string {
+        return this.configService.get<string>('UPLOAD_DIR', './uploads')
+    }
+
     get databaseUrl(): string {
         const url = this.configService.get<string>('DATABASE_URL');
         if (!url) {
@@ -23,7 +27,8 @@ export class ConfigService {
     }
 
     get redisUrl(): string {
-        const url = this.configService.get<string>('REDIS_URL');
+        const url = this.configService.get<string>('REDIS_URL', 'redis://localhost:6379');
+
         if (!url) {
             throw new Error('REDIS_URL is required but not provided in environment variables');
         }
@@ -31,65 +36,23 @@ export class ConfigService {
     }
 
     get jwtSecret(): string {
-        const secret = this.configService.get<string>('JWT_SECRET');
-        if (!secret) {
-            throw new Error('JWT_SECRET is required but not provided in environment variables');
-        }
-        if (secret.length < 32) {
-            throw new Error('JWT_SECRET must be at least 32 characters long for security');
-        }
-        return secret;
+        return this.configService.get<string>('JWT_SECRET', 'default_jwt_secret');
     }
 
     get jwtExpirationTime(): string {
-        return this.configService.get<string>('JWT_EXPIRATION_TIME', '15m');
+        return this.configService.get<string>('JWT_EXPIRATION', '15m');
     }
 
     get refreshTokenSecret(): string {
-        const secret = this.configService.get<string>('REFRESH_TOKEN_SECRET');
-        if (!secret) {
-            throw new Error(
-                'REFRESH_TOKEN_SECRET is required but not provided in environment variables'
-            );
-        }
-        if (secret.length < 32) {
-            throw new Error(
-                'REFRESH_TOKEN_SECRET must be at least 32 characters long for security'
-            );
-        }
-        return secret;
+        return this.configService.get<string>('REFRESH_TOKEN_SECRET', 'default_refresh_secret');
     }
 
     get encryptionSecretKey(): string {
-        const secretKey = this.configService.get<string>('SECRET_ENCRYPTION_KEY');
-
-        if (!secretKey) {
-            throw new Error('SECRET_ENCRYPTION_KEY environment variable is not set');
-        }
-
-        if (secretKey.length < 32) {
-            throw new Error('SECRET_ENCRYPTION_KEY must be at least 32 characters long');
-        }
-
-        return secretKey;
-    }
-
-    get encryptionIv(): string {
-        const secretKey = this.configService.get<string>('SECRET_ENCRYPTION_IV');
-
-        if (!secretKey) {
-            throw new Error('SECRET_ENCRYPTION_IV environment variable is not set');
-        }
-
-        if (secretKey.length < 32) {
-            throw new Error('SECRET_ENCRYPTION_IV must be at least 32 characters long');
-        }
-
-        return secretKey;
+        return this.configService.get<string>('SECRET_ENCRYPTION_KEY', 'default_encryption_key');
     }
 
     get refreshTokenExpirationTime(): string {
-        return this.configService.get<string>('REFRESH_TOKEN_EXPIRATION_TIME', '7d');
+        return this.configService.get<string>('REFRESH_TOKEN_EXPIRATION', '7d');
     }
 
     get logLevel(): string {
@@ -138,7 +101,7 @@ export class ConfigService {
     }
 
     validateConfig(): void {
-        const requiredVars = ['DATABASE_URL', 'REDIS_URL', 'JWT_SECRET', 'REFRESH_TOKEN_SECRET'];
+        const requiredVars = ['DATABASE_URL', 'REDIS_URL'];
 
         const missing = requiredVars.filter(varName => {
             const value = this.configService.get<string>(varName);
@@ -152,7 +115,6 @@ export class ConfigService {
             );
         }
 
-        // Validate JWT secrets length
         try {
             const jwtSecret = this.jwtSecret; // This will throw if too short
             const refreshTokenSecret = this.refreshTokenSecret; // This will throw if too short

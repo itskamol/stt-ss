@@ -28,7 +28,6 @@ describe('UserService', () => {
 
     const mockLogger = {
         logUserAction: jest.fn(),
-        logSecurityEvent: jest.fn(),
     };
 
     const mockUser = {
@@ -48,11 +47,7 @@ describe('UserService', () => {
                 {
                     provide: UserRepository,
                     useValue: mockUserRepository,
-                },
-                {
-                    provide: LoggerService,
-                    useValue: mockLogger,
-                },
+                }
             ],
         }).compile();
 
