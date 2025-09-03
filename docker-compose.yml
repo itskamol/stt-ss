@@ -43,7 +43,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: ${BUILD_TARGET}
+      target: development
     container_name: ${COMPOSE_PROJECT_NAME}-app-${ENVIRONMENT}
     environment:
       NODE_ENV: ${ENVIRONMENT}
