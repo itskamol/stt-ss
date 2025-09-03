@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-ENVIRONMENT=${1:-docker}
+ENVIRONMENT=${1:-prod}
 COMMAND=${2:-up}
 
 # Print usage function
@@ -46,7 +46,7 @@ if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
 fi
 
 # Check if environment file exists
-ENV_FILE="config/environments/${ENVIRONMENT}.env"
+ENV_FILE="config/environments/.env.${ENVIRONMENT}"
 if [ ! -f "$ENV_FILE" ]; then
     echo -e "${RED}❌ Environment file $ENV_FILE not found!${NC}"
     echo -e "${YELLOW}Available environments: dev, prod, staging${NC}"

@@ -8,16 +8,11 @@ import { ConfigService } from './config.service';
 function getEnvFilePath(): string {
     const nodeEnv = process.env.NODE_ENV || 'development';
 
-    // Environment file mapping
     const envFileMap: Record<string, string> = {
-        development: 'config/environments/local.env',
-        production: 'config/environments/prod.env',
-        staging: 'config/environments/staging.env',
-        test: 'config/environments/local.env',
-        docker: 'config/environments/docker.env', // Docker development
+        prod: 'config/environments/.env.prod',
     };
 
-    const envFile = envFileMap[nodeEnv] || 'config/environments/local.env';
+    const envFile = envFileMap[nodeEnv] || 'config/environments/.env';
 
     return envFile;
 }
