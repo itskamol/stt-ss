@@ -43,7 +43,7 @@ lerna-debug.log*
 
 # Environment files (keep only example)
 config/environments/*.env
-!config/environments/.env.example
+config/environments/.env.prod
 
 # Secrets and sensitive files
 secrets/
