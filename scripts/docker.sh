@@ -12,8 +12,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-ENVIRONMENT=${1:-prod}
-COMMAND=${2:-up}
+ENVIRONMENT='prod'
+COMMAND=${1:-up}
 
 # Print usage function
 print_usage() {
@@ -32,6 +32,7 @@ print_usage() {
     echo "  logs      View logs"
     echo "  restart   Restart services"
     echo "  ps        Show container status"
+    echo "  migrate   Run database migrations"
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
     echo "  $0 dev up        # Start development environment"
@@ -87,9 +88,13 @@ case $COMMAND in
     "ps")
         docker compose --env-file $ENV_FILE ps
         ;;
+    "migrate")
+        echo -e "${YELLOW}⏳ Running database migrations...${NC}"
+        docker compose --env-file $ENV_FILE --profile migration up migration --build
+        ;;
     *)
         echo -e "${RED}❌ Unknown command: $COMMAND${NC}"
-        echo -e "${YELLOW}Available commands: up, down, build, logs, restart, ps${NC}"
+        echo -e "${YELLOW}Available commands: up, down, build, logs, restart, ps, migrate${NC}"
         exit 1
         ;;
 esac

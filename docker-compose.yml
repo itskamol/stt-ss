@@ -39,6 +39,28 @@ services:
       retries: 3
       disable: false
 
+  migration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: ${COMPOSE_PROJECT_NAME}-migration-${ENVIRONMENT}
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - .:/app:cached
+      - node_modules_volume:/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - main-network
+    command: ["sh", "-c", "pnpm run db:generate && pnpm run db:migrate"]
+    init: true
+    restart: "no"
+    profiles:
+      - migration
+
   app:
     build:
       context: .
@@ -62,6 +84,7 @@ services:
       - main-network
     init: true
     restart: unless-stopped
+    command: ["sh", "-c", "pnpm run db:generate && pnpm run start:dev"]
 
 volumes:
   postgres_data:
