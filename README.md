@@ -18,7 +18,7 @@ Multi-organization attendance tracking and access control system built with Nest
 - **Backend**: NestJS with TypeScript
 - **Database**: PostgreSQL with Prisma ORM
 - **Cache/Queue**: Redis with BullMQ
-- **Storage**: MinIO (S3-compatible)
+- **Storage**: Local Storage
 - **Authentication**: JWT with Passport.js
 - **Testing**: Jest with Testcontainers
 
