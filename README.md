@@ -1,159 +1,235 @@
-# Sector Staff
+# Staf# Staff Control System
 
-Multi-organization attendance tracking and access control system built with NestJS.
+<div align="center">
 
-## Features
+**Zamonaviy hodimlar nazorat tizimi - Employee Monitoring & Management
+Platform**
 
-- **Multi-Organization Support**: Complete data isolation between organizations
-- **Hierarchical Structure**: Organization → Branch → Department → Employee
-- **Role-Based Access Control**: SUPER_ADMIN, ORG_ADMIN, BRANCH_MANAGER, EMPLOYEE
-- **Device Integration**: Support for cameras, card readers, fingerprint scanners
-- **Guest Management**: Visitor workflows with approval processes
-- **Attendance Tracking**: Automated attendance recording from device events
-- **Asynchronous Processing**: Background job processing with BullMQ
-- **Audit Logging**: Comprehensive audit trails for compliance
+[![NestJS](https://img.shields.io/badge/nestjs-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/typescript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/postgresql-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![NX](https://img.shields.io/badge/nx-143055?style=for-the-badge&logo=nx&logoColor=white)](https://nx.dev/)
 
-## Technology Stack
+</div>
 
-- **Backend**: NestJS with TypeScript
-- **Database**: PostgreSQL with Prisma ORM
-- **Cache/Queue**: Redis with BullMQ
-- **Storage**: MinIO (S3-compatible)
-- **Authentication**: JWT with Passport.js
-- **Testing**: Jest with Testcontainers
+## 📋 Loyiha haqida
 
-## Getting Started
+Staff Control System - bu zamonaviy korxona va tashkilotlar uchun mo'ljallangan
+keng qamrovli hodimlar nazorat va boshqaruv tizimidir. Tizim quyidagi asosiy
+funksiyalarni taqdim etadi:
 
-### Prerequisites
+### 🎯 Asosiy imkoniyatlar
+
+- **Hodimlar boshqaruvi** - To'liq ma'lumotlar bazasi va profil boshqaruvi
+- **Tashkilot strukturasi** - Bo'limlar va ierarxiyalar boshqaruvi
+- **Kompyuter monitoring** - Ishchi stansiyalari faoliyatini kuzatish
+- **Tashrif nazorati** - Mehmonlar ro'yxati va kirish nazorati
+- **Hisobotlar tizimi** - Batafsil analitika va statistikalar
+- **Agent API** - C# agent orqali real-time ma'lumotlar yig'ish
+
+### 🏗️ Texnologik stek
+
+- **Backend**: NestJS v11+ (TypeScript)
+- **Ma'lumotlar bazasi**: PostgreSQL + Prisma ORM v6.14
+- **Monorepo**: Nx workspace
+- **Paket menejeri**: pnpm
+- **Autentifikatsiya**: JWT + Role-based access control
+- **API hujjatlari**: Swagger/OpenAPI
+
+## 🚀 Tezkor boshlash
+
+### Talablar
 
 - Node.js 18+
-- Docker and Docker Compose
-- PostgreSQL 15+
-- Redis 7+
+- PostgreSQL 14+
+- pnpm 8+
 
-### Installation
+### O'rnatish
 
-1. Clone the repository:
+1. **Repository klonlash**:
+
 ```bash
 git clone <repository-url>
-cd sector-staff-v2
+cd staff
 ```
 
-2. Install dependencies:
+2. **Bog'liqliklarni o'rnatish**:
+
 ```bash
-npm install
+pnpm install
 ```
 
-3. Copy environment variables:
+3. **Muhit o'zgaruvchilarini sozlash**:
+
 ```bash
 cp .env.example .env
+# .env faylida ma'lumotlar bazasi ulanishini sozlang
 ```
 
-4. Start infrastructure services:
+4. **Ma'lumotlar bazasini sozlash**:
+
 ```bash
+# Migratsiyalarni bajarish
+npx prisma migrate dev
+
+# Boshlang'ich ma'lumotlarni yuklash
+npx prisma db seed
+```
+
+## 🛠️ Ishga tushirish
+
+### Barcha xizmatlarni ishga tushirish
+
+```bash
+# Dashboard API (port 3000)
+npx nx serve dashboard-api
+
+# Agent API (port 3001)
+npx nx serve agent-api
+```
+
+### Shared kutubxonalarni build qilish
+
+```bash
+npx nx build shared-auth
+npx nx build shared-database
+npx nx build shared-utils
+```
+
+### Ma'lumotlar bazasi boshqaruvi
+
+```bash
+# Prisma Studio ochish
+npx prisma studio
+
+# Yangi migratsiya yaratish
+npx prisma migrate dev --name migration_name
+
+# Ma'lumotlar bazasini reset qilish (faqat development)
+npx prisma migrate reset
+```
+
+## 📁 Loyiha strukturasi
+
+```
+staff/
+├── apps/
+│   ├── dashboard-api/          # Asosiy web API (port 3000)
+│   │   ├── src/
+│   │   │   ├── modules/        # Biznes modullar
+│   │   │   │   ├── auth/       # Autentifikatsiya
+│   │   │   │   ├── user/       # Foydalanuvchilar
+│   │   │   │   ├── organization/ # Tashkilotlar
+│   │   │   │   ├── department/ # Bo'limlar
+│   │   │   │   ├── employee/   # Hodimlar
+│   │   │   │   ├── visitor/    # Tashrif buyuruvchilar
+│   │   │   │   └── reports/    # Hisobotlar
+│   │   │   └── core/           # Asosiy xizmatlar
+│   │   └── ...
+│   ├── agent-api/              # Agent API (port 3001)
+│   │   ├── src/
+│   │   │   ├── modules/
+│   │   │   │   ├── agent/      # Agent boshqaruvi
+│   │   │   │   ├── data-processing/ # Ma'lumotlarni qayta ishlash
+│   │   │   │   ├── hikvision/  # Hikvision integratsiyasi
+│   │   │   │   └── security/   # Xavfsizlik
+│   │   │   └── ...
+│   ├── dashboard-api-e2e/      # E2E testlar
+│   └── agent-api-e2e/          # E2E testlar
+├── shared/
+│   ├── auth/                   # Umumiy autentifikatsiya
+│   ├── database/               # Prisma schema va migratsiyalar
+│   │   ├── prisma/
+│   │   │   ├── schema.prisma   # Ma'lumotlar bazasi sxemasi
+│   │   │   ├── migrations/     # Migratsiya fayllar
+│   │   │   └── seed.ts         # Boshlang'ich ma'lumotlar
+│   │   └── src/
+│   └── utils/                  # Umumiy utilities
+├── staff-control-system/       # Frontend (kelajakda)
+└── docs/                       # Hujjatlar
+```
+
+## 🗄️ Ma'lumotlar bazasi sxemasi
+
+### Asosiy modellar
+
+- **User** - Tizim foydalanuvchilari
+- **Organization** - Tashkilotlar
+- **Department** - Bo'limlar
+- **Employee** - Hodimlar
+- **Visitor** - Tashrif buyuruvchilar
+- **Computer** - Ishchi stansiyalari
+- **ComputerUser** - Kompyuter foydalanuvchilari
+- **UsersOnComputers** - Foydalanuvchi-kompyuter bog'lanishlari
+
+### Monitoring modellari
+
+- **ActiveWindow** - Faol oynalar tarixi
+- **VisitedSite** - Tashrif buyurilgan saytlar
+- **Screenshot** - Ekran rasmlari
+- **UserSession** - Foydalanuvchi seanslari
+- **Action** - Hodimlar faoliyati
+
+## 🔧 API Endpoints
+
+### Dashboard API (port 3000)
+
+- `POST /auth/login` - Tizimga kirish
+- `GET /users` - Foydalanuvchilar ro'yxati
+- `GET /organizations` - Tashkilotlar
+- `GET /departments` - Bo'limlar
+- `GET /employees` - Hodimlar
+- `GET /visitors` - Tashrif buyuruvchilar
+- `GET /reports/*` - Turli hisobotlar
+
+### Agent API (port 3001)
+
+- `POST /agent/register` - Agent ro'yxatdan o'tkazish
+- `POST /data-processing/job` - Ma'lumotlarni qayta ishlash
+- `GET /data-processing/queue` - Navbat holati
+- `POST /hikvision/events` - Hikvision hodisalari
+
+## 🧪 Test qilish
+
+```bash
+# Unit testlar
+npx nx test dashboard-api
+npx nx test agent-api
+
+# E2E testlar
+npx nx e2e dashboard-api-e2e
+npx nx e2e agent-api-e2e
+
+# Barcha testlar
+npx nx run-many --target=test
+```
+
+## 📊 Monitoring va Logging
+
+Tizimda quyidagi monitoring vositalari mavjud:
+
+- **Health checks** - Xizmatlar sog'ligi nazorati
+- **Metrics** - Performance ko'rsatkichlari
+- **Logging** - Batafsil loglar
+- **Queue monitoring** - Navbat holati kuzatuvi
+
+## 🔒 Xavfsizlik
+
+- JWT tokenlar orqali autentifikatsiya
+- Role-based access control (RBAC)
+- API rate limiting
+- Ma'lumotlar validatsiyasi
+- SQL injection himoyasi
+- CORS sozlamalari
+
+## 🚀 Production deploy
+
+```bash
+# Production build
+npx nx build dashboard-api --prod
+npx nx build agent-api --prod
+
+# Docker orqali ishga tushirish
 docker-compose up -d
 ```
-
-5. Generate Prisma client and run migrations:
-```bash
-npm run db:generate
-npm run db:migrate
-```
-
-6. Start the development server:
-```bash
-npm run start:dev
-```
-
-The API will be available at `http://localhost:3000/api/v1`
-
-### Environment Variables
-
-See `.env.example` for all required environment variables.
-
-## Project Structure
-
-```
-src/
-├── app/                     # Main application module
-├── core/                    # Core infrastructure modules
-│   ├── config/              # Configuration management
-│   ├── database/            # Prisma service
-│   ├── logger/              # Logging service
-│   └── queue/               # BullMQ configuration
-├── shared/                  # Shared utilities
-│   ├── decorators/          # Custom decorators
-│   ├── dto/                 # Common DTOs
-│   ├── enums/               # Enumerations
-│   ├── guards/              # Security guards
-│   ├── interfaces/          # Type definitions
-│   └── utils/               # Helper functions
-├── modules/                 # Business modules
-│   ├── auth/                # Authentication
-│   ├── organization/        # Organization management
-│   ├── user/                # User management
-│   ├── branch/              # Branch management
-│   ├── department/          # Department management
-│   ├── employee/            # Employee management
-│   ├── device/              # Device management
-│   ├── guest/               # Guest management
-│   ├── attendance/          # Attendance tracking
-│   ├── reporting/           # Report generation
-│   ├── audit/               # Audit logging
-│   └── integration/         # External adapters
-└── main.ts                  # Application entry point
-```
-
-## API Documentation
-
-The API follows RESTful conventions with the following base URL: `/api/v1`
-
-### Health Check
-- `GET /` - API status
-- `GET /health` - Health check endpoint
-
-## Testing
-
-```bash
-# Unit tests
-npm run test
-
-# Integration tests
-npm run test:e2e
-
-# Test coverage
-npm run test:cov
-```
-
-## Development
-
-```bash
-# Start in development mode
-npm run start:dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm run start:prod
-```
-
-## Database
-
-```bash
-# Generate Prisma client
-npm run db:generate
-
-# Create and apply migration
-npm run db:migrate
-
-# Deploy migrations (production)
-npm run db:deploy
-
-# Seed database
-npm run db:seed
-```
-
-## License
-
-This project is licensed under the UNLICENSED License.

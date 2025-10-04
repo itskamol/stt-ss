@@ -1,0 +1,26 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@app/shared/auth": ["shared/auth/src/index.ts"],
+      "@app/shared/database": ["shared/database/src/index.ts"],
+      "@app/shared/utils": ["shared/utils/src/index.ts"],
+      "@app/shared/common": ["shared/common/src/index.ts"],
+      "@app/shared/repository": ["shared/repository/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

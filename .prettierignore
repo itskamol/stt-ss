@@ -1,7 +1,12 @@
 # Add files here to ignore them from prettier formatting
+/dist
+/coverage
+/.nx/cache
+/.nx/workspace-data
+
+# Add files here to ignore them from prettier formatting
 
 # Build outputs
-/dist
 /build
 /out
 /tmp
@@ -74,18 +79,6 @@ Thumbs.db
 Dockerfile*
 docker-compose*.yml
 .dockerignore
-
-# Config files that shouldn't be formatted
-*.config.js
-*.config.mjs
-*.config.ts
-webpack.config.js
-jest.config.js
-jest.config.ts
-nx.json
-
-# Markdown files (optional - remove if you want to format markdown)
-*.md
 
 # Lock files and manifests
 *.lock
