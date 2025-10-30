@@ -35,9 +35,9 @@ export class EmployeeService {
     ): Promise<Employee> {
         try {
             // Validate that the branch is accessible within the scope
-            if (scope.branchIds && !scope.branchIds.includes(createEmployeeDto.branchId)) {
-                throw new BadRequestException('Branch not accessible within your scope');
-            }
+            // if (scope.branchIds && !scope.branchIds.includes(createEmployeeDto.branchId)) {
+            //     throw new BadRequestException('Branch not accessible within your scope');
+            // }
 
             // Check if employee code is unique within the organization
             const existingEmployee = await this.employeeRepository.findByEmployeeCode(

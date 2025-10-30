@@ -30,7 +30,7 @@ import {
     HikvisionScheduleManager,
     HikvisionSystemManager,
 } from './managers';
-import { ISAPIXMLResponse } from './types';
+import { FaceAddRequest, ISAPIXMLResponse } from './types';
 
 @Injectable()
 export class HikvisionAdapter implements IDeviceAdapter {
@@ -738,12 +738,7 @@ export class HikvisionAdapter implements IDeviceAdapter {
      */
     async addFacePictureWithImage(
         device: Device,
-        faceData: {
-            faceLibType: string;
-            FDID: string;
-            name: string;
-            employeeNo?: string;
-        },
+        faceData: FaceAddRequest,
         imageBuffer: Buffer
     ) {
         return await this.faceLibrary.addFacePicture(device, faceData, imageBuffer);

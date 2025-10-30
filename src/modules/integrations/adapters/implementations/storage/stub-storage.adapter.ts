@@ -67,6 +67,13 @@ export class StubStorageAdapter implements IStorageAdapter {
         };
     }
 
+    async downloadFileAsBuffer(key: string): Promise<Buffer> {
+        this.logger.log('Downloading file as buffer (stub)', { key });
+
+        // Return a mock buffer
+        return Buffer.from('Mock file content');
+    }
+
     async deleteFile(key: string): Promise<void> {
         this.logger.log('Deleting file (stub)', { key });
 

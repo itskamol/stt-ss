@@ -18,6 +18,7 @@ import { HikvisionAdapter } from '@/modules/integrations/adapters';
 import { DeviceController } from './controllers/device.controller';
 import { PaginationService } from '@/shared/services/pagination.service';
 import { ConfigModule } from '@/core/config/config.module';
+import { LocalStorageAdapter } from '../integrations/adapters/implementations';
 
 @Module({
     imports: [DatabaseModule, LoggerModule, HttpModule, AdapterModule, ConfigModule],
@@ -35,7 +36,8 @@ import { ConfigModule } from '@/core/config/config.module';
         EncryptionService,
         XmlJsonService,
         HikvisionAdapter,
-        PaginationService
+        PaginationService,
+        LocalStorageAdapter
     ],
     exports: [
         DeviceService,

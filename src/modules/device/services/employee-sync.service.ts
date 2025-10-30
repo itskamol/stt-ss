@@ -12,7 +12,7 @@ export class EmployeeSyncService {
         private readonly prisma: PrismaService,
         private readonly logger: LoggerService,
         private readonly deviceRepository: DeviceRepository
-    ) {}
+    ) { }
 
     /**
      * Sync employees to a device
@@ -478,19 +478,12 @@ export class EmployeeSyncService {
      * Get employees with specific credential type for device sync
      */
     async getEmployeesWithCredentialType(
-        deviceId: string,
         credentialType: CredentialType,
         scope: DataScope
     ) {
-        const device = await this.deviceRepository.findById(deviceId, scope);
-        if (!device) {
-            throw new Error('Device not found');
-        }
-
         const employees = await this.prisma.employee.findMany({
             where: {
                 organizationId: scope.organizationId,
-                ...(scope.branchIds && { branchId: { in: scope.branchIds } }),
                 isActive: true,
                 EmployeeCredential: {
                     some: {
@@ -517,8 +510,6 @@ export class EmployeeSyncService {
         });
 
         return {
-            deviceId,
-            deviceName: device.name,
             credentialType,
             totalEmployees: employees.length,
             employees: employees.map(emp => ({

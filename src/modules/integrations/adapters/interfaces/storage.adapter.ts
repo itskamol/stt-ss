@@ -51,6 +51,8 @@ export interface IStorageAdapter {
      */
     downloadFile(key: string): Promise<DownloadResult>;
 
+    downloadFileAsBuffer(key: string): Promise<Buffer>;
+
     /**
      * Delete a file
      */

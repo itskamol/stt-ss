@@ -1,6 +1,5 @@
 import { Device, DeviceProtocol, DeviceStatus, DeviceType, EventType } from '@prisma/client';
-import { DeviceOperationContext } from '@/modules/device/device-adapter.strategy';
-import { ISAPIXMLResponse } from '../implementations';
+import { FaceAddRequest, ISAPIXMLResponse } from '../implementations';
 
 export interface DeviceDiscoveryConfig {
     protocol: DeviceProtocol;
@@ -63,14 +62,14 @@ export interface DeviceAccessRule {
 
 export interface DeviceCommand {
     command:
-        | 'unlock_door'
-        | 'lock_door'
-        | 'reboot'
-        | 'sync_users'
-        | 'update_firmware'
-        | 'configure_webhook'
-        | 'remove_webhook'
-        | 'test_webhook';
+    | 'unlock_door'
+    | 'lock_door'
+    | 'reboot'
+    | 'sync_users'
+    | 'update_firmware'
+    | 'configure_webhook'
+    | 'remove_webhook'
+    | 'test_webhook';
     parameters?: Record<string, any>;
     timeout?: number; // seconds
 }
@@ -199,6 +198,8 @@ export interface IDeviceAdapter {
 
     deleteWebhook(device: Device, webhookId: string): Promise<void>;
     deleteWebhooks(device: Device): Promise<void>;
+    
+    addFacePictureWithImage(device: Device, faceData: FaceAddRequest, imageBuffer: Buffer): Promise<any>;
 
     configureEventHost(
         device: Device,

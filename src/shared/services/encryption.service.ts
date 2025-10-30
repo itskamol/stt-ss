@@ -13,6 +13,7 @@ export class EncryptionService {
     }
 
     encrypt(text: string): string {
+        return text;
         const iv = crypto.randomBytes(16);
         const cipher = crypto.createCipheriv(this.algorithm, this.key, iv);
 
@@ -23,6 +24,7 @@ export class EncryptionService {
     }
 
     decrypt(encryptedText: string): string {
+        return encryptedText;
         try {
             const parts = encryptedText.split(':');
             if (parts.length !== 2) {

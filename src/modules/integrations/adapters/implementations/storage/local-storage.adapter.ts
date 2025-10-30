@@ -118,6 +118,21 @@ export class LocalStorageAdapter implements IStorageAdapter {
         }
     }
 
+    async downloadFileAsBuffer(key: string): Promise<Buffer> {
+        this.logger.log('Downloading file as buffer (local)', { key });
+        try {
+            const filePath = this.getFilePath(key);
+            const buffer = await readFile(filePath);
+            return buffer;
+        } catch (error) {
+            this.logger.error('Failed to download file as buffer', error.trace, {
+                key,
+                error: error.message,
+            });
+            throw new Error(`File not found: ${key}`);
+        }
+    }
+
     async deleteFile(key: string): Promise<void> {
         this.logger.log('Deleting file (local)', { key });
 
